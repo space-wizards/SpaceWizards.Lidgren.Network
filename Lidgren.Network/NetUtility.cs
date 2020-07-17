@@ -50,8 +50,8 @@ namespace Lidgren.Network
 		/// </summary>
 		public delegate void ResolveAddressCallback(NetAddress adr);
 
-		/// <summary>
-		/// Get IPv4 endpoint from notation (xxx.xxx.xxx.xxx) or hostname and port number (asynchronous version)
+        /// <summary>
+		/// Get IPv4 or IPv6 address from notation (xxx.xxx.xxx.xxx or xxxx:xxxx:...:xxxx) or hostname (asynchronous version)
 		/// </summary>
 		public static void ResolveAsync(string ipOrHost, int port, ResolveEndPointCallback callback)
 		{
@@ -73,8 +73,8 @@ namespace Lidgren.Network
         	});
         }
 
-		/// <summary>
-		/// Get IPv4 endpoint from notation (xxx.xxx.xxx.xxx) or hostname and port number
+        /// <summary>
+		/// Get IPv4 or IPv6 address from notation (xxx.xxx.xxx.xxx or xxxx:xxxx:...:xxxx) or hostname
 		/// </summary>
 		public static NetEndPoint Resolve(string ipOrHost, int port)
 		{
@@ -96,15 +96,15 @@ namespace Lidgren.Network
 		}
 
 		/// <summary>
-		/// Get IPv4 address from notation (xxx.xxx.xxx.xxx) or hostname (asynchronous version)
+		/// Get IPv4 or IPv6 address from notation (xxx.xxx.xxx.xxx or xxxx:xxxx:...:xxxx) or hostname (asynchronous version)
 		/// </summary>
 		public static void ResolveAsync(string ipOrHost, ResolveAddressCallback callback)
 		{
 
 		}
 
-		/// <summary>
-		/// Get IPv4 address from notation (xxx.xxx.xxx.xxx) or hostname (asynchronous version)
+        /// <summary>
+		/// Get IPv4 or IPv6 address from notation (xxx.xxx.xxx.xxx or xxxx:xxxx:...:xxxx) or hostname (asynchronous version)
 		/// </summary>
 		public static void ResolveAsync(string ipOrHost, AddressFamily? allowedFamily, ResolveAddressCallback callback)
 		{
