@@ -5,23 +5,8 @@ using NUnit.Framework;
 namespace UnitTests
 {
     [TestFixture]
-    public class EncryptionTests
+    public class EncryptionTests : PeerTestBase
     {
-        private NetPeer _peer;
-
-        [OneTimeSetUp]
-        public void Setup()
-        {
-            _peer = new NetPeer(new NetPeerConfiguration("unittests"));
-            _peer.Start();
-        }
-
-        [OneTimeTearDown]
-        public void TearDown()
-        {
-            _peer.Shutdown("Done");
-        }
-
         [Test]
         [TestCase(typeof(NetXorEncryption))]
         [TestCase(typeof(NetXtea))]
@@ -31,12 +16,9 @@ namespace UnitTests
         [TestCase(typeof(NetTripleDESEncryption))]
         public void TestAlgorithms(Type encryptionType)
         {
-            var peer = new NetPeer(new NetPeerConfiguration("unittests"));
-            peer.Start();
+            var algo = (NetEncryption) Activator.CreateInstance(encryptionType, Peer, "TopSecret");
 
-            var algo = (NetEncryption) Activator.CreateInstance(encryptionType, peer, "TopSecret");
-
-            NetOutgoingMessage om = peer.CreateMessage();
+            NetOutgoingMessage om = Peer.CreateMessage();
             om.Write("Hallon");
             om.Write(42);
             om.Write(5, 5);
@@ -46,7 +28,7 @@ namespace UnitTests
             om.Encrypt(algo);
 
             // convert to incoming message
-            NetIncomingMessage im = Program.CreateIncomingMessage(om.PeekDataBuffer(), om.LengthBits);
+            NetIncomingMessage im = CreateIncomingMessage(om.PeekDataBuffer(), om.LengthBits);
             if (im.Data == null || im.Data.Length == 0)
                 throw new NetException("bad im!");
 
@@ -65,8 +47,6 @@ namespace UnitTests
         [Test]
         public void TestNetSRP()
         {
-            var peer = new NetPeer(new NetPeerConfiguration("unittests"));
-            peer.Start();
             for (int i = 0; i < 100; i++)
             {
                 byte[] salt = NetSRP.CreateRandomSalt();
@@ -98,7 +78,7 @@ namespace UnitTests
 
                 Assert.That(Ss, Is.EqualTo(Sc), "SRP non matching session values!");
 
-                NetSRP.CreateEncryption(peer, Ss);
+                NetSRP.CreateEncryption(Peer, Ss);
             }
         }
     }

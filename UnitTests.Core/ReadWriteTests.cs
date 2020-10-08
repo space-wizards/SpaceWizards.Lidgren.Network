@@ -1,168 +1,219 @@
 ﻿using System;
-using System.Collections.Generic;
-
-using Lidgren.Network;
 using System.Reflection;
-using System.Text;
 using NUnit.Framework;
 
 namespace UnitTests
 {
-	public class ReadWriteTests
+	public class ReadWriteTests : PeerTestBase
 	{
-		/*
-		public static string ToBinaryString(ulong value, int bits, bool includeSpaces)
-		{
-			int numSpaces = Math.Max(0, (bits / 8) - 1);
-			if (includeSpaces == false)
-				numSpaces = 0;
+        [Test]
+        public void TestSmallMessage1()
+        {
+            var peer = Peer;
+            var msg = peer.CreateMessage();
 
-			StringBuilder bdr = new StringBuilder(bits + numSpaces);
-			for (int i = 0; i < bits + numSpaces; i++)
-				bdr.Append(' ');
+            msg.Write(false);
+            msg.Write(-3, 6);
+            msg.Write(true);
 
-			for (int i = 0; i < bits; i++)
-			{
-				ulong shifted = (ulong)(value >> i);
-				bool isSet = ((shifted & 1) != 0);
+            msg.WritePadBits();
 
-				int pos = bits - 1 - i;
-				if (includeSpaces)
-					pos += Math.Max(0, (pos / 8));
+            var data = msg.Data;
 
-				bdr[pos] = (isSet ? '1' : '0');
-			}
-			return bdr.ToString();
-		}
-		*/
+            var inc = CreateIncomingMessage(data, msg.LengthBits);
 
-		[Test]
-		public void Run()
-		{
-			var peer = new NetPeer(new NetPeerConfiguration("unittests"));
-			peer.Start();
-			NetOutgoingMessage msg = peer.CreateMessage();
+            var boolean = inc.ReadBoolean();
+            Assert.That(boolean, Is.False);
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalse
 
-			msg.Write(false);
-			msg.Write(-3, 6);
-			msg.Write(42);
-			msg.Write("duke of earl");
-			msg.Write((byte)43);
-			msg.Write((ushort)44);
-			msg.Write(UInt64.MaxValue, 64);
-			msg.Write(true);
+            var value = inc.ReadInt32(6);
+            Assert.That(value, Is.EqualTo(-3));
 
-			msg.WritePadBits();
+            boolean = inc.ReadBoolean();
+            Assert.That(boolean, Is.True);
 
-			int bcnt = 0;
+            inc.SkipPadBits();
+        }
 
-			msg.Write(567845.0f);
-			msg.WriteVariableInt32(2115998022);
-			msg.Write(46.0);
-			msg.Write((ushort)14, 9);
-			bcnt += msg.WriteVariableInt32(-47);
-			msg.WriteVariableInt32(470000);
-			msg.WriteVariableUInt32(48);
-			bcnt += msg.WriteVariableInt64(-49);
+        [Test]
+        public void TestSmallMessage2()
+        {
+            var peer = Peer;
+            var msg = peer.CreateMessage();
 
-			if (bcnt != 2)
-				throw new NetException("WriteVariable* wrote too many bytes!");
+            msg.Write(false);
+            msg.Write(-3, 6);
+            msg.Write(42);
+            msg.Write("duke of earl");
+            msg.Write((byte) 43);
+            msg.Write((ushort) 44);
+            msg.Write(UInt64.MaxValue, 64);
+            var c = msg.WriteVariableInt64(long.MaxValue >> 16);
+            msg.Write(true);
+            Assert.That(c, Is.EqualTo(7));
 
-			byte[] data = msg.Data;
+            msg.WritePadBits();
 
-			NetIncomingMessage inc = Program.CreateIncomingMessage(data, msg.LengthBits);
+            var data = msg.Data;
 
-			StringBuilder bdr = new StringBuilder();
+            var inc = CreateIncomingMessage(data, msg.LengthBits);
 
-			bdr.Append(inc.ReadBoolean());
-			bdr.Append(inc.ReadInt32(6));
-			bdr.Append(inc.ReadInt32());
+            var boolean = inc.ReadBoolean();
+            Assert.That(boolean, Is.False);
 
-			string strResult;
-			bool ok = inc.ReadString(out strResult);
-			if (ok == false)
-				throw new NetException("Read/write failure");
-			bdr.Append(strResult);
-			
-			bdr.Append(inc.ReadByte());
+            var value = inc.ReadInt32(6);
+            Assert.That(value, Is.EqualTo(-3));
 
-			if (inc.PeekUInt16() != (ushort)44)
-				throw new NetException("Read/write failure");
+            value = inc.ReadInt32();
+            Assert.That(value, Is.EqualTo(42));
 
-			bdr.Append(inc.ReadUInt16());
+            var ok = inc.ReadString(out var strResult);
+            Assert.That(ok, Is.True, "Read/write failure");
+            Assert.That(strResult, Is.EqualTo("duke of earl"));
 
-			if (inc.PeekUInt64(64) != UInt64.MaxValue)
-				throw new NetException("Read/write failure");
+            var byteVal = inc.ReadByte();
+            Assert.That(byteVal, Is.EqualTo(43));
 
-			bdr.Append(inc.ReadUInt64());
-			bdr.Append(inc.ReadBoolean());
-		
-			inc.SkipPadBits();
+            Assert.That(inc.ReadUInt16(), Is.EqualTo((ushort) 44), "Read/write failure");
 
-			bdr.Append(inc.ReadSingle());
-			bdr.Append(inc.ReadVariableInt32());
-			bdr.Append(inc.ReadDouble());
-			bdr.Append(inc.ReadUInt32(9));
-			bdr.Append(inc.ReadVariableInt32());
-			bdr.Append(inc.ReadVariableInt32());
-			bdr.Append(inc.ReadVariableUInt32());
-			bdr.Append(inc.ReadVariableInt64());
+            Assert.That(inc.ReadUInt64(64), Is.EqualTo(UInt64.MaxValue), "Read/write failure");
 
-			Assert.That(bdr.ToString(), Is.EqualTo("False-342duke of earl434418446744073709551615True56784521159980224614-4747000048-49"));
+            var longVal = inc.ReadVariableInt64();
+            Assert.That(longVal, Is.EqualTo(long.MaxValue >> 16));
 
-			msg = peer.CreateMessage();
+            boolean = inc.ReadBoolean();
+            Assert.That(boolean, Is.True);
 
-			NetOutgoingMessage tmp = peer.CreateMessage();
-			tmp.Write((int)42, 14);
+            inc.SkipPadBits();
+        }
 
-			msg.Write(tmp);
-			msg.Write(tmp);
+        [Test]
+        public void TestComplexMessage()
+        {
+            var peer = Peer;
+            var msg = peer.CreateMessage();
 
-			if (msg.LengthBits != tmp.LengthBits * 2)
-				throw new NetException("NetOutgoingMessage.Write(NetOutgoingMessage) failed!");
+            msg.Write(false);
+            msg.Write(-3, 6);
+            msg.Write(42);
+            msg.Write("duke of earl");
+            msg.Write((byte) 43);
+            msg.Write((ushort) 44);
+            msg.Write(UInt64.MaxValue, 64);
+            msg.Write(true);
 
-			tmp = peer.CreateMessage();
+            msg.WritePadBits();
 
-			Test test = new Test();
-			test.Number = 42;
-			test.Name = "Hallon";
-			test.Age = 8.2f;
+            var bcnt = 0;
 
-			tmp.WriteAllFields(test, BindingFlags.Public | BindingFlags.Instance);
+            msg.Write(567845.0f);
+            msg.WriteVariableInt32(2115998022);
+            msg.Write(46.0);
+            msg.Write((ushort) 14, 9);
+            bcnt += msg.WriteVariableInt32(-47);
+            msg.WriteVariableInt32(470000);
+            msg.WriteVariableUInt32(48);
+            bcnt += msg.WriteVariableInt64(-49);
 
-			data = tmp.Data;
+            Assert.That(bcnt, Is.EqualTo(2), "WriteVariable* wrote too many bytes!");
 
-			inc = Program.CreateIncomingMessage(data, tmp.LengthBits);
+            var data = msg.Data;
 
-			Test readTest = new Test();
-			inc.ReadAllFields(readTest, BindingFlags.Public | BindingFlags.Instance);
+            var inc = CreateIncomingMessage(data, msg.LengthBits);
 
-			NetException.Assert(readTest.Number == 42);
-			NetException.Assert(readTest.Name == "Hallon");
-			NetException.Assert(readTest.Age == 8.2f);
-			
-			// test aligned WriteBytes/ReadBytes
-			msg = peer.CreateMessage();
-			byte[] tmparr = new byte[] { 5, 6, 7, 8, 9 };
-			msg.Write(tmparr);
+            var boolean = inc.ReadBoolean();
+            Assert.That(boolean, Is.False);
+            var value = inc.ReadInt32(6);
+            Assert.That(value, Is.EqualTo(-3));
+            value = inc.ReadInt32();
+            Assert.That(value, Is.EqualTo(42));
 
-			inc = Program.CreateIncomingMessage(msg.Data, msg.LengthBits);
-			byte[] result = inc.ReadBytes(tmparr.Length);
+            var ok = inc.ReadString(out var strResult);
+            Assert.That(ok, Is.True, "Read/write failure");
+            Assert.That(strResult, Is.EqualTo("duke of earl"));
 
-			for (int i = 0; i < tmparr.Length; i++)
-				if (tmparr[i] != result[i])
-					throw new Exception("readbytes fail");
-		}
-	}
+            var byteVal = inc.ReadByte();
+            Assert.That(byteVal, Is.EqualTo(43));
 
-	public class TestBase
-	{
-		public int Number;
-	}
+            Assert.That(inc.ReadUInt16(), Is.EqualTo((ushort) 44), "Read/write failure");
 
-	public class Test : TestBase
-	{
-		public float Age;
-		public string Name;
+            Assert.That(inc.ReadUInt64(64), Is.EqualTo(UInt64.MaxValue), "Read/write failure");
+
+            boolean = inc.ReadBoolean();
+            Assert.That(boolean, Is.True);
+
+            inc.SkipPadBits();
+
+            Assert.That(inc.ReadSingle(), Is.EqualTo(567845.0f));
+            Assert.That(inc.ReadVariableInt32(), Is.EqualTo(2115998022));
+            Assert.That(inc.ReadDouble(), Is.EqualTo(46.0));
+            Assert.That(inc.ReadUInt32(9), Is.EqualTo(14));
+            Assert.That(inc.ReadVariableInt32(), Is.EqualTo(-47));
+            Assert.That(inc.ReadVariableInt32(), Is.EqualTo(470000));
+            Assert.That(inc.ReadVariableUInt32(), Is.EqualTo(48));
+            Assert.That(inc.ReadVariableInt64(), Is.EqualTo(-49));
+        }
+
+        [Test]
+        public void TestWriteAllFields()
+        {
+            var peer = Peer;
+
+            var msg = peer.CreateMessage();
+
+            var tmp = peer.CreateMessage();
+            tmp.Write((int) 42, 14);
+
+            msg.Write(tmp);
+            msg.Write(tmp);
+
+            Assert.That(msg.LengthBits, Is.EqualTo(tmp.LengthBits * 2), "NetOutgoingMessage.Write(NetOutgoingMessage) failed!");
+
+            tmp = peer.CreateMessage();
+
+            var testItem = new TestItem
+            {
+                Number = 42,
+                Name = "Hallon",
+                Age = 8.2f
+            };
+
+            tmp.WriteAllFields(testItem, BindingFlags.Public | BindingFlags.Instance);
+
+            var data = tmp.Data;
+
+            var inc = CreateIncomingMessage(data, tmp.LengthBits);
+
+            var readTestItem = new TestItem();
+            inc.ReadAllFields(readTestItem, BindingFlags.Public | BindingFlags.Instance);
+
+            Assert.That(readTestItem.Number, Is.EqualTo(42));
+            Assert.That(readTestItem.Name, Is.EqualTo("Hallon"));
+            Assert.That(readTestItem.Age, Is.EqualTo(8.2f));
+
+            // test aligned WriteBytes/ReadBytes
+            msg = peer.CreateMessage();
+            var tmparr = new byte[] {5, 6, 7, 8, 9};
+            msg.Write(tmparr);
+
+            inc = CreateIncomingMessage(msg.Data, msg.LengthBits);
+            var result = inc.ReadBytes(new byte[tmparr.Length]);
+
+            for (var i = 0; i < tmparr.Length; i++)
+            {
+                Assert.That(tmparr[i], Is.EqualTo(result[i]), "readbytes fail");
+            }
+        }
+
+        public class TestItemBase
+        {
+	        public int Number;
+        }
+
+        public class TestItem : TestItemBase
+        {
+	        public float Age;
+            public string Name;
+        }
 	}
 }
