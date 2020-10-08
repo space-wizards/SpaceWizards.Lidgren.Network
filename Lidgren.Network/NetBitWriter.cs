@@ -20,9 +20,12 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 */
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Lidgren.Network
 {
@@ -194,7 +197,7 @@ namespace Lidgren.Network
 		public static void WriteBytes(ReadOnlySpan<byte> source, byte[] destination, int destBitOffset)
 		{
 			int dstBytePtr = destBitOffset >> 3;
-			int firstPartLen = (destBitOffset % 8);
+			int firstPartLen = destBitOffset & 7;
 
 			if (firstPartLen == 0)
 			{
@@ -226,23 +229,15 @@ namespace Lidgren.Network
 		/// Reads an unsigned 16 bit integer
 		/// </summary>
 		[CLSCompliant(false)]
-#if UNSAFE
-		public static unsafe ushort ReadUInt16(ReadOnlySpan<byte> fromBuffer, int numberOfBits, int readBitOffset)
-		{
-			Debug.Assert(((numberOfBits > 0) && (numberOfBits <= 16)), "ReadUInt16() can only read between 1 and 16 bits");
-
-			if (numberOfBits == 16 && ((readBitOffset % 8) == 0))
-			{
-				fixed (byte* ptr = &(fromBuffer[readBitOffset / 8]))
-				{
-					return *(((ushort*)ptr));
-				}
-			}
-#else
 		public static ushort ReadUInt16(ReadOnlySpan<byte> fromBuffer, int numberOfBits, int readBitOffset)
 		{
 			Debug.Assert(((numberOfBits > 0) && (numberOfBits <= 16)), "ReadUInt16() can only read between 1 and 16 bits");
-#endif
+
+			if (numberOfBits == 16 && (readBitOffset & 7) == 0)
+			{
+				return NetUtility.ReadUnaligned<ushort>(fromBuffer.Slice(readBitOffset >> 3));
+			}
+
 			ushort returnValue;
 			if (numberOfBits <= 8)
 			{
@@ -272,24 +267,15 @@ namespace Lidgren.Network
 		/// Reads the specified number of bits into an UInt32
 		/// </summary>
 		[CLSCompliant(false)]
-#if UNSAFE
-		public static unsafe uint ReadUInt32(ReadOnlySpan<byte> fromBuffer, int numberOfBits, int readBitOffset)
-		{
-			NetException.Assert(((numberOfBits > 0) && (numberOfBits <= 32)), "ReadUInt32() can only read between 1 and 32 bits");
-
-			if (numberOfBits == 32 && ((readBitOffset % 8) == 0))
-			{
-				fixed (byte* ptr = &(fromBuffer[readBitOffset / 8]))
-				{
-					return *(((uint*)ptr));
-				}
-			}
-#else
-
 		public static uint ReadUInt32(ReadOnlySpan<byte> fromBuffer, int numberOfBits, int readBitOffset)
 		{
 			NetException.Assert(((numberOfBits > 0) && (numberOfBits <= 32)), "ReadUInt32() can only read between 1 and 32 bits");
-#endif
+
+			if (numberOfBits == 32 && ((readBitOffset & 7) == 0))
+			{
+				return NetUtility.ReadUnaligned<uint>(fromBuffer.Slice(readBitOffset >> 3));
+			}
+
 			uint returnValue;
 			if (numberOfBits <= 8)
 			{

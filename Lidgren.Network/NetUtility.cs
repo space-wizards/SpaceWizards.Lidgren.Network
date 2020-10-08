@@ -30,6 +30,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 
 namespace Lidgren.Network
@@ -570,5 +572,18 @@ namespace Lidgren.Network
                 return new IPEndPoint(endPoint.Address.MapToIPv6(), endPoint.Port);
             return endPoint;
         }
+
+#if UNSAFE
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static T ReadUnaligned<T>(ReadOnlySpan<byte> source) where T : struct
+        {
+            if (Unsafe.SizeOf<T>() > source.Length)
+            {
+	            throw new ArgumentOutOfRangeException();
+            }
+
+            return Unsafe.ReadUnaligned<T>(ref MemoryMarshal.GetReference(source));
+        }
+#endif
     }
 }
