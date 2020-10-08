@@ -36,6 +36,14 @@ namespace Lidgren.Network
 		/// </summary>
 		public static byte ReadByte(byte[] fromBuffer, int numberOfBits, int readBitOffset)
 		{
+			return ReadByte(fromBuffer.AsSpan(), numberOfBits, readBitOffset);
+		}
+
+		/// <summary>
+		/// Read 1-8 bits from a buffer into a byte
+		/// </summary>
+		public static byte ReadByte(ReadOnlySpan<byte> fromBuffer, int numberOfBits, int readBitOffset)
+		{
 			NetException.Assert(((numberOfBits > 0) && (numberOfBits < 9)), "Read() can only read between 1 and 8 bits");
 
 			int bytePtr = readBitOffset >> 3;
@@ -67,21 +75,34 @@ namespace Lidgren.Network
 		/// <summary>
 		/// Read several bytes from a buffer
 		/// </summary>
-		public static void ReadBytes(byte[] fromBuffer, int numberOfBytes, int readBitOffset, byte[] destination, int destinationByteOffset)
+		public static void ReadBytes(byte[] fromBuffer, int numberOfBytes, int readBitOffset, byte[] destination,
+			int destinationByteOffset)
+		{
+			ReadBytes(fromBuffer, readBitOffset, destination.AsSpan(destinationByteOffset, numberOfBytes));
+		}
+
+
+		/// <summary>
+		/// Read several bytes from a buffer
+		/// </summary>
+		/// <remarks>
+		/// 	The amount of bytes read is the length of the <paramref name="destination"/> parameter.
+		/// </remarks>
+		public static void ReadBytes(ReadOnlySpan<byte> fromBuffer, int readBitOffset, Span<byte> destination)
 		{
 			int readPtr = readBitOffset >> 3;
 			int startReadAtIndex = readBitOffset - (readPtr * 8); // (readBitOffset % 8);
 
 			if (startReadAtIndex == 0)
 			{
-				Buffer.BlockCopy(fromBuffer, readPtr, destination, destinationByteOffset, numberOfBytes);
+				fromBuffer.Slice(readPtr, destination.Length).CopyTo(destination);
 				return;
 			}
 
 			int secondPartLen = 8 - startReadAtIndex;
 			int secondMask = 255 >> secondPartLen;
 
-			for (int i = 0; i < numberOfBytes; i++)
+			for (int i = 0; i < destination.Length; i++)
 			{
 				// mask away unused bits lower than (right of) relevant bits in byte
 				int b = fromBuffer[readPtr] >> startReadAtIndex;
@@ -91,16 +112,24 @@ namespace Lidgren.Network
 				// mask away unused bits higher than (left of) relevant bits in second byte
 				int second = fromBuffer[readPtr] & secondMask;
 
-				destination[destinationByteOffset++] = (byte)(b | (second << secondPartLen));
+				destination[i] = (byte)(b | (second << secondPartLen));
 			}
 
 			return;
 		}
 
 		/// <summary>
+        /// Write 0-8 bits of data to buffer
+        /// </summary>
+		public static void WriteByte(byte source, int numberOfBits, byte[] destination, int destBitOffset)
+		{
+			WriteByte(source, numberOfBits, destination.AsSpan(), destBitOffset);
+		}
+
+		/// <summary>
 		/// Write 0-8 bits of data to buffer
 		/// </summary>
-		public static void WriteByte(byte source, int numberOfBits, byte[] destination, int destBitOffset)
+		public static void WriteByte(byte source, int numberOfBits, Span<byte> destination, int destBitOffset)
 		{
 			if (numberOfBits == 0)
 				return;
@@ -153,22 +182,31 @@ namespace Lidgren.Network
 		/// <summary>
 		/// Write several whole bytes
 		/// </summary>
-		public static void WriteBytes(byte[] source, int sourceByteOffset, int numberOfBytes, byte[] destination, int destBitOffset)
+		public static void WriteBytes(byte[] source, int sourceByteOffset, int numberOfBytes, byte[] destination,
+			int destBitOffset)
+		{
+			WriteBytes(source.AsSpan(sourceByteOffset, numberOfBytes), destination, destBitOffset);
+		}
+
+		/// <summary>
+		/// Write several whole bytes
+		/// </summary>
+		public static void WriteBytes(ReadOnlySpan<byte> source, byte[] destination, int destBitOffset)
 		{
 			int dstBytePtr = destBitOffset >> 3;
 			int firstPartLen = (destBitOffset % 8);
 
 			if (firstPartLen == 0)
 			{
-				Buffer.BlockCopy(source, sourceByteOffset, destination, dstBytePtr, numberOfBytes);
+				source.CopyTo(destination.AsSpan(dstBytePtr));
 				return;
 			}
 
 			int lastPartLen = 8 - firstPartLen;
 
-			for (int i = 0; i < numberOfBytes; i++)
+			for (int i = 0; i < source.Length; i++)
 			{
-				byte src = source[sourceByteOffset + i];
+				byte src = source[i];
 
 				// write last part of this byte
 				destination[dstBytePtr] &= (byte)(255 >> lastPartLen); // clear before writing
@@ -189,7 +227,7 @@ namespace Lidgren.Network
 		/// </summary>
 		[CLSCompliant(false)]
 #if UNSAFE
-		public static unsafe ushort ReadUInt16(byte[] fromBuffer, int numberOfBits, int readBitOffset)
+		public static unsafe ushort ReadUInt16(ReadOnlySpan<byte> fromBuffer, int numberOfBits, int readBitOffset)
 		{
 			Debug.Assert(((numberOfBits > 0) && (numberOfBits <= 16)), "ReadUInt16() can only read between 1 and 16 bits");
 
@@ -201,7 +239,7 @@ namespace Lidgren.Network
 				}
 			}
 #else
-		public static ushort ReadUInt16(byte[] fromBuffer, int numberOfBits, int readBitOffset)
+		public static ushort ReadUInt16(ReadOnlySpan<byte> fromBuffer, int numberOfBits, int readBitOffset)
 		{
 			Debug.Assert(((numberOfBits > 0) && (numberOfBits <= 16)), "ReadUInt16() can only read between 1 and 16 bits");
 #endif
@@ -235,7 +273,7 @@ namespace Lidgren.Network
 		/// </summary>
 		[CLSCompliant(false)]
 #if UNSAFE
-		public static unsafe uint ReadUInt32(byte[] fromBuffer, int numberOfBits, int readBitOffset)
+		public static unsafe uint ReadUInt32(ReadOnlySpan<byte> fromBuffer, int numberOfBits, int readBitOffset)
 		{
 			NetException.Assert(((numberOfBits > 0) && (numberOfBits <= 32)), "ReadUInt32() can only read between 1 and 32 bits");
 
@@ -247,8 +285,8 @@ namespace Lidgren.Network
 				}
 			}
 #else
-		
-		public static uint ReadUInt32(byte[] fromBuffer, int numberOfBits, int readBitOffset)
+
+		public static uint ReadUInt32(ReadOnlySpan<byte> fromBuffer, int numberOfBits, int readBitOffset)
 		{
 			NetException.Assert(((numberOfBits > 0) && (numberOfBits <= 32)), "ReadUInt32() can only read between 1 and 32 bits");
 #endif
@@ -303,7 +341,7 @@ namespace Lidgren.Network
 		/// Writes an unsigned 16 bit integer
 		/// </summary>
 		[CLSCompliant(false)]
-		public static void WriteUInt16(ushort source, int numberOfBits, byte[] destination, int destinationBitOffset)
+		public static void WriteUInt16(ushort source, int numberOfBits, Span<byte> destination, int destinationBitOffset)
 		{
 			if (numberOfBits == 0)
 				return;
@@ -332,7 +370,7 @@ namespace Lidgren.Network
 		/// Writes the specified number of bits into a byte array
 		/// </summary>
 		[CLSCompliant(false)]
-		public static int WriteUInt32(uint source, int numberOfBits, byte[] destination, int destinationBitOffset)
+		public static int WriteUInt32(uint source, int numberOfBits, Span<byte> destination, int destinationBitOffset)
 		{
 #if BIGENDIAN
 			// reorder bytes
@@ -378,7 +416,7 @@ namespace Lidgren.Network
 		/// Writes the specified number of bits into a byte array
 		/// </summary>
 		[CLSCompliant(false)]
-		public static int WriteUInt64(ulong source, int numberOfBits, byte[] destination, int destinationBitOffset)
+		public static int WriteUInt64(ulong source, int numberOfBits, Span<byte> destination, int destinationBitOffset)
 		{
 #if BIGENDIAN
 			source = ((source & 0xff00000000000000L) >> 56) |
@@ -476,7 +514,7 @@ namespace Lidgren.Network
 		/// </summary>
 		/// <returns>number of bytes written</returns>
 		[CLSCompliant(false)]
-		public static int WriteVariableUInt32(byte[] intoBuffer, int offset, uint value)
+		public static int WriteVariableUInt32(Span<byte> intoBuffer, int offset, uint value)
 		{
 			int retval = 0;
 			uint num1 = (uint)value;
@@ -494,7 +532,7 @@ namespace Lidgren.Network
 		/// Reads a UInt32 written using WriteUnsignedVarInt(); will increment offset!
 		/// </summary>
 		[CLSCompliant(false)]
-		public static uint ReadVariableUInt32(byte[] buffer, ref int offset)
+		public static uint ReadVariableUInt32(ReadOnlySpan<byte> buffer, ref int offset)
 		{
 			int num1 = 0;
 			int num2 = 0;

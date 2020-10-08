@@ -140,9 +140,18 @@ namespace Lidgren.Network
 		{
 			if (source == null)
 				throw new ArgumentNullException("source");
+
+			Write(source.AsSpan());
+		}
+
+		/// <summary>
+        /// Writes all bytes in a span
+        /// </summary>
+		public void Write(ReadOnlySpan<byte> source)
+		{
 			int bits = source.Length * 8;
 			EnsureBufferSize(m_bitLength + bits);
-			NetBitWriter.WriteBytes(source, 0, source.Length, m_data, m_bitLength);
+			NetBitWriter.WriteBytes(source, m_data, m_bitLength);
 			m_bitLength += bits;
 		}
 
@@ -153,10 +162,8 @@ namespace Lidgren.Network
 		{
 			if (source == null)
 				throw new ArgumentNullException("source");
-			int bits = numberOfBytes * 8;
-			EnsureBufferSize(m_bitLength + bits);
-			NetBitWriter.WriteBytes(source, offsetInBytes, numberOfBytes, m_data, m_bitLength);
-			m_bitLength += bits;
+
+			Write(source.AsSpan(offsetInBytes, numberOfBytes));
 		}
 
 		/// <summary>
@@ -623,6 +630,18 @@ namespace Lidgren.Network
 				WriteVariableUInt32(0);
 				return;
 			}
+
+#if HAS_FULL_SPAN
+			var byteCount = Encoding.UTF8.GetByteCount(source);
+			if (byteCount < c_stackallocThresh)
+			{
+				Span<byte> byteSpan = stackalloc byte[byteCount];
+				Encoding.UTF8.GetBytes(source, byteSpan);
+				WriteVariableUInt32((uint) byteCount);
+				Write(byteSpan);
+				return;
+			}
+#endif
 
 			byte[] bytes = Encoding.UTF8.GetBytes(source);
 			EnsureBufferSize(m_bitLength + 8 + (bytes.Length * 8));

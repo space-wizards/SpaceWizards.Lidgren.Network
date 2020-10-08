@@ -16,18 +16,18 @@ namespace Lidgren.Network
 			m_algorithm.GenerateIV();
 		}
 
-		public override void SetKey(byte[] data, int offset, int count)
+		public override void SetKey(ReadOnlySpan<byte> data)
 		{
 			int len = m_algorithm.Key.Length;
 			var key = new byte[len];
 			for (int i = 0; i < len; i++)
-				key[i] = data[offset + (i % count)];
+				key[i] = data[i % data.Length];
 			m_algorithm.Key = key;
 
 			len = m_algorithm.IV.Length;
 			key = new byte[len];
 			for (int i = 0; i < len; i++)
-				key[len - 1 - i] = data[offset + (i % count)];
+				key[len - 1 - i] = data[i % data.Length];
 			m_algorithm.IV = key;
 		}
 

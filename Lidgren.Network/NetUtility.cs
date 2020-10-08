@@ -288,21 +288,26 @@ namespace Lidgren.Network
 		/// </summary>
 		public static string ToHexString(byte[] data)
 		{
-			return ToHexString(data, 0, data.Length);
+			return ToHexString(data.AsSpan());
 		}
 
+		public static string ToHexString(byte[] data, int offset, int length)
+		{
+			return ToHexString(data.AsSpan(offset, length));
+		}
+		
 		/// <summary>
 		/// Create a hex string from an array of bytes
 		/// </summary>
-		public static string ToHexString(byte[] data, int offset, int length)
+		public static string ToHexString(ReadOnlySpan<byte> data)
 		{
-			char[] c = new char[length * 2];
+			char[] c = new char[data.Length * 2];
 			byte b;
-			for (int i = 0; i < length; ++i)
+			for (int i = 0; i < data.Length; ++i)
 			{
-				b = ((byte)(data[offset + i] >> 4));
+				b = ((byte)(data[i] >> 4));
 				c[i * 2] = (char)(b > 9 ? b + 0x37 : b + 0x30);
-				b = ((byte)(data[offset + i] & 0xF));
+				b = ((byte)(data[i] & 0xF));
 				c[i * 2 + 1] = (char)(b > 9 ? b + 0x37 : b + 0x30);
 			}
 			return new string(c);

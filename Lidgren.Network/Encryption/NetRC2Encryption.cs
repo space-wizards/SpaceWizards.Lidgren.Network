@@ -18,9 +18,14 @@ namespace Lidgren.Network
 		}
 
 		public NetRC2Encryption(NetPeer peer, byte[] data, int offset, int count)
+			: this(peer, data.AsSpan(offset, count))
+		{
+		}
+
+		public NetRC2Encryption(NetPeer peer, ReadOnlySpan<byte> data)
 			: base(peer, new RC2CryptoServiceProvider())
 		{
-			SetKey(data, offset, count);
+			SetKey(data);
 		}
 	}
 }

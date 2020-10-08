@@ -17,8 +17,14 @@ namespace Lidgren.Network
 	public partial class NetBuffer
 	{
 		private const string c_readOverflowError = "Trying to read past the buffer size - likely caused by mismatching Write/Reads, different size or order.";
+		// With FULL_SPAN we can just stackalloc everywhere instead of using this buffer.
+#if HAS_FULL_SPAN
+		// Max size to allocate with stackalloc
+		private const int c_stackallocThresh = 1024;
+#else
 		private const int c_bufferSize = 64; // Min 8 to hold anything but strings. Increase it if readed strings usally don't fit inside the buffer
 		private static object s_buffer;
+#endif
 
 		/// <summary>
 		/// Reads a boolean value (stored as a single bit) written using Write(bool)
@@ -81,16 +87,25 @@ namespace Lidgren.Network
 		}
 
 		/// <summary>
+	    /// Reads the specified number of bytes
+	    /// </summary>
+		public Span<byte> ReadBytes(Span<byte> into)
+		{
+			NetException.Assert(m_bitLength - m_readPosition + 7 >= (into.Length * 8), c_readOverflowError);
+
+            NetBitWriter.ReadBytes(m_data, m_readPosition, into);
+            m_readPosition += (8 * into.Length);
+            return into;
+		}
+
+		/// <summary>
 		/// Reads the specified number of bytes
 		/// </summary>
 		public byte[] ReadBytes(int numberOfBytes)
 		{
-			NetException.Assert(m_bitLength - m_readPosition + 7 >= (numberOfBytes * 8), c_readOverflowError);
-
-			byte[] retval = new byte[numberOfBytes];
-			NetBitWriter.ReadBytes(m_data, numberOfBytes, m_readPosition, retval, 0);
-			m_readPosition += (8 * numberOfBytes);
-			return retval;
+			var retVal = new byte[numberOfBytes];
+			ReadBytes(retVal);
+			return retVal;
 		}
 
 		/// <summary>
@@ -111,6 +126,21 @@ namespace Lidgren.Network
 		}
 
 		/// <summary>
+        /// Reads the specified number of bytes and returns true for success
+        /// </summary>
+		public bool TryReadBytes(Span<byte> into)
+        {
+        	if (m_bitLength - m_readPosition + 7 < (into.Length * 8))
+        	{
+        		return false;
+        	}
+
+        	NetBitWriter.ReadBytes(m_data, m_readPosition, into);
+        	m_readPosition += (8 * into.Length);
+        	return true;
+        }
+
+		/// <summary>
 		/// Reads the specified number of bytes into a preallocated array
 		/// </summary>
 		/// <param name="into">The destination array</param>
@@ -127,6 +157,28 @@ namespace Lidgren.Network
 		}
 
 		/// <summary>
+        /// Reads the specified number of bits into a preallocated span
+        /// </summary>
+        /// <param name="into">The destination array</param>
+        /// <param name="numberOfBits">The number of bits to read</param>
+        public void ReadBits(Span<byte> into, int numberOfBits)
+        {
+        	NetException.Assert(m_bitLength - m_readPosition >= numberOfBits, c_readOverflowError);
+        	NetException.Assert(NetUtility.BytesToHoldBits(numberOfBits) <= into.Length);
+
+        	int numberOfWholeBytes = numberOfBits / 8;
+        	int extraBits = numberOfBits - (numberOfWholeBytes * 8);
+
+        	NetBitWriter.ReadBytes(m_data, m_readPosition, into.Slice(0, numberOfWholeBytes));
+        	m_readPosition += (8 * numberOfWholeBytes);
+
+        	if (extraBits > 0)
+        		into[numberOfWholeBytes] = ReadByte(extraBits);
+
+        	return;
+        }
+
+		/// <summary>
 		/// Reads the specified number of bits into a preallocated array
 		/// </summary>
 		/// <param name="into">The destination array</param>
@@ -134,19 +186,7 @@ namespace Lidgren.Network
 		/// <param name="numberOfBits">The number of bits to read</param>
 		public void ReadBits(byte[] into, int offset, int numberOfBits)
 		{
-			NetException.Assert(m_bitLength - m_readPosition >= numberOfBits, c_readOverflowError);
-			NetException.Assert(offset + NetUtility.BytesToHoldBits(numberOfBits) <= into.Length);
-
-			int numberOfWholeBytes = numberOfBits / 8;
-			int extraBits = numberOfBits - (numberOfWholeBytes * 8);
-
-			NetBitWriter.ReadBytes(m_data, numberOfWholeBytes, m_readPosition, into, offset);
-			m_readPosition += (8 * numberOfWholeBytes);
-
-			if (extraBits > 0)
-				into[offset + numberOfWholeBytes] = ReadByte(extraBits);
-
-			return;
+			ReadBits(into.AsSpan(offset), numberOfBits);
 		}
 
 		/// <summary>
@@ -355,10 +395,16 @@ namespace Lidgren.Network
 				return retval;
 			}
 
+#if HAS_FULL_SPAN
+			var bytes = ReadBytes(stackalloc byte[4]);
+			var res = BitConverter.ToSingle(bytes);
+#else
 			byte[] bytes = (byte[]) Interlocked.Exchange(ref s_buffer, null) ?? new byte[c_bufferSize];
-			ReadBytes(bytes, 0, 4);
-			float res = BitConverter.ToSingle(bytes, 0);
-			s_buffer = bytes;
+            ReadBytes(bytes, 0, 4);
+            float res = BitConverter.ToSingle(bytes, 0);
+            s_buffer = bytes;
+#endif
+
 			return res;
 		}
 
@@ -380,10 +426,15 @@ namespace Lidgren.Network
 				return true;
 			}
 
+#if HAS_FULL_SPAN
+			var bytes = ReadBytes(stackalloc byte[4]);
+			result = BitConverter.ToSingle(bytes);
+#else
 			byte[] bytes = (byte[]) Interlocked.Exchange(ref s_buffer, null) ?? new byte[c_bufferSize];
 			ReadBytes(bytes, 0, 4);
 			result = BitConverter.ToSingle(bytes, 0);
 			s_buffer = bytes;
+#endif
 			return true;
 		}
 
@@ -401,11 +452,15 @@ namespace Lidgren.Network
 				m_readPosition += 64;
 				return retval;
 			}
-
+#if HAS_FULL_SPAN
+			var bytes = ReadBytes(stackalloc byte[8]);
+			var res = BitConverter.ToDouble(bytes);
+#else
 			byte[] bytes = (byte[]) Interlocked.Exchange(ref s_buffer, null) ?? new byte[c_bufferSize];
 			ReadBytes(bytes, 0, 8);
 			double res = BitConverter.ToDouble(bytes, 0);
 			s_buffer = bytes;
+#endif
 			return res;
 		}
 
@@ -604,12 +659,19 @@ namespace Lidgren.Network
 				return retval;
 			}
 
+#if HAS_FULL_SPAN
+			if (byteLen <= c_stackallocThresh)
+			{
+				var buffer = ReadBytes(stackalloc byte[byteLen]);
+				return Encoding.UTF8.GetString(buffer);
+#else
 			if (byteLen <= c_bufferSize) {
 				byte[] buffer = (byte[]) Interlocked.Exchange(ref s_buffer, null) ?? new byte[c_bufferSize];
 				ReadBytes(buffer, 0, byteLen);
 				string retval = Encoding.UTF8.GetString(buffer, 0, byteLen);
 				s_buffer = buffer;
 				return retval;
+#endif
 			} else {
 				byte[] bytes = ReadBytes(byteLen);
 				return Encoding.UTF8.GetString(bytes, 0, bytes.Length);
