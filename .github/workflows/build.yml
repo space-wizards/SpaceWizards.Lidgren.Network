@@ -22,11 +22,12 @@ jobs:
       run: dotnet build --configuration Release --no-restore Lidgren.Network.MultiTarget/Lidgren.Network.MultiTarget.csproj
 
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
 
     strategy:
       matrix:
         targetframework: [net45, net48, netcoreapp3.1]
+        os: [windows-latest, ubuntu-latest]
 
     steps:
     - uses: actions/checkout@v2
