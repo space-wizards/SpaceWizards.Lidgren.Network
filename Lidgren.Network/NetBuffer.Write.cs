@@ -1,5 +1,4 @@
 ﻿//#define UNSAFE
-//#define BIGENDIAN
 /* Copyright (c) 2010 Michael Lidgren
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software
@@ -19,6 +18,7 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
 USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Net;
 using System.Reflection;
@@ -417,9 +417,11 @@ namespace Lidgren.Network
 		public unsafe void Write(float source)
 		{
 			uint val = *((uint*)&source);
-#if BIGENDIAN
-				val = NetUtility.SwapByteOrder(val);
-#endif
+			if (!BitConverter.IsLittleEndian)
+			{
+				val = BinaryPrimitives.ReverseEndianness(val);
+			}
+
 			Write(val);
 		}
 #else
@@ -433,10 +435,11 @@ namespace Lidgren.Network
 			su.UIntValue = 0; // must initialize every member of the union to avoid warning
 			su.SingleValue = source;
 
-#if BIGENDIAN
-			// swap byte order
-			su.UIntValue = NetUtility.SwapByteOrder(su.UIntValue);
-#endif
+
+			if (!BitConverter.IsLittleEndian)
+			{
+				su.UIntValue = BinaryPrimitives.ReverseEndianness(su.UIntValue);
+			}
 			Write(su.UIntValue);
 		}
 #endif
@@ -448,9 +451,11 @@ namespace Lidgren.Network
 		public unsafe void Write(double source)
 		{
 			ulong val = *((ulong*)&source);
-#if BIGENDIAN
-			val = NetUtility.SwapByteOrder(val);
-#endif
+			if (!BitConverter.IsLittleEndian)
+			{
+				val = BinaryPrimitives.ReverseEndianness(val);
+			}
+
 			Write(val);
 		}
 #else

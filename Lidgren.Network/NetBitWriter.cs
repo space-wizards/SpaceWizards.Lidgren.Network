@@ -1,6 +1,4 @@
-﻿//#define UNSAFE
-//#define BIGENDIAN
-/* Copyright (c) 2010 Michael Lidgren
+﻿/* Copyright (c) 2010 Michael Lidgren
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software
 and associated documentation files (the "Software"), to deal in the Software without
@@ -253,14 +251,12 @@ namespace Lidgren.Network
 				returnValue |= (ushort)(ReadByte(fromBuffer, numberOfBits, readBitOffset) << 8);
 			}
 
-#if BIGENDIAN
-			// reorder bytes
-			uint retVal = returnValue;
-			retVal = ((retVal & 0x0000ff00) >> 8) | ((retVal & 0x000000ff) << 8);
-			return (ushort)retVal;
-#else
+			if (!BitConverter.IsLittleEndian)
+			{
+				return BinaryPrimitives.ReverseEndianness(returnValue);
+			}
+
 			return returnValue;
-#endif
 		}
 
 		/// <summary>
@@ -308,16 +304,12 @@ namespace Lidgren.Network
 
 			returnValue |= (uint)(ReadByte(fromBuffer, numberOfBits, readBitOffset) << 24);
 
-#if BIGENDIAN
-			// reorder bytes
-			return
-				((returnValue & 0xff000000) >> 24) |
-				((returnValue & 0x00ff0000) >> 8) |
-				((returnValue & 0x0000ff00) << 8) |
-				((returnValue & 0x000000ff) << 24);
-#else
+			if (!BitConverter.IsLittleEndian)
+			{
+				return BinaryPrimitives.ReverseEndianness(returnValue);
+			}
+
 			return returnValue;
-#endif
 		}
 
 		//[CLSCompliant(false)]
@@ -333,12 +325,11 @@ namespace Lidgren.Network
 				return;
 
 			NetException.Assert((numberOfBits >= 0 && numberOfBits <= 16), "numberOfBits must be between 0 and 16");
-#if BIGENDIAN
-			// reorder bytes
-			uint intSource = source;
-			intSource = ((intSource & 0x0000ff00) >> 8) | ((intSource & 0x000000ff) << 8);
-			source = (ushort)intSource;
-#endif
+			if (!BitConverter.IsLittleEndian)
+			{
+				source = BinaryPrimitives.ReverseEndianness(source);
+			}
+
 			if (numberOfBits <= 8)
 			{
 				NetBitWriter.WriteByte((byte)source, numberOfBits, destination, destinationBitOffset);
@@ -358,13 +349,10 @@ namespace Lidgren.Network
 		[CLSCompliant(false)]
 		public static int WriteUInt32(uint source, int numberOfBits, Span<byte> destination, int destinationBitOffset)
 		{
-#if BIGENDIAN
-			// reorder bytes
-			source = ((source & 0xff000000) >> 24) |
-				((source & 0x00ff0000) >> 8) |
-				((source & 0x0000ff00) << 8) |
-				((source & 0x000000ff) << 24);
-#endif
+			if (!BitConverter.IsLittleEndian)
+			{
+				source = BinaryPrimitives.ReverseEndianness(source);
+			}
 
 			int returnValue = destinationBitOffset + numberOfBits;
 			if (numberOfBits <= 8)
@@ -404,16 +392,10 @@ namespace Lidgren.Network
 		[CLSCompliant(false)]
 		public static int WriteUInt64(ulong source, int numberOfBits, Span<byte> destination, int destinationBitOffset)
 		{
-#if BIGENDIAN
-			source = ((source & 0xff00000000000000L) >> 56) |
-				((source & 0x00ff000000000000L) >> 40) |
-				((source & 0x0000ff0000000000L) >> 24) |
-				((source & 0x000000ff00000000L) >> 8) |
-				((source & 0x00000000ff000000L) << 8) |
-				((source & 0x0000000000ff0000L) << 24) |
-				((source & 0x000000000000ff00L) << 40) |
-				((source & 0x00000000000000ffL) << 56);
-#endif
+			if (!BitConverter.IsLittleEndian)
+			{
+				source = BinaryPrimitives.ReverseEndianness(source);
+			}
 
 			int returnValue = destinationBitOffset + numberOfBits;
 			if (numberOfBits <= 8)
