@@ -1,5 +1,4 @@
-﻿//#define UNSAFE
-/* Copyright (c) 2010 Michael Lidgren
+﻿/* Copyright (c) 2010 Michael Lidgren
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software
 and associated documentation files (the "Software"), to deal in the Software without
@@ -227,7 +226,7 @@ namespace Lidgren.Network
 		/// <summary>
 		/// Writes a 32 bit signed integer
 		/// </summary>
-		public unsafe void Write(Int32 source)
+		public void Write(Int32 source)
 		{
 			EnsureBufferSize(m_bitLength + 32);
 
@@ -384,7 +383,7 @@ namespace Lidgren.Network
 		/// <summary>
 		/// Writes a 32 bit floating point value
 		/// </summary>
-		public unsafe void Write(float source)
+		public void Write(float source)
 		{
 #if NETSTANDARD2_1 || NETCOREAPP
 			int val = BitConverter.SingleToInt32Bits(source);
@@ -402,7 +401,7 @@ namespace Lidgren.Network
 		/// <summary>
 		/// Writes a 64 bit floating point value
 		/// </summary>
-		public unsafe void Write(double source)
+		public void Write(double source)
 		{
 #if NETSTANDARD2_1 || NETCOREAPP
             long val = BitConverter.DoubleToInt64Bits(source);
