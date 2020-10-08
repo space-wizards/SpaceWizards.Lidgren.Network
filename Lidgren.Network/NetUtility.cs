@@ -29,6 +29,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
+using System.Numerics;
 using System.Security.Cryptography;
 
 namespace Lidgren.Network
@@ -348,10 +349,14 @@ namespace Lidgren.Network
 		[CLSCompliant(false)]
 		public static int BitsToHoldUInt(uint value)
 		{
+#if NETCOREAPP
+			return Math.Max(32 - BitOperations.LeadingZeroCount(value), 1);
+#else
 			int bits = 1;
 			while ((value >>= 1) != 0)
 				bits++;
 			return bits;
+#endif
 		}
 
 		/// <summary>
@@ -360,10 +365,14 @@ namespace Lidgren.Network
 		[CLSCompliant(false)]
 		public static int BitsToHoldUInt64(ulong value)
 		{
+#if NETCOREAPP
+			return Math.Max(64 - BitOperations.LeadingZeroCount(value), 1);
+#else
 			int bits = 1;
 			while ((value >>= 1) != 0)
 				bits++;
 			return bits;
+#endif
 		}
 
 		/// <summary>
