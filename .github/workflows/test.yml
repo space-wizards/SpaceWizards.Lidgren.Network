@@ -1,0 +1,24 @@
+name: Test
+
+on:
+  push:
+    branches: [ wizards ]
+  pull_request:
+    branches: [ wizards ]
+
+strategy:
+  matrix:
+    targetframework: [net45, net46, net461, net462, netcoreapp3.1]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 3.1.x
+    - name: Test
+      run: dotnet test --configuration Release --framework ${{ matrix.targetframework }} UnitTests.Core/UnitTests.Core.csproj 

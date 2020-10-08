@@ -1,4 +1,4 @@
-name: Build & Test
+name: Build
 
 on:
   push:
@@ -20,5 +20,3 @@ jobs:
       run: dotnet restore Lidgren.Network.MultiTarget/Lidgren.Network.MultiTarget.csproj
     - name: Build
       run: dotnet build --configuration Release --no-restore Lidgren.Network.MultiTarget/Lidgren.Network.MultiTarget.csproj
-    - name: Test
-      run: dotnet test --configuration Release UnitTests.Core/UnitTests.Core.csproj
