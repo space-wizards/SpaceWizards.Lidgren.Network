@@ -22,6 +22,7 @@ using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Net;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Runtime.InteropServices;
 
@@ -223,7 +224,6 @@ namespace Lidgren.Network
 			m_bitLength = newBitLength;
 		}
 
-#if UNSAFE
 		/// <summary>
 		/// Writes a 32 bit signed integer
 		/// </summary>
@@ -232,12 +232,9 @@ namespace Lidgren.Network
 			EnsureBufferSize(m_bitLength + 32);
 
 			// can write fast?
-			if (m_bitLength % 8 == 0)
+			if ((m_bitLength & 7) == 0)
 			{
-				fixed (byte* numRef = &Data[m_bitLength / 8])
-				{
-					*((int*)numRef) = source;
-				}
+				NetUtility.WriteUnaligned(Data.AsSpan(m_bitLength >> 3), ref source);
 			}
 			else
 			{
@@ -245,17 +242,7 @@ namespace Lidgren.Network
 			}
 			m_bitLength += 32;
 		}
-#else
-		/// <summary>
-		/// Writes a 32 bit signed integer
-		/// </summary>
-		public void Write(Int32 source)
-		{
-			EnsureBufferSize(m_bitLength + 32);
-			NetBitWriter.WriteUInt32((UInt32)source, 32, m_data, m_bitLength);
-			m_bitLength += 32;
-		}
-#endif
+
 
 		/// <summary>
 		/// Writes a 32 bit signed integer at a given offset in the buffer
@@ -268,21 +255,17 @@ namespace Lidgren.Network
 			m_bitLength = newBitLength;
 		}
 
-#if UNSAFE
 		/// <summary>
 		/// Writes a 32 bit unsigned integer
 		/// </summary>
-		public unsafe void Write(UInt32 source)
+		public void Write(UInt32 source)
 		{
 			EnsureBufferSize(m_bitLength + 32);
 
 			// can write fast?
-			if (m_bitLength % 8 == 0)
+			if ((m_bitLength & 7) == 0)
 			{
-				fixed (byte* numRef = &Data[m_bitLength / 8])
-				{
-					*((uint*)numRef) = source;
-				}
+				NetUtility.WriteUnaligned(Data.AsSpan(m_bitLength >> 3), ref source);
 			}
 			else
 			{
@@ -291,18 +274,6 @@ namespace Lidgren.Network
 
 			m_bitLength += 32;
 		}
-#else
-		/// <summary>
-		/// Writes a 32 bit unsigned integer
-		/// </summary>
-		[CLSCompliant(false)]
-		public void Write(UInt32 source)
-		{
-			EnsureBufferSize(m_bitLength + 32);
-			NetBitWriter.WriteUInt32(source, 32, m_data, m_bitLength);
-			m_bitLength += 32;
-		}
-#endif
 
 		/// <summary>
 		/// Writes a 32 bit unsigned integer at a given offset in the buffer
@@ -410,13 +381,16 @@ namespace Lidgren.Network
 		//
 		// Floating point
 		//
-#if UNSAFE
 		/// <summary>
 		/// Writes a 32 bit floating point value
 		/// </summary>
 		public unsafe void Write(float source)
 		{
-			uint val = *((uint*)&source);
+#if NETSTANDARD2_1 || NETCOREAPP
+			int val = BitConverter.SingleToInt32Bits(source);
+#else
+			int val = Unsafe.As<float, int>(ref source);
+#endif
 			if (!BitConverter.IsLittleEndian)
 			{
 				val = BinaryPrimitives.ReverseEndianness(val);
@@ -424,33 +398,17 @@ namespace Lidgren.Network
 
 			Write(val);
 		}
-#else
-		/// <summary>
-		/// Writes a 32 bit floating point value
-		/// </summary>
-		public void Write(float source)
-		{
-			// Use union to avoid BitConverter.GetBytes() which allocates memory on the heap
-			SingleUIntUnion su;
-			su.UIntValue = 0; // must initialize every member of the union to avoid warning
-			su.SingleValue = source;
 
-
-			if (!BitConverter.IsLittleEndian)
-			{
-				su.UIntValue = BinaryPrimitives.ReverseEndianness(su.UIntValue);
-			}
-			Write(su.UIntValue);
-		}
-#endif
-
-#if UNSAFE
 		/// <summary>
 		/// Writes a 64 bit floating point value
 		/// </summary>
 		public unsafe void Write(double source)
 		{
-			ulong val = *((ulong*)&source);
+#if NETSTANDARD2_1 || NETCOREAPP
+            long val = BitConverter.DoubleToInt64Bits(source);
+#else
+            long val = Unsafe.As<double, long>(ref source);
+#endif
 			if (!BitConverter.IsLittleEndian)
 			{
 				val = BinaryPrimitives.ReverseEndianness(val);
@@ -458,36 +416,6 @@ namespace Lidgren.Network
 
 			Write(val);
 		}
-#else
-		/// <summary>
-		/// Writes a 64 bit floating point value
-		/// </summary>
-		public void Write(double source)
-		{
-			byte[] val = BitConverter.GetBytes(source);
-#if BIGENDIAN
-			// 0 1 2 3   4 5 6 7
-
-			// swap byte order
-			byte tmp = val[7];
-			val[7] = val[0];
-			val[0] = tmp;
-
-			tmp = val[6];
-			val[6] = val[1];
-			val[1] = tmp;
-
-			tmp = val[5];
-			val[5] = val[2];
-			val[2] = tmp;
-
-			tmp = val[4];
-			val[4] = val[3];
-			val[3] = tmp;
-#endif
-			Write(val);
-		}
-#endif
 
 		//
 		// Variable bits
@@ -716,7 +644,7 @@ namespace Lidgren.Network
 			Write(buffer.m_data, 0, buffer.LengthBytes);
 
 			// did we write excessive bits?
-			int bitsInLastByte = (buffer.m_bitLength % 8);
+			int bitsInLastByte = (buffer.m_bitLength & 7);
 			if (bitsInLastByte != 0)
 			{
 				int excessBits = 8 - bitsInLastByte;

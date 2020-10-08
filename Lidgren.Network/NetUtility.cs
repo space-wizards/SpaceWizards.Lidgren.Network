@@ -551,9 +551,11 @@ namespace Lidgren.Network
             return endPoint;
         }
 
-#if UNSAFE
+        // MemoryMarshal.Read and MemoryMarshal.Write are not GUARANTEED to allow unaligned reads/writes.
+        // The current CoreCLR implementation does but that's an implementation detail.
+        // These are basically MemoryMarshal.Read/Write but well, guaranteed to allow unaligned access.
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static T ReadUnaligned<T>(ReadOnlySpan<byte> source) where T : struct
+        internal static T ReadUnaligned<T>(ReadOnlySpan<byte> source) where T : unmanaged
         {
             if (Unsafe.SizeOf<T>() > source.Length)
             {
@@ -562,6 +564,16 @@ namespace Lidgren.Network
 
             return Unsafe.ReadUnaligned<T>(ref MemoryMarshal.GetReference(source));
         }
-#endif
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static void WriteUnaligned<T>(Span<byte> destination, ref T value) where T : unmanaged
+        {
+            if ((uint)Unsafe.SizeOf<T>() > (uint)destination.Length)
+            {
+                throw new ArgumentOutOfRangeException();
+            }
+
+            Unsafe.WriteUnaligned(ref MemoryMarshal.GetReference(destination), value);
+        }
     }
 }
