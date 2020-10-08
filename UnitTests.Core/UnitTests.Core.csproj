@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>netcoreapp3.1</TargetFramework>
+        <TargetFrameworks>net45;net46;net461;net462;netcoreapp3.1</TargetFrameworks>
         <IsPackable>false</IsPackable>
     </PropertyGroup>
 
@@ -10,6 +10,10 @@
         <PackageReference Include="NUnit.Analyzers" Version="0.5.0" />
         <PackageReference Include="NUnit3TestAdapter" Version="3.15.1" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.4.0" />
+        <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.0">
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
     </ItemGroup>
 
     <ItemGroup>
