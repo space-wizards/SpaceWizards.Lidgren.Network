@@ -1,3 +1,5 @@
+using System.Net.Sockets;
+using System.Threading.Tasks;
 using Lidgren.Network;
 using NUnit.Framework;
 
@@ -32,6 +34,76 @@ namespace UnitTests
         public void TestBitsToHoldUInt32(uint num, int bits)
         {
             Assert.That(NetUtility.BitsToHoldUInt(num), Is.EqualTo(bits));
+        }
+
+        [Test]
+        public void TestResolveBasic()
+        {
+            var addr = NetUtility.Resolve("google.com");
+
+            Assert.That(addr, Is.Not.Null);
+        }
+
+        [Test]
+        public void TestResolveEndPointBasic()
+        {
+            var addr = NetUtility.Resolve("google.com", 55555);
+
+            Assert.That(addr, Is.Not.Null);
+            Assert.That(addr.Port, Is.EqualTo(55555));
+        }
+
+        [Test]
+        [TestCase(AddressFamily.InterNetwork)]
+        [TestCase(AddressFamily.InterNetworkV6)]
+        public void TestResolveAllowed(AddressFamily family)
+        {
+            var addr = NetUtility.Resolve("google.com", family);
+
+            Assert.That(addr.AddressFamily, Is.EqualTo(family));
+        }
+
+        [Test]
+        public void TestResolveNothing()
+        {
+            var addr = NetUtility.Resolve("thisdomaindoesnotexistandneverwill.google.com");
+
+            Assert.That(addr, Is.Null);
+        }
+
+        [Test]
+        public async Task TestResolveAsyncBasic()
+        {
+            var addr = await NetUtility.ResolveAsync("google.com");
+
+            Assert.That(addr, Is.Not.Null);
+        }
+
+        [Test]
+        public async Task TestResolveEndPointAsyncBasic()
+        {
+            var addr = await NetUtility.ResolveAsync("google.com", 55555);
+
+            Assert.That(addr, Is.Not.Null);
+            Assert.That(addr.Port, Is.EqualTo(55555));
+        }
+
+        [Test]
+        [TestCase(AddressFamily.InterNetwork)]
+        [TestCase(AddressFamily.InterNetworkV6)]
+        public async Task TestResolveAsyncAllowed(AddressFamily family)
+        {
+            var addr = await NetUtility.ResolveAsync("google.com", family);
+
+            Assert.That(addr.AddressFamily, Is.EqualTo(family));
+        }
+
+        [Test]
+        public async Task TestResolveAsyncNothing()
+        {
+            var addr = await NetUtility.ResolveAsync("thisdomaindoesnotexistandneverwill.google.com");
+
+            Assert.That(addr, Is.Null);
         }
     }
 }

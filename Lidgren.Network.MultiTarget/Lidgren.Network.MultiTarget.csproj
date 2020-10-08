@@ -79,6 +79,7 @@
     <Compile Include="..\Lidgren.Network\NetUnreliableUnorderedReceiver.cs" Link="NetUnreliableUnorderedReceiver.cs" />
     <Compile Include="..\Lidgren.Network\NetUPnP.cs" Link="NetUPnP.cs" />
     <Compile Include="..\Lidgren.Network\NetUtility.cs" Link="NetUtility.cs" />
+    <Compile Include="..\Lidgren.Network\NetUtility.Dns.cs" Link="NetUtility.Dns.cs" />
     <Compile Include="..\Lidgren.Network\Platform\PlatformWin32.cs" Link="Platform\PlatformWin32.cs" />
   </ItemGroup>
 

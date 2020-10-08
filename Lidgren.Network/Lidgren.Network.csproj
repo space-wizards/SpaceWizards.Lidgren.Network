@@ -136,6 +136,7 @@
     <Compile Include="NetUnreliableUnorderedReceiver.cs" />
     <Compile Include="NetUPnP.cs" />
     <Compile Include="NetUtility.cs" />
+    <Compile Include="NetUtility.Dns.cs" />
     <Compile Include="Platform\PlatformAndroid.cs" />
     <Compile Include="Platform\PlatformConstrained.cs" />
     <Compile Include="Platform\PlatformUnityExtras.cs" />
