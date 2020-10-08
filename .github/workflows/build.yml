@@ -26,7 +26,7 @@ jobs:
 
     strategy:
       matrix:
-        targetframework: [net45, net46, net461, net462, netcoreapp3.1]
+        targetframework: [net45, net48, netcoreapp3.1]
 
     steps:
     - uses: actions/checkout@v2
