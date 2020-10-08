@@ -1,4 +1,4 @@
-name: Build
+name: Build & Test
 
 on:
   push:
@@ -20,3 +20,19 @@ jobs:
       run: dotnet restore Lidgren.Network.MultiTarget/Lidgren.Network.MultiTarget.csproj
     - name: Build
       run: dotnet build --configuration Release --no-restore Lidgren.Network.MultiTarget/Lidgren.Network.MultiTarget.csproj
+
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        targetframework: [net45, net46, net461, net462, netcoreapp3.1]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 3.1.x
+    - name: Test
+      run: dotnet test --configuration Release --framework ${{ matrix.targetframework }} UnitTests.Core/UnitTests.Core.csproj 
