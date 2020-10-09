@@ -36,4 +36,4 @@ jobs:
       with:
         dotnet-version: 3.1.x
     - name: Test
-      run: dotnet test --configuration Release --framework ${{ matrix.targetframework }} UnitTests.Core/UnitTests.Core.csproj 
+      run: dotnet test --configuration Release --framework ${{ matrix.targetframework }} UnitTests.Core/UnitTests.Core.csproj  -v n
