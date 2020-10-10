@@ -237,6 +237,7 @@ namespace Lidgren.Network
 		/// <summary>
 		/// Writes a 32 bit unsigned integer
 		/// </summary>
+		[CLSCompliant(false)]
 		public void Write(UInt32 source)
 		{
 			EnsureBufferSize(m_bitLength + 32);
