@@ -515,5 +515,45 @@ namespace Lidgren.Network
 					return (uint)num1;
 			}
 		}
+		
+		/// <summary>
+	    /// Zero a number of bits
+	    /// </summary>
+	    public static void Zero(Span<byte> destination, int numberOfBits, int destBitOffset)
+	    {
+	        var dstBytePtr = destBitOffset >> 3;
+	        var firstPartLen = destBitOffset & 7;
+	        var numberOfBytes = numberOfBits >> 3;
+	        var endBits = numberOfBits & 7;
+
+	        if (firstPartLen == 0)
+	        {
+        		destination.Slice(destBitOffset / 8, numberOfBytes).Fill(0);
+
+        		if (endBits <= 0)
+        		{
+        			return;
+        		}
+
+        		var endByteSpan = destination.Slice(numberOfBytes, 1);
+
+        		endByteSpan[0] = (byte) (endByteSpan[0] & ~(byte.MaxValue >> (8 - endBits)));
+
+        		return;
+	        }
+
+
+	        var lastPartLen = 8 - firstPartLen;
+
+	        destination[dstBytePtr] &= (byte)(255 >> lastPartLen);
+
+	        ++dstBytePtr;
+
+	        destination.Slice(dstBytePtr, numberOfBytes-2).Fill(0);
+
+	        dstBytePtr = numberOfBytes - 2;
+
+	        destination[dstBytePtr] &= (byte)(255 << firstPartLen);
+	    }
 	}
 }

@@ -630,5 +630,18 @@ namespace Lidgren.Network
 				m_bitLength -= excessBits;
 			}
 		}
+
+		/// <summary>
+		/// Writes a number of zeroed bytes
+		/// </summary>
+		public void Zero(int length)
+		{
+			if (length < 0)
+				throw new ArgumentOutOfRangeException(nameof(length), length, "Must be positive.");
+			int bits = length * 8;
+			EnsureBufferSize(m_bitLength + bits);
+			NetBitWriter.Zero(m_data, bits, m_bitLength);
+			m_bitLength += bits;
+		}
 	}
 }
