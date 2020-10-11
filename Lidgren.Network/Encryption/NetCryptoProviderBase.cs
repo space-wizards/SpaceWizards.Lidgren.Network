@@ -35,20 +35,19 @@ namespace Lidgren.Network
 		{
 			int unEncLenBits = msg.LengthBits;
 
-			var ms = new MemoryStream();
-			var cs = new CryptoStream(ms, m_algorithm.CreateEncryptor(), CryptoStreamMode.Write);
+			using var ms = new MemoryStream();
+			var cs = new CryptoStream(ms, m_algorithm.CreateEncryptor(), CryptoStreamMode.Write, leaveOpen: true);
 			cs.Write(msg.m_data, 0, msg.LengthBytes);
 			cs.Close();
 
-			// get results
-			var arr = ms.ToArray();
-			ms.Close();
+			var buffer = ms.GetBuffer();
 
-			msg.EnsureBufferSize((arr.Length + 4) * 8);
+			var newLength = ((int)ms.Length + 4) * 8;
+			msg.EnsureBufferSize(newLength);
 			msg.LengthBits = 0; // reset write pointer
 			msg.Write((uint)unEncLenBits);
-			msg.Write(arr);
-			msg.LengthBits = (arr.Length + 4) * 8;
+			msg.Write(buffer.AsSpan(0, (int) ms.Length));
+			msg.LengthBits = newLength;
 
 			return true;
 		}
