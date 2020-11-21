@@ -36,9 +36,9 @@ namespace Lidgren.Network
 			int unEncLenBits = msg.LengthBits;
 
 			var ms = new MemoryStream();
-			var cs = new CryptoStream(ms, m_algorithm.CreateEncryptor(), CryptoStreamMode.Write, leaveOpen: true);
+			var cs = new CryptoStream(ms, m_algorithm.CreateEncryptor(), CryptoStreamMode.Write);
 			cs.Write(msg.m_data, 0, msg.LengthBytes);
-			cs.Close();
+			cs.FlushFinalBlock();
 
 			var buffer = ms.GetBuffer();
 
