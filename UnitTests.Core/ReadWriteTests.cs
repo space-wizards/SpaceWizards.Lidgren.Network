@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Reflection;
+using Lidgren.Network;
 using NUnit.Framework;
 
 namespace UnitTests
@@ -204,6 +205,31 @@ namespace UnitTests
                 Assert.That(tmparr[i], Is.EqualTo(result[i]), "readbytes fail");
             }
         }
+        
+#if NET5_0
+		[Test]
+        [TestCase(0)]
+        [TestCase(1)]
+        [TestCase(123.4)]
+        [TestCase(0.01)]
+        [TestCase(double.PositiveInfinity)]
+        [TestCase(double.NegativeInfinity)]
+        [TestCase(double.NaN)]
+		public void TestHalf(double val)
+		{
+			var half = (Half) val;
+
+			var msg = new NetBuffer();
+			msg.Write(half);
+
+			Assert.That(msg.LengthBits, Is.EqualTo(16));
+
+			Assert.That(msg.PeekHalf(), Is.EqualTo(half));
+			Assert.That(msg.ReadHalf(), Is.EqualTo(half));
+
+			Assert.That(msg.Position, Is.EqualTo(16));
+		}
+#endif
 
         public class TestItemBase
         {

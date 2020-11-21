@@ -339,6 +339,19 @@ namespace Lidgren.Network
 			return ReadSingle();
 		}
 
+#if NET5_0
+		/// <summary>
+		/// Reads a 16 bit floating point value written using Write(Half)
+		/// </summary>
+		public Half ReadHalf()
+		{
+			var retval = PeekHalf();
+			m_readPosition += 16;
+
+			return retval;
+		}
+#endif
+
 		/// <summary>
 		/// Reads a 32 bit floating point value written using Write(Single)
 		/// </summary>

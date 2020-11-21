@@ -272,6 +272,24 @@ namespace Lidgren.Network
 			return PeekSingle();
 		}
 
+#if NET5_0
+		/// <summary>
+		/// Writes a 16 bit floating point value
+		/// </summary>
+		public Half PeekHalf()
+		{
+			NetException.Assert(m_bitLength - m_readPosition >= 16, c_readOverflowError);
+
+			if ((m_readPosition & 7) == 0) // read directly
+			{
+				return NetUtility.ReadUnaligned<Half>(m_data.AsSpan(m_readPosition >> 3));
+			}
+
+			var bytes = PeekBytes(stackalloc byte[2]);
+			return NetUtility.ReadUnaligned<Half>(bytes);
+		}
+#endif
+
 		/// <summary>
 		/// Reads a 32-bit Single without advancing the read pointer
 		/// </summary>
