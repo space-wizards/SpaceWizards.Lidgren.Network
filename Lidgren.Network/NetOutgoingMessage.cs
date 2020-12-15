@@ -19,6 +19,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 using System;
 using System.Diagnostics;
+using Lidgren.Network.Compression;
 
 namespace Lidgren.Network
 {
@@ -126,6 +127,14 @@ namespace Lidgren.Network
 		public bool Encrypt(NetEncryption encryption)
 		{
 			return encryption.Encrypt(this);
+		}
+
+		/// <summary>
+		/// Compress this message using the provided algorithm; no more writing can be done before sending it or the message will be corrupt!
+		/// </summary>
+		public bool Compress(NetCompression compression)
+		{
+			return compression.Compress(this);
 		}
 
 		/// <summary>
