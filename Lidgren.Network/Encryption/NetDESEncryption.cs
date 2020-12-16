@@ -7,12 +7,12 @@ namespace Lidgren.Network
 	public class NetDESEncryption : NetCryptoProviderBase
 	{
 		public NetDESEncryption(NetPeer peer)
-			: base(peer, new DESCryptoServiceProvider())
+			: base(peer, DES.Create())
 		{
 		}
 
 		public NetDESEncryption(NetPeer peer, string key)
-			: base(peer, new DESCryptoServiceProvider())
+			: this(peer)
 		{
 			SetKey(key);
 		}
@@ -23,7 +23,7 @@ namespace Lidgren.Network
 		}
 
 		public NetDESEncryption(NetPeer peer, ReadOnlySpan<byte> data)
-			: base(peer, new DESCryptoServiceProvider())
+			: this(peer)
 		{
 			SetKey(data);
 		}
