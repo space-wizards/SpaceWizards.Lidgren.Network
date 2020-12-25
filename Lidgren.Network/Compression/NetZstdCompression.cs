@@ -1,7 +1,7 @@
 using System;
 using ZstdNet;
 
-namespace Lidgren.Network.Compression
+namespace Lidgren.Network
 {
     public class NetZstdCompression : NetCompression
     {

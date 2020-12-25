@@ -19,7 +19,6 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 using System;
 using System.Net;
 using System.Diagnostics;
-using Lidgren.Network.Compression;
 #if !__NOIPENDPOINT__
 using NetEndPoint = System.Net.IPEndPoint;
 #endif

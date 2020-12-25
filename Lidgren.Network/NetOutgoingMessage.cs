@@ -19,7 +19,6 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 using System;
 using System.Diagnostics;
-using Lidgren.Network.Compression;
 
 namespace Lidgren.Network
 {

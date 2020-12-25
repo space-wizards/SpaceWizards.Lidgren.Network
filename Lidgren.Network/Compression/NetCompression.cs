@@ -1,4 +1,4 @@
-namespace Lidgren.Network.Compression
+namespace Lidgren.Network
 {
     public abstract class NetCompression
     {
