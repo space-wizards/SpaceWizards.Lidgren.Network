@@ -5,7 +5,7 @@ namespace Lidgren.Network
 {
     public class NetZstdCompression : NetCompression
     {
-        private readonly Compressor _compressor = new Compressor();
+        private readonly Compressor _compressor = new Compressor(new CompressionOptions(CompressionOptions.MaxCompressionLevel));
         private readonly Decompressor _decompressor = new Decompressor();
 
         public override bool Compress(NetOutgoingMessage msg)
@@ -15,7 +15,8 @@ namespace Lidgren.Network
             var data = _compressor.Wrap(span);
 
             msg.Reset();
-            msg.Write(data);
+            msg.Data = data;
+            msg.m_bitLength = data.Length * 8;
             return true;
         }
 
@@ -25,7 +26,8 @@ namespace Lidgren.Network
 
             var data = _decompressor.Unwrap(span);
             msg.Reset();
-            msg.Write(data);
+            msg.Data = data;
+            msg.m_bitLength = data.Length * 8;
             return true;
         }
     }
