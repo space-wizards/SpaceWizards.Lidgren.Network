@@ -59,6 +59,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="ZstdNet" Version="1.4.5" />
+  </ItemGroup>
+  <ItemGroup>
     <Compile Include="Encryption\NetAESEncryption.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -77,6 +80,8 @@
     <Compile Include="Encryption\NetXorEncryption.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Compression\NetCompression.cs" />
+    <Compile Include="Compression\NetZstdCompression.cs" />
     <Compile Include="Encryption\NetXteaEncryption.cs" />
     <Compile Include="NamespaceDoc.cs" />
     <Compile Include="NetBigInteger.cs" />
