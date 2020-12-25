@@ -13,8 +13,7 @@ namespace Lidgren.Network
             var span = msg.Data.AsSpan().Slice(msg.PositionInBytes, msg.LengthBytes);
 
             var data = _compressor.Wrap(span);
-
-            msg.Reset();
+            
             msg.Data = data;
             msg.m_bitLength = data.Length * 8;
             return true;
@@ -25,7 +24,6 @@ namespace Lidgren.Network
             var span = msg.Data.AsSpan().Slice(msg.PositionInBytes, msg.LengthBytes);
 
             var data = _decompressor.Unwrap(span);
-            msg.Reset();
             msg.Data = data;
             msg.m_bitLength = data.Length * 8;
             return true;
