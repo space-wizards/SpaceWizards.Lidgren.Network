@@ -144,8 +144,19 @@ namespace Lidgren.Network
 
 	public static partial class NetTime
 	{
-		private static readonly long s_timeInitialized = Stopwatch.GetTimestamp();
+		private static long s_timeInitialized = Stopwatch.GetTimestamp();
 		private static readonly double s_dInvFreq = 1.0 / (double)Stopwatch.Frequency;
+
+		/// <summary>
+		///		Sets <see cref="Now"/> to the current value and track it like normal.
+		/// </summary>
+		/// <remarks>
+		///		You are basically guaranteed to break everything if you use this after a NetPeer has been initialized.
+		/// </remarks>
+		public static void SetNow(double value)
+		{
+			s_timeInitialized = -(long) (value / s_dInvFreq - Stopwatch.GetTimestamp());
+		}
 		
 		/// <summary>
 		/// Get number of seconds since the application started
