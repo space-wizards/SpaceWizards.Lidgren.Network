@@ -134,6 +134,9 @@ namespace Lidgren.Network
 
                     if (m_configuration.DualStack)
                     {
+#if NET35
+						LogError("DualStack IPv6 not supported on .NET Framework 3.5");
+#else
                         if (m_configuration.LocalAddress.AddressFamily != AddressFamily.InterNetworkV6)
                         {
                             LogWarning("Configuration specifies Dual Stack but does not use IPv6 local address; Dual stack will not work.");
@@ -142,6 +145,7 @@ namespace Lidgren.Network
                         {
                             m_socket.DualMode = true;
                         }
+#endif
                     }
 
                     var ep = (EndPoint)new NetEndPoint(m_configuration.LocalAddress, reBind ? m_listenPort : m_configuration.Port);

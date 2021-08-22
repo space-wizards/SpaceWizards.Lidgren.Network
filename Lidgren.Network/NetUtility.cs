@@ -474,10 +474,14 @@ namespace Lidgren.Network
         internal static void CopyEndpoint(IPEndPoint src, IPEndPoint dst)
         {
             dst.Port = src.Port;
+#if !NET35
             if (src.AddressFamily == AddressFamily.InterNetwork)
                 dst.Address = src.Address.MapToIPv6();
             else
-                dst.Address = src.Address;
+#endif
+            {
+				dst.Address = src.Address;
+			}
         }
 
         /// <summary>
@@ -485,8 +489,10 @@ namespace Lidgren.Network
         /// </summary>
         internal static IPEndPoint MapToIPv6(IPEndPoint endPoint)
         {
+#if !NET35
             if (endPoint.AddressFamily == AddressFamily.InterNetwork)
                 return new IPEndPoint(endPoint.Address.MapToIPv6(), endPoint.Port);
+#endif
             return endPoint;
         }
     }
