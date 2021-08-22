@@ -339,7 +339,7 @@ namespace Lidgren.Network
 			return ReadSingle();
 		}
 
-#if NET5_0
+#if NET5_0_OR_GREATER
 		/// <summary>
 		/// Reads a 16 bit floating point value written using Write(Half)
 		/// </summary>
