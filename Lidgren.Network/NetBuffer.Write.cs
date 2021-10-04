@@ -40,9 +40,15 @@ namespace Lidgren.Network
 				m_data = new byte[byteLen + c_overAllocateAmount];
 				return;
 			}
+
 			if (m_data.Length < byteLen)
-				Array.Resize<byte>(ref m_data, byteLen + c_overAllocateAmount);
-			return;
+			{
+				var newLen = m_data.Length * 2;
+				if (newLen < byteLen)
+					newLen = byteLen;
+				
+				Array.Resize(ref m_data, newLen);
+			}
 		}
 
 		/// <summary>
