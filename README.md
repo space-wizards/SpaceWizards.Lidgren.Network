@@ -1,5 +1,5 @@
 # Lidgren.Network (Space Wizards Edition) ![Build & Test](https://github.com/space-wizards/lidgren-network-gen3/workflows/Build%20&%20Test/badge.svg)
-Lidgren.Network is a networking library for .NET, which uses a single UDP socket to deliver a simple API for connecting a client to a server, reading and sending messages. It supports **.NET Framework 4.5**+ and **.NET Standard 2.0**+. It should also work in **Unity**.
+Lidgren.Network is a networking library for .NET, which uses a single UDP socket to deliver a simple API for connecting a client to a server, reading and sending messages. It supports **.NET Standard 2.1+**.
 
 **Space Wizards Edition** is a maintained fork of Lidgren.Network with improvements such as bugfixes, performance improvements (`Span<T>`!), new features, etc...
 
