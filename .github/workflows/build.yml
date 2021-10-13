@@ -7,25 +7,14 @@ on:
     branches: [ wizards ]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v2
-    - name: Install dependencies
-      run: dotnet restore Lidgren.Network.MultiTarget/Lidgren.Network.MultiTarget.csproj
-    - name: Build
-      run: dotnet build --configuration Release --no-restore Lidgren.Network.MultiTarget/Lidgren.Network.MultiTarget.csproj
-
   test:
     runs-on: ${{ matrix.os }}
 
     strategy:
       matrix:
-        targetframework: [netcoreapp3.1, net5.0]
         os: [windows-latest, ubuntu-latest]
 
     steps:
     - uses: actions/checkout@v2
     - name: Test
-      run: dotnet test --configuration Release --framework ${{ matrix.targetframework }} UnitTests.Core/UnitTests.Core.csproj  -v n
+      run: dotnet test --configuration Release -v n
