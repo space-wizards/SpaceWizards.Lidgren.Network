@@ -64,7 +64,7 @@ namespace Lidgren.Network
 				? BinaryPrimitives.ReverseEndianness(netshort)
 				: netshort;
 
-		public static uint ntohs(uint netlong) =>
+		public static uint ntohl(uint netlong) =>
 			BitConverter.IsLittleEndian
 				? BinaryPrimitives.ReverseEndianness(netlong)
 				: netlong;

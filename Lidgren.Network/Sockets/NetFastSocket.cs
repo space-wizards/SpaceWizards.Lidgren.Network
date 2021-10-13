@@ -39,7 +39,7 @@ namespace Lidgren.Network
 
 				address6.sin6_port = htons(refAddress6.Port);
 				address6.sin6_family = AF_INET6;
-				address6.sin6_scope_id = htonl(refAddress6.ScopeId);
+				address6.sin6_scope_id = refAddress6.ScopeId;
 				address6.sin6_addr = Unsafe.As<NetIpv6Address, in6_addr>(ref refAddress6.Address);
 
 				address = (sockaddr*)(&address6);
@@ -148,7 +148,7 @@ namespace Lidgren.Network
 					{
 						Address = Unsafe.As<in6_addr, NetIpv6Address>(ref address6.sin6_addr),
 						Port = ntohs(address6.sin6_port),
-						ScopeId = ntohs(address6.sin6_scope_id)
+						ScopeId = address6.sin6_scope_id
 					};
 				}
 				else if (address6.sin6_family == AF_INET)
