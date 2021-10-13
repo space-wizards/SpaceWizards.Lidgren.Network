@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard2.1;netcoreapp3.1;net5.0</TargetFrameworks>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <DefineConstants Condition="'$(TargetFramework)' == 'netstandard2.1' or '$(TargetFramework)' == 'netcoreapp3.1'">$(DefineConstants);HAS_FULL_SPAN</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
@@ -79,11 +79,16 @@
     <Compile Include="..\Lidgren.Network\NetUtility.cs" Link="NetUtility.cs" />
     <Compile Include="..\Lidgren.Network\NetUtility.Dns.cs" Link="NetUtility.Dns.cs" />
     <Compile Include="..\Lidgren.Network\Platform\PlatformWin32.cs" Link="Platform\PlatformWin32.cs" />
+    <Compile Include="..\Lidgren.Network\Sockets\NetFastSocket.cs" Link="Sockets\NetFastSocket.cs" />
+    <Compile Include="..\Lidgren.Network\Sockets\NetIpAddress.cs" Link="Sockets\NetIpAddress.cs" />
+    <Compile Include="..\Lidgren.Network\Sockets\NetNativeSocket.cs" Link="Sockets\NetNativeSocket.cs" />
+    <Compile Include="..\Lidgren.Network\Sockets\NetSocketAddress.cs" Link="Sockets\NetSocketAddress.cs" />
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="Encryption\" />
     <Folder Include="Platform\" />
+    <Folder Include="Sockets\" />
   </ItemGroup>
 
   <ItemGroup>

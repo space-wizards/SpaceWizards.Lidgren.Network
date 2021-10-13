@@ -20,7 +20,6 @@ namespace Lidgren.Network
 		internal byte[] m_sendBuffer;
 		internal byte[] m_receiveBuffer;
 		internal NetIncomingMessage m_readHelperMessage;
-		private EndPoint m_senderRemote;
 		private object m_initializeLock = new object();
 		private uint m_frameCounter;
 		private double m_lastHeartbeat;
@@ -383,7 +382,7 @@ namespace Lidgren.Network
 							// remove connection
 							//
 							m_connections.RemoveAt(i);
-							m_connectionLookup.Remove(conn.RemoteEndPoint);
+							m_connectionLookup.Remove((NetSocketAddress) conn.RemoteEndPoint);
 						}
 					}
 				}
@@ -456,14 +455,16 @@ namespace Lidgren.Network
 
         private void ReceiveSocketData(double now)
         {
-            int bytesReceived = m_socket.ReceiveFrom(m_receiveBuffer, 0, m_receiveBuffer.Length, SocketFlags.None, ref m_senderRemote);
+            int bytesReceived = NetFastSocket.ReceiveFrom(
+	            m_socket, 
+	            m_receiveBuffer.AsSpan(0, m_receiveBuffer.Length), 
+	            SocketFlags.None, 
+	            out var senderRemote);
 
 			if (bytesReceived < NetConstants.HeaderByteSize)
 				return;
 
 			//LogVerbose("Received " + bytesReceived + " bytes");
-
-			var ipsender = (NetEndPoint)m_senderRemote;
 
 			if (m_upnp != null && now < m_upnp.m_discoveryResponseDeadline && bytesReceived > 32)
 			{
@@ -489,7 +490,7 @@ namespace Lidgren.Network
 			}
 
 			NetConnection sender = null;
-			m_connectionLookup.TryGetValue(ipsender, out sender);
+			m_connectionLookup.TryGetValue(senderRemote, out sender);
 
 			//
 			// parse packet into messages
@@ -540,7 +541,7 @@ namespace Lidgren.Network
 						if (sender != null)
 							sender.ReceivedLibraryMessage(tp, ptr, payloadByteLength);
 						else
-							ReceivedUnconnectedLibraryMessage(now, ipsender, tp, ptr, payloadByteLength);
+							ReceivedUnconnectedLibraryMessage(now, (NetEndPoint) senderRemote, tp, ptr, payloadByteLength);
 					}
 					else
 					{
@@ -553,7 +554,7 @@ namespace Lidgren.Network
 						msg.m_sequenceNumber = sequenceNumber;
 						msg.m_receivedMessageType = tp;
 						msg.m_senderConnection = sender;
-						msg.m_senderEndPoint = ipsender;
+						msg.m_senderEndPoint = (NetEndPoint) senderRemote;
 						msg.m_bitLength = payloadBitLength;
 
 						Buffer.BlockCopy(m_receiveBuffer, ptr, msg.m_data, 0, payloadByteLength);
@@ -582,7 +583,7 @@ namespace Lidgren.Network
 				}
 				catch (Exception ex)
 				{
-					LogError("Packet parsing error: " + ex.Message + " from " + ipsender);
+					LogError("Packet parsing error: " + ex.Message + " from " + (NetEndPoint) senderRemote);
 				}
 				ptr += payloadByteLength;
 			}
@@ -680,13 +681,13 @@ namespace Lidgren.Network
 									// Lets just assume the router decided to use this port instead
 									//
 									var hsconn = hs.Value;
-									m_connectionLookup.Remove(hs.Key);
+									m_connectionLookup.Remove((NetSocketAddress) hs.Key);
 									m_handshakes.Remove(hs.Key);
 
 									LogDebug("Detected host port change; rerouting connection to " + senderEndPoint);
 									hsconn.MutateEndPoint(senderEndPoint);
 
-									m_connectionLookup.Add(senderEndPoint, hsconn);
+									m_connectionLookup.Add((NetSocketAddress) senderEndPoint, hsconn);
 									m_handshakes.Add(senderEndPoint, hsconn);
 
 									hsconn.ReceivedHandshake(now, tp, ptr, payloadByteLength);
@@ -751,7 +752,7 @@ namespace Lidgren.Network
 				else
 				{
 					m_connections.Add(conn);
-					m_connectionLookup.Add(conn.m_remoteEndPoint, conn);
+					m_connectionLookup.Add((NetSocketAddress) conn.m_remoteEndPoint, conn);
 				}
 			}
 		}

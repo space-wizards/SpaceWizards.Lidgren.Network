@@ -21,7 +21,7 @@ namespace Lidgren.Network
 		private object m_messageReceivedEventCreationLock = new object();
 
 		internal readonly List<NetConnection> m_connections;
-		private readonly Dictionary<NetEndPoint, NetConnection> m_connectionLookup;
+		private readonly Dictionary<NetSocketAddress, NetConnection> m_connectionLookup;
 
 		private string m_shutdownReason;
 
@@ -119,16 +119,8 @@ namespace Lidgren.Network
 			m_releasedIncomingMessages = new NetQueue<NetIncomingMessage>(4);
 			m_unsentUnconnectedMessages = new NetQueue<NetTuple<NetEndPoint, NetOutgoingMessage>>(2);
 			m_connections = new List<NetConnection>();
-			m_connectionLookup = new Dictionary<NetEndPoint, NetConnection>();
+			m_connectionLookup = new Dictionary<NetSocketAddress, NetConnection>();
 			m_handshakes = new Dictionary<NetEndPoint, NetConnection>();
-            if (m_configuration.LocalAddress.AddressFamily == AddressFamily.InterNetworkV6)
-            {
-                m_senderRemote = (EndPoint)new IPEndPoint(IPAddress.IPv6Any, 0);
-            }
-            else
-            {
-                m_senderRemote = (EndPoint)new IPEndPoint(IPAddress.Any, 0);
-            }
 			m_status = NetPeerStatus.NotRunning;
 			m_receivedFragmentGroups = new Dictionary<NetConnection, Dictionary<int, ReceivedFragmentGroup>>();
 		}
@@ -179,7 +171,7 @@ namespace Lidgren.Network
 
 			// this should not pose a threading problem, m_connectionLookup is never added to concurrently
 			// and TryGetValue will not throw an exception on fail, only yield null, which is acceptable
-			m_connectionLookup.TryGetValue(ep, out retval);
+			m_connectionLookup.TryGetValue((NetSocketAddress)ep, out retval);
 
 			return retval;
 		}
@@ -319,7 +311,7 @@ namespace Lidgren.Network
 				if (m_status == NetPeerStatus.NotRunning)
 					throw new NetException("Must call Start() first");
 
-				if (m_connectionLookup.ContainsKey(remoteEndPoint))
+				if (m_connectionLookup.ContainsKey((NetSocketAddress) remoteEndPoint))
 					throw new NetException("Already connected to that endpoint!");
 
 				NetConnection hs;
