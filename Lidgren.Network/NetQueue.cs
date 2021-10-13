@@ -18,10 +18,6 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 */
 
-#if NETSTANDARD2_1 || NETCOREAPP
-#define HAVE_ISREFERENCE
-#endif
-
 using System;
 using System.Diagnostics;
 using System.Collections.Generic;
@@ -47,11 +43,11 @@ namespace Lidgren.Network
 		//
 		// [0] item
 		// [1] item (tail = ((head + size - 1) % capacity)
-		// [2] 
-		// [3] 
+		// [2]
+		// [3]
 		// [4] item (head)
 		// [5] item
-		// [6] item 
+		// [6] item
 		// [7] item
 		//
 		private T[] m_items;
@@ -213,9 +209,7 @@ namespace Lidgren.Network
 				}
 
 				item = m_items[m_head];
-#if HAVE_ISREFERENCE
 				if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
-#endif
                 {
                     m_items[m_head] = default(T);
                 }
@@ -257,9 +251,7 @@ namespace Lidgren.Network
 					var item = m_items[m_head];
 					addTo.Add(item);
 
-#if HAVE_ISREFERENCE
 					if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
-#endif
 					{
 						m_items[m_head] = default(T);
 					}
@@ -358,9 +350,7 @@ namespace Lidgren.Network
 			m_lock.EnterWriteLock();
 			try
 			{
-#if HAVE_ISREFERENCE
 				if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
-#endif
 				{
 					for (int i = 0; i < m_items.Length; i++)
 						m_items[i] = default(T);

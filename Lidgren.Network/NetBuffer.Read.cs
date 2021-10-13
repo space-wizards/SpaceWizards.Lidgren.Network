@@ -17,14 +17,7 @@ namespace Lidgren.Network
 	public partial class NetBuffer
 	{
 		private const string c_readOverflowError = "Trying to read past the buffer size - likely caused by mismatching Write/Reads, different size or order.";
-		// With FULL_SPAN we can just stackalloc everywhere instead of using this buffer.
-#if HAS_FULL_SPAN
-		// Max size to allocate with stackalloc
 		private const int c_stackallocThresh = 1024;
-#else
-		private const int c_bufferSize = 64; // Min 8 to hold anything but strings. Increase it if readed strings usally don't fit inside the buffer
-		private static object s_buffer;
-#endif
 
 		/// <summary>
 		/// Reads a boolean value (stored as a single bit) written using Write(bool)
@@ -585,19 +578,10 @@ namespace Lidgren.Network
 				return retval;
 			}
 
-#if HAS_FULL_SPAN
 			if (byteLen <= c_stackallocThresh)
 			{
 				var buffer = ReadBytes(stackalloc byte[byteLen]);
 				return Encoding.UTF8.GetString(buffer);
-#else
-			if (byteLen <= c_bufferSize) {
-				byte[] buffer = (byte[]) Interlocked.Exchange(ref s_buffer, null) ?? new byte[c_bufferSize];
-				ReadBytes(buffer, 0, byteLen);
-				string retval = Encoding.UTF8.GetString(buffer, 0, byteLen);
-				s_buffer = buffer;
-				return retval;
-#endif
 			} else {
 				byte[] bytes = ReadBytes(byteLen);
 				return Encoding.UTF8.GetString(bytes, 0, bytes.Length);
@@ -636,7 +620,6 @@ namespace Lidgren.Network
 				return true;
 			}
 
-#if HAS_FULL_SPAN
 			if (byteLen < c_stackallocThresh)
 			{
 				Span<byte> spanBytes = stackalloc byte[(int)byteLen];
@@ -650,7 +633,6 @@ namespace Lidgren.Network
 				result = String.Empty;
 				return false;
 			}
-#endif
 
 			byte[] bytes;
 			if (ReadBytes((int)byteLen, out bytes) == false)

@@ -45,7 +45,6 @@ namespace Lidgren.Network
 		/// 16 byte key
 		/// </summary>
 		public NetXtea(NetPeer peer, byte[] key, int rounds)
-#if HAS_FULL_SPAN
 			: this(peer, key.AsSpan(), rounds)
 		{
 		}
@@ -54,7 +53,6 @@ namespace Lidgren.Network
 		/// 16 byte key
 		/// </summary>
 		public NetXtea(NetPeer peer, ReadOnlySpan<byte> key, int rounds)
-#endif
 			: base(peer)
 		{
 			if (key.Length < c_keySize)
@@ -70,11 +68,7 @@ namespace Lidgren.Network
 			while (index < 4)
 			{
 				tmp[index] = 
-#if HAS_FULL_SPAN
 					BitConverter.ToUInt32(key.Slice(num2));
-#else
-					BitConverter.ToUInt32(key, num2);
-#endif
 				index++;
 				num2 += 4;
 			}
@@ -90,7 +84,6 @@ namespace Lidgren.Network
 		/// 16 byte key
 		/// </summary>
 		public NetXtea(NetPeer peer, byte[] key)
-#if HAS_FULL_SPAN
 			: this(peer, key.AsSpan(), 32)
 		{
 		}
@@ -99,7 +92,6 @@ namespace Lidgren.Network
 		/// 16 byte key
 		/// </summary>
 		public NetXtea(NetPeer peer, ReadOnlySpan<byte> key)
-#endif
 			: this(peer, key, 32)
 		{
 		}

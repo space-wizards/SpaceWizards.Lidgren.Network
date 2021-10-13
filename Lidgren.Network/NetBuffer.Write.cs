@@ -390,11 +390,8 @@ namespace Lidgren.Network
 		/// </summary>
 		public void Write(float source)
 		{
-#if NETSTANDARD2_1 || NETCOREAPP
 			int val = BitConverter.SingleToInt32Bits(source);
-#else
-			int val = Unsafe.As<float, int>(ref source);
-#endif
+
 			if (!BitConverter.IsLittleEndian)
 			{
 				val = BinaryPrimitives.ReverseEndianness(val);
@@ -408,11 +405,7 @@ namespace Lidgren.Network
 		/// </summary>
 		public void Write(double source)
 		{
-#if NETSTANDARD2_1 || NETCOREAPP
             long val = BitConverter.DoubleToInt64Bits(source);
-#else
-            long val = Unsafe.As<double, long>(ref source);
-#endif
 			if (!BitConverter.IsLittleEndian)
 			{
 				val = BinaryPrimitives.ReverseEndianness(val);
@@ -568,7 +561,6 @@ namespace Lidgren.Network
 				return;
 			}
 
-#if HAS_FULL_SPAN
 			var byteCount = Encoding.UTF8.GetByteCount(source);
 			if (byteCount < c_stackallocThresh)
 			{
@@ -578,7 +570,6 @@ namespace Lidgren.Network
 				Write(byteSpan);
 				return;
 			}
-#endif
 
 			byte[] bytes = Encoding.UTF8.GetBytes(source);
 			EnsureBufferSize(m_bitLength + 8 + (bytes.Length * 8));

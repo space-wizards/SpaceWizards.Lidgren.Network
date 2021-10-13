@@ -26,7 +26,7 @@ jobs:
 
     strategy:
       matrix:
-        targetframework: [net45, net48, netcoreapp3.1]
+        targetframework: [netcoreapp3.1]
         os: [windows-latest, ubuntu-latest]
 
     steps:

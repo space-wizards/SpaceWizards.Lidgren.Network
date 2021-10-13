@@ -303,13 +303,8 @@ namespace Lidgren.Network
 				return retval;
 			}
 
-#if HAS_FULL_SPAN
 			var bytes = PeekBytes(stackalloc byte[4]);
 			return BitConverter.ToSingle(bytes);
-#else
-			byte[] bytes = PeekBytes(4);
-			return BitConverter.ToSingle(bytes, 0);
-#endif
 		}
 
 		/// <summary>
@@ -326,13 +321,8 @@ namespace Lidgren.Network
 				return retval;
 			}
 
-#if HAS_FULL_SPAN
 			var bytes = PeekBytes(stackalloc byte[8]);
 			return BitConverter.ToDouble(bytes);
-#else
-			byte[] bytes = PeekBytes(8);
-			return BitConverter.ToSingle(bytes, 0);
-#endif
 		}
 
 		/// <summary>
