@@ -15,7 +15,7 @@ jobs:
     - name: Setup .NET Core
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 3.1.x
+        dotnet-version: 5.0.x
     - name: Install dependencies
       run: dotnet restore Lidgren.Network.MultiTarget/Lidgren.Network.MultiTarget.csproj
     - name: Build
@@ -26,7 +26,7 @@ jobs:
 
     strategy:
       matrix:
-        targetframework: [netcoreapp3.1]
+        targetframework: [netcoreapp3.1, net5.0]
         os: [windows-latest, ubuntu-latest]
 
     steps:
@@ -34,6 +34,6 @@ jobs:
     - name: Setup .NET Core
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 3.1.x
+        dotnet-version: 5.0.x
     - name: Test
       run: dotnet test --configuration Release --framework ${{ matrix.targetframework }} UnitTests.Core/UnitTests.Core.csproj  -v n
