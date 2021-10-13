@@ -114,7 +114,7 @@ namespace UnitTests
         private static void IgnoreIfActions()
         {
 	        // https://github.com/actions/virtual-environments/issues/668
-	        if (Environment.GetEnvironmentVariable("GITHUB_ACTIONS") != "true")
+	        if (Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true")
 		        Assert.Ignore("GitHub Actions Runners do not support IPv6 and as such this test is disabled.");
         }
     }
