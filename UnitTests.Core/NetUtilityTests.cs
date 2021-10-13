@@ -39,7 +39,7 @@ namespace UnitTests
         [Test]
         public void TestResolveBasic()
         {
-            var addr = NetUtility.Resolve("google.com");
+            var addr = NetUtility.Resolve("example.com");
 
             Assert.That(addr, Is.Not.Null);
         }
@@ -47,7 +47,7 @@ namespace UnitTests
         [Test]
         public void TestResolveEndPointBasic()
         {
-            var addr = NetUtility.Resolve("google.com", 55555);
+            var addr = NetUtility.Resolve("example.com", 55555);
 
             Assert.That(addr, Is.Not.Null);
             Assert.That(addr.Port, Is.EqualTo(55555));
@@ -58,7 +58,7 @@ namespace UnitTests
         [TestCase(AddressFamily.InterNetworkV6)]
         public void TestResolveAllowed(AddressFamily family)
         {
-            var addr = NetUtility.Resolve("google.com", family);
+            var addr = NetUtility.Resolve("example.com", family);
 
             Assert.That(addr.AddressFamily, Is.EqualTo(family));
         }
@@ -66,7 +66,7 @@ namespace UnitTests
         [Test]
         public void TestResolveNothing()
         {
-            var addr = NetUtility.Resolve("thisdomaindoesnotexistandneverwill.google.com");
+            var addr = NetUtility.Resolve("thisdomaindoesnotexistandneverwill.example.com");
 
             Assert.That(addr, Is.Null);
         }
@@ -74,7 +74,7 @@ namespace UnitTests
         [Test]
         public async Task TestResolveAsyncBasic()
         {
-            var addr = await NetUtility.ResolveAsync("google.com");
+            var addr = await NetUtility.ResolveAsync("example.com");
 
             Assert.That(addr, Is.Not.Null);
         }
@@ -82,7 +82,7 @@ namespace UnitTests
         [Test]
         public async Task TestResolveEndPointAsyncBasic()
         {
-            var addr = await NetUtility.ResolveAsync("google.com", 55555);
+            var addr = await NetUtility.ResolveAsync("example.com", 55555);
 
             Assert.That(addr, Is.Not.Null);
             Assert.That(addr.Port, Is.EqualTo(55555));
@@ -93,7 +93,7 @@ namespace UnitTests
         [TestCase(AddressFamily.InterNetworkV6)]
         public async Task TestResolveAsyncAllowed(AddressFamily family)
         {
-            var addr = await NetUtility.ResolveAsync("google.com", family);
+            var addr = await NetUtility.ResolveAsync("example.com", family);
 
             Assert.That(addr.AddressFamily, Is.EqualTo(family));
         }
@@ -101,7 +101,7 @@ namespace UnitTests
         [Test]
         public async Task TestResolveAsyncNothing()
         {
-            var addr = await NetUtility.ResolveAsync("thisdomaindoesnotexistandneverwill.google.com");
+            var addr = await NetUtility.ResolveAsync("thisdomaindoesnotexistandneverwill.example.com");
 
             Assert.That(addr, Is.Null);
         }
