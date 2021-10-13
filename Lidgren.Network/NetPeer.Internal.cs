@@ -671,28 +671,41 @@ namespace Lidgren.Network
 					{
 						foreach (var hs in m_handshakes)
 						{
-							if (hs.Key.Address.Equals(senderEndPoint.Address))
+							var addressHandshake = hs.Key.Address;
+							var addressSender = senderEndPoint.Address;
+							if (!addressHandshake.Equals(addressSender))
 							{
-								if (hs.Value.m_connectionInitiator)
-								{
-									//
-									// We are currently trying to connection to XX.XX.XX.XX:Y
-									// ... but we just received a ConnectResponse from XX.XX.XX.XX:Z
-									// Lets just assume the router decided to use this port instead
-									//
-									var hsconn = hs.Value;
-									m_connectionLookup.Remove((NetSocketAddress) hs.Key);
-									m_handshakes.Remove(hs.Key);
+								if (!addressHandshake.IsIPv6LinkLocal || !addressSender.IsIPv6LinkLocal)
+									continue;
 
-									LogDebug("Detected host port change; rerouting connection to " + senderEndPoint);
-									hsconn.MutateEndPoint(senderEndPoint);
+								// If this is an IPv6 link-local address then allow mismatching scope ID
+								// such that we can "wire up" the scope ID once we get a reply.
+								var bytesHandshake = addressHandshake.GetAddressBytes();
+								var bytesSender = addressSender.GetAddressBytes();
+								if (!bytesHandshake.AsSpan().SequenceEqual(bytesSender))
+									continue;
+							}
 
-									m_connectionLookup.Add((NetSocketAddress) senderEndPoint, hsconn);
-									m_handshakes.Add(senderEndPoint, hsconn);
+							if (hs.Value.m_connectionInitiator)
+							{
+								//
+								// We are currently trying to connection to XX.XX.XX.XX:Y or [fe80::XXXX%A]:Y
+								// ... but we just received a ConnectResponse from XX.XX.XX.XX:Z [fe80::XXXX%B]:Z
+								// Lets just assume the router decided to use this port instead
+								// Or wire up the link-local scope ID if applicable.
+								//
+								var hsconn = hs.Value;
+								m_connectionLookup.Remove((NetSocketAddress)hs.Key);
+								m_handshakes.Remove(hs.Key);
 
-									hsconn.ReceivedHandshake(now, tp, ptr, payloadByteLength);
-									return;
-								}
+								LogDebug("Detected host port or link-local change; rerouting connection to " + senderEndPoint);
+								hsconn.MutateEndPoint(senderEndPoint);
+
+								// m_connectionLookup.Add((NetSocketAddress)senderEndPoint, hsconn);
+								m_handshakes.Add(senderEndPoint, hsconn);
+
+								hsconn.ReceivedHandshake(now, tp, ptr, payloadByteLength);
+								return;
 							}
 						}
 					}
