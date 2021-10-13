@@ -1,3 +1,4 @@
+using System;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using Lidgren.Network;
@@ -58,6 +59,8 @@ namespace UnitTests
         [TestCase(AddressFamily.InterNetworkV6)]
         public void TestResolveAllowed(AddressFamily family)
         {
+	        IgnoreIfActions();
+	        
             var addr = NetUtility.Resolve("example.com", family);
 
             Assert.That(addr.AddressFamily, Is.EqualTo(family));
@@ -93,7 +96,9 @@ namespace UnitTests
         [TestCase(AddressFamily.InterNetworkV6)]
         public async Task TestResolveAsyncAllowed(AddressFamily family)
         {
-            var addr = await NetUtility.ResolveAsync("example.com", family);
+	        IgnoreIfActions();
+         
+	        var addr = await NetUtility.ResolveAsync("example.com", family);
 
             Assert.That(addr.AddressFamily, Is.EqualTo(family));
         }
@@ -104,6 +109,13 @@ namespace UnitTests
             var addr = await NetUtility.ResolveAsync("thisdomaindoesnotexistandneverwill.example.com");
 
             Assert.That(addr, Is.Null);
+        }
+
+        private static void IgnoreIfActions()
+        {
+	        // https://github.com/actions/virtual-environments/issues/668
+	        if (Environment.GetEnvironmentVariable("GITHUB_ACTIONS") != "true")
+		        Assert.Ignore("GitHub Actions Runners do not support IPv6 and as such this test is disabled.");
         }
     }
 }
