@@ -140,6 +140,12 @@ namespace Lidgren.Network
 		public ushort Port;
 		public NetIpv4Address Address;
 
+		public NetSocketAddressV4(NetIpv4Address address, ushort port)
+		{
+			Address = address;
+			Port = port;
+		}
+		
 		public bool Equals(NetSocketAddressV4 other)
 		{
 			return Port == other.Port && Address.Equals(other.Address);

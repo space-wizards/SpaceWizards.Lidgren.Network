@@ -20,6 +20,7 @@ namespace Lidgren.Network
 		internal byte[] m_sendBuffer;
 		internal byte[] m_receiveBuffer;
 		internal NetIncomingMessage m_readHelperMessage;
+		private EndPoint m_senderRemote;
 		private object m_initializeLock = new object();
 		private uint m_frameCounter;
 		private double m_lastHeartbeat;
@@ -457,9 +458,10 @@ namespace Lidgren.Network
         {
             int bytesReceived = NetFastSocket.ReceiveFrom(
 	            m_socket, 
-	            m_receiveBuffer.AsSpan(0, m_receiveBuffer.Length), 
+	            m_receiveBuffer, 0, m_receiveBuffer.Length, 
 	            SocketFlags.None, 
-	            out var senderRemote);
+	            out var senderRemote,
+	            ref m_senderRemote);
 
 			if (bytesReceived < NetConstants.HeaderByteSize)
 				return;

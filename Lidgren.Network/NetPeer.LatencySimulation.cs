@@ -161,7 +161,7 @@ namespace Lidgren.Network
 	                targetCopy.Address = target.Address;
                 }
 
-                int bytesSent = NetFastSocket.SendTo(m_socket, data.AsSpan(0, numBytes), SocketFlags.None, targetCopy);
+                int bytesSent = NetFastSocket.SendTo(m_socket, data, 0, numBytes, SocketFlags.None, targetCopy);
 				if (numBytes != bytesSent)
 					LogWarning("Failed to send the full " + numBytes + "; only " + bytesSent + " bytes sent in packet!");
 

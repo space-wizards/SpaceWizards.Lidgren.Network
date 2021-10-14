@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using static Lidgren.Network.NetNativeSocket;
 
 namespace Lidgren.Network
@@ -11,14 +12,58 @@ namespace Lidgren.Network
 	{
 		// .NET's built-in socket datagram APIs allocate constantly due to poor design.
 		// These don't thanks to usage of a custom NetSocketAddress.
+
+		// Only Linux and Windows supported right now.
+		// I couldn't get macOS to work and gave up for now.
 		
-		public static int SendTo(Socket socket, ReadOnlySpan<byte> buffer, SocketFlags socketFlags, IPEndPoint endPoint)
+		public static int SendTo(Socket socket, byte[] buffer, int offset, int size, SocketFlags socketFlags,
+			IPEndPoint endPoint)
 		{
-			var socketAddress = (NetSocketAddress)endPoint;
+			if (!IsLinux && !IsWindows)
+				return socket.SendTo(buffer, offset, size, socketFlags, endPoint);
+
+			var socketAddress = (NetSocketAddress) endPoint;
 
 			return SendTo(socket, buffer, socketFlags, socketAddress);
 		}
-		
+
+		// ref EndPoint is used for fallback BCL path, do not use except to pass in the address family.
+		// Yes .NET's UDP API really is this bloody bad...
+		public static int ReceiveFrom(
+			Socket socket,
+			byte[] buffer,
+			int offset,
+			int size,
+			SocketFlags socketFlags,
+			out NetSocketAddress socketAddress,
+			ref EndPoint endPoint)
+		{
+			if (!IsLinux && !IsWindows)
+			{
+				var ret = socket.ReceiveFrom(buffer, offset, size, socketFlags, ref endPoint);
+				var ipEndPoint = (IPEndPoint) endPoint;
+				if (ipEndPoint.AddressFamily == AddressFamily.InterNetworkV6)
+				{
+					// IPv6
+					NetIpv6Address ipAddress = default;
+					ipEndPoint.Address.TryWriteBytes(MemoryMarshal.CreateSpan(ref ipAddress.Address[0], 16), out _);
+					socketAddress = new NetSocketAddressV6(ipAddress, (ushort) ipEndPoint.Port,
+						(uint) ipEndPoint.Address.ScopeId);
+				}
+				else
+				{
+					// IPv4
+					NetIpv4Address ipAddress = default;
+					ipEndPoint.Address.TryWriteBytes(MemoryMarshal.CreateSpan(ref ipAddress.Address[0], 4), out _);
+					socketAddress = new NetSocketAddressV4(ipAddress, (ushort) ipEndPoint.Port);
+				}
+
+				return ret;
+			}
+
+			return ReceiveFrom(socket, buffer.AsSpan(offset, size), socketFlags, out socketAddress);
+		}
+
 		public static int SendTo(
 			Socket socket,
 			ReadOnlySpan<byte> buffer,
@@ -27,6 +72,9 @@ namespace Lidgren.Network
 		{
 			if (socketFlags != SocketFlags.None)
 				throw new ArgumentException("Non-none socket flags not currently supported.");
+
+			if (!IsWindows && !IsLinux)
+				throw new NotSupportedException();
 
 			sockaddr* address;
 			int addressLen;
@@ -42,7 +90,7 @@ namespace Lidgren.Network
 				address6.sin6_scope_id = refAddress6.ScopeId;
 				address6.sin6_addr = Unsafe.As<NetIpv6Address, in6_addr>(ref refAddress6.Address);
 
-				address = (sockaddr*)(&address6);
+				address = (sockaddr*) (&address6);
 				addressLen = sizeof(sockaddr_in6);
 			}
 			else
@@ -56,7 +104,7 @@ namespace Lidgren.Network
 				address4.sin_family = AF_INET;
 				address4.sin_addr = Unsafe.As<NetIpv4Address, in_addr>(ref refAddress4.Address);
 
-				address = (sockaddr*)(&address4);
+				address = (sockaddr*) (&address4);
 				addressLen = sizeof(sockaddr_in);
 			}
 
@@ -69,19 +117,19 @@ namespace Lidgren.Network
 						socket.Handle,
 						bufPtr,
 						buffer.Length,
-						(int)socketFlags,
+						(int) socketFlags,
 						address,
 						addressLen);
 				}
 				else
 				{
-					ret = (int)sendto_posix(
-						(int)socket.Handle,
+					ret = (int) sendto_linux(
+						(int) socket.Handle,
 						bufPtr,
-						(IntPtr)buffer.Length,
-						(int)socketFlags,
+						(IntPtr) buffer.Length,
+						(int) socketFlags,
 						address,
-						(uint)addressLen);
+						(uint) addressLen);
 				}
 			}
 
@@ -104,14 +152,17 @@ namespace Lidgren.Network
 		public static int ReceiveFrom(
 			Socket socket,
 			Span<byte> buffer,
-			SocketFlags socketFlags, 
+			SocketFlags socketFlags,
 			out NetSocketAddress socketAddress)
 		{
 			if (socketFlags != SocketFlags.None)
 				throw new ArgumentException("Non-none socket flags not currently supported.");
 
+			if (!IsWindows && !IsLinux)
+				throw new NotSupportedException();
+
 			sockaddr_in6 address6;
-			
+
 			int ret;
 			fixed (byte* bufPtr = buffer)
 			{
@@ -122,18 +173,18 @@ namespace Lidgren.Network
 						socket.Handle,
 						bufPtr,
 						buffer.Length,
-						(int)socketFlags,
+						(int) socketFlags,
 						(sockaddr*) (&address6),
 						&len);
 				}
 				else
 				{
-					var len = (uint)sizeof(sockaddr_in6);
-					ret = (int)recvfrom_posix(
-						(int)socket.Handle,
+					var len = (uint) sizeof(sockaddr_in6);
+					ret = (int) recvfrom_linux(
+						(int) socket.Handle,
 						bufPtr,
-						(IntPtr)buffer.Length,
-						(int)socketFlags,
+						(IntPtr) buffer.Length,
+						(int) socketFlags,
 						(sockaddr*) (&address6),
 						&len);
 				}
@@ -163,12 +214,12 @@ namespace Lidgren.Network
 				}
 				else
 				{
-					throw new SocketException((int)SocketError.ProtocolFamilyNotSupported);
+					throw new SocketException((int) SocketError.ProtocolFamilyNotSupported);
 				}
 
 				return ret;
 			}
-			
+
 			// Errors occured
 			if (IsWindows)
 			{

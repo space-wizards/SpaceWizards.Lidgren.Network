@@ -7,6 +7,7 @@ namespace Lidgren.Network
 	internal static unsafe class NetNativeSocket
 	{
 		internal static readonly bool IsWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+		internal static readonly bool IsLinux = RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
 
 #pragma warning disable 649
 		// ReSharper disable InconsistentNaming
@@ -70,7 +71,7 @@ namespace Lidgren.Network
 				: netlong;
 
 		[DllImport("libc", EntryPoint = "sendto")]
-		internal static extern IntPtr sendto_posix(
+		internal static extern IntPtr sendto_linux(
 			int sockfd,
 			void* buf,
 			IntPtr len,
@@ -88,7 +89,7 @@ namespace Lidgren.Network
 			int tolen);
 
 		[DllImport("libc", EntryPoint = "recvfrom")]
-		internal static extern IntPtr recvfrom_posix(
+		internal static extern IntPtr recvfrom_linux(
 			int sockfd,
 			void* buf,
 			IntPtr len,
