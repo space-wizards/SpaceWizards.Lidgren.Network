@@ -24,7 +24,7 @@ namespace Lidgren.Network
 
 			var socketAddress = (NetSocketAddress) endPoint;
 
-			return SendTo(socket, buffer, socketFlags, socketAddress);
+			return SendTo(socket, buffer.AsSpan(offset, size), socketFlags, socketAddress);
 		}
 
 		// ref EndPoint is used for fallback BCL path, do not use except to pass in the address family.
