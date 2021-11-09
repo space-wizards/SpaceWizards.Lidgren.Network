@@ -5,6 +5,7 @@ using NUnit.Framework;
 namespace UnitTests
 {
     [TestFixture]
+    [Parallelizable(ParallelScope.All)]
     public class EncryptionTests : PeerTestBase
     {
         [Test]

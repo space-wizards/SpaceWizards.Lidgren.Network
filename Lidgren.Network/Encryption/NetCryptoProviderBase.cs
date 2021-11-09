@@ -61,7 +61,16 @@ namespace Lidgren.Network
 
 			var byteLen = NetUtility.BytesToHoldBits(unEncLenBits);
 			var result = m_peer.GetStorage(byteLen);
-			cs.Read(result, 0, byteLen);
+			var read = 0;
+			while (read < byteLen)
+			{
+				var cRead = cs.Read(result, read, byteLen-read);
+				if (cRead == 0)
+					return false;
+
+				read += cRead;
+			}
+			
 			cs.Close();
 
 			// TODO: recycle existing msg
