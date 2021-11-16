@@ -167,8 +167,9 @@ namespace Lidgren.Network
         /// </summary>
         /// <param name="externalPort">The external, WAN facing, port</param>
         /// <param name="description">A description for the port forwarding rule</param>
-        /// <param name="internalPort">The port on the client machine to send traffic to</param>
-        public bool ForwardPort(int externalPort, string description, int internalPort = 0)
+        /// <param name="internalPort">The port on the client machine to send traffic to (defaults to externalPort)</param>
+        /// <param name="proto">The protocol (defaults to UDP, but can be TCP)</param>
+        public bool ForwardPort(int externalPort, string description, int internalPort = 0, string proto = "UDP")
         {
             if (!CheckAvailability())
                 return false;
@@ -187,7 +188,7 @@ namespace Lidgren.Network
                     "<u:AddPortMapping xmlns:u=\"urn:schemas-upnp-org:service:" + m_serviceName + ":1\">" +
                     "<NewRemoteHost></NewRemoteHost>" +
                     "<NewExternalPort>" + externalPort.ToString() + "</NewExternalPort>" +
-                    "<NewProtocol>" + ProtocolType.Udp.ToString().ToUpper(System.Globalization.CultureInfo.InvariantCulture) + "</NewProtocol>" +
+                    "<NewProtocol>" + proto + "</NewProtocol>" +
                     "<NewInternalPort>" + internalPort.ToString() + "</NewInternalPort>" +
                     "<NewInternalClient>" + client.ToString() + "</NewInternalClient>" +
                     "<NewEnabled>1</NewEnabled>" +
@@ -211,7 +212,8 @@ namespace Lidgren.Network
         /// Delete a forwarding rule from the router using UPnP
         /// </summary>
         /// <param name="externalPort">The external, 'internet facing', port</param>
-        public bool DeleteForwardingRule(int externalPort)
+        /// <param name="proto">The protocol (defaults to UDP, but can be TCP)</param>
+        public bool DeleteForwardingRule(int externalPort, string proto = "UDP")
         {
             if (!CheckAvailability())
                 return false;
@@ -223,7 +225,7 @@ namespace Lidgren.Network
                 "<NewRemoteHost>" +
                 "</NewRemoteHost>" +
                 "<NewExternalPort>" + externalPort + "</NewExternalPort>" +
-                "<NewProtocol>" + ProtocolType.Udp.ToString().ToUpper(System.Globalization.CultureInfo.InvariantCulture) + "</NewProtocol>" +
+                "<NewProtocol>" + proto + "</NewProtocol>" +
                 "</u:DeletePortMapping>", "DeletePortMapping");
                 return true;
             }
