@@ -16,20 +16,23 @@ LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRA
 TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
+
+using System;
 using System.Diagnostics;
 
 namespace Lidgren.Network
 {
 	public partial class NetPeer
 	{
+		internal event Action<NetIncomingMessageType, string> LogEvent; 
+
 		[Conditional("DEBUG")]
 		internal void LogVerbose(string message)
 		{
 #if __ANDROID__
 			Android.Util.Log.WriteLine(Android.Util.LogPriority.Verbose, "", message);
 #endif
-			if (m_configuration.IsMessageTypeEnabled(NetIncomingMessageType.VerboseDebugMessage))
-				ReleaseMessage(CreateIncomingMessage(NetIncomingMessageType.VerboseDebugMessage, message));
+			SendLogBase(NetIncomingMessageType.VerboseDebugMessage, message);
 		}
 
 		[Conditional("DEBUG")]
@@ -38,8 +41,7 @@ namespace Lidgren.Network
 #if __ANDROID__
 			Android.Util.Log.WriteLine(Android.Util.LogPriority.Debug, "", message);
 #endif
-			if (m_configuration.IsMessageTypeEnabled(NetIncomingMessageType.DebugMessage))
-				ReleaseMessage(CreateIncomingMessage(NetIncomingMessageType.DebugMessage, message));
+			SendLogBase(NetIncomingMessageType.DebugMessage, message);
 		}
 
 		internal void LogWarning(string message)
@@ -47,8 +49,7 @@ namespace Lidgren.Network
 #if __ANDROID__
 			Android.Util.Log.WriteLine(Android.Util.LogPriority.Warn, "", message);
 #endif
-			if (m_configuration.IsMessageTypeEnabled(NetIncomingMessageType.WarningMessage))
-				ReleaseMessage(CreateIncomingMessage(NetIncomingMessageType.WarningMessage, message));
+			SendLogBase(NetIncomingMessageType.WarningMessage, message);
 		}
 
 		internal void LogError(string message)
@@ -56,8 +57,15 @@ namespace Lidgren.Network
 #if __ANDROID__
 			Android.Util.Log.WriteLine(Android.Util.LogPriority.Error, "", message);
 #endif
-			if (m_configuration.IsMessageTypeEnabled(NetIncomingMessageType.ErrorMessage))
-				ReleaseMessage(CreateIncomingMessage(NetIncomingMessageType.ErrorMessage, message));
+			SendLogBase(NetIncomingMessageType.ErrorMessage, message);
+		}
+
+		private void SendLogBase(NetIncomingMessageType type, string text)
+		{
+			LogEvent?.Invoke(type, text);
+			
+			if (m_configuration.IsMessageTypeEnabled(type))
+				ReleaseMessage(CreateIncomingMessage(type, text));
 		}
 	}
 }

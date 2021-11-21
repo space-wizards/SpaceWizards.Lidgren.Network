@@ -19,9 +19,15 @@ namespace UnitTests
                 EnableUPnP = true
             };
             Peer = new NetPeer(Config);
+            Peer.LogEvent += PeerOnLogEvent;
             Peer.Start();
 
             TestContext.Out.WriteLine("Unique identifier is " + NetUtility.ToHexString(Peer.UniqueIdentifier));
+        }
+
+        private static void PeerOnLogEvent(NetIncomingMessageType type, string text)
+        {
+	        TestContext.Out.WriteLine($"{type}: {text}");
         }
 
         [TearDown]
