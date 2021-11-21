@@ -134,13 +134,16 @@ namespace Lidgren.Network
 
         //Avoids allocation on mapping to IPv6
         private IPEndPoint targetCopy = new IPEndPoint(IPAddress.Any, 0);
+        private IPEndPoint targetCopy2 = new IPEndPoint(IPAddress.Any, 0);
 
 		internal bool ActuallySendPacket(byte[] data, int numBytes, NetEndPoint target, out bool connectionReset)
 		{
+			var dualStack = m_configuration.DualStack && m_configuration.LocalAddress.AddressFamily == AddressFamily.InterNetworkV6;
 			connectionReset = false;
 			IPAddress ba = default(IPAddress);
 			try
 			{
+				var realTarget = target;
 				ba = NetUtility.GetCachedBroadcastAddress();
 
                 // TODO: refactor this check outta here
@@ -151,17 +154,23 @@ namespace Lidgren.Network
                     // this can be resolved to a local broadcast addresss e.g 192.168.x.255                    
                     targetCopy.Address = m_configuration.BroadcastAddress;
                     targetCopy.Port = target.Port;
+                    realTarget = targetCopy;
                     m_socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Broadcast, true);
+                    
+                    if (dualStack)
+                    {
+	                    NetUtility.CopyEndpoint(realTarget, targetCopy2); //Maps to IPv6 for Dual Mode
+	                    realTarget = targetCopy2;
+                    }
+	                    
                 }
-                else if(m_configuration.DualStack && m_configuration.LocalAddress.AddressFamily == AddressFamily.InterNetworkV6)
-                    NetUtility.CopyEndpoint(target, targetCopy); //Maps to IPv6 for Dual Mode
-                else
+                else if (dualStack)
                 {
-	                targetCopy.Port = target.Port;
-	                targetCopy.Address = target.Address;
+	                NetUtility.CopyEndpoint(target, targetCopy); //Maps to IPv6 for Dual Mode
+	                realTarget = targetCopy;
                 }
 
-                int bytesSent = NetFastSocket.SendTo(m_socket, data, 0, numBytes, SocketFlags.None, targetCopy);
+                int bytesSent = NetFastSocket.SendTo(m_socket, data, 0, numBytes, SocketFlags.None, realTarget);
 				if (numBytes != bytesSent)
 					LogWarning("Failed to send the full " + numBytes + "; only " + bytesSent + " bytes sent in packet!");
 
