@@ -478,14 +478,23 @@ namespace Lidgren.Network
 					{
 						resp = resp.Substring(resp.ToLower().IndexOf("location:") + 9);
 						resp = resp.Substring(0, resp.IndexOf("\r")).Trim();
-						m_upnp.ExtractServiceUrl(resp);
-						return;
 					}
 					catch (Exception ex)
 					{
 						LogDebug("Failed to parse UPnP response: " + ex.ToString());
 
 						// don't try to parse this packet further
+						return;
+					}
+
+					try
+					{
+						m_upnp.ExtractServiceUrl(resp);
+						return;
+					}
+					catch (Exception ex)
+					{
+						LogDebug($"Failed to fetch UPnP description for {resp} (from {(IPEndPoint)senderRemote}): {ex}");
 						return;
 					}
 				}
