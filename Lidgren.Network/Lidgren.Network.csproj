@@ -1,7 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <TargetFrameworks>netstandard2.1;netcoreapp3.1;net5.0;net6.0</TargetFrameworks>
-        <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <AssemblyName>SpaceWizards.Lidgren.Network</AssemblyName>
         <PackageId>SpaceWizards.Lidgren.Network</PackageId>
@@ -13,6 +12,7 @@
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageTags>lidgren,udp,networking,network</PackageTags>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <Description>SpaceWizards.Lidgren.Network is a maintained fork of Lidgren.Network with various improvements and fixes.</Description>
 
         <!-- Uncomment the following line to not get statistics in RELEASE mode -->
         <DefineConstants>$(DefineConstants);USE_RELEASE_STATISTICS</DefineConstants>
