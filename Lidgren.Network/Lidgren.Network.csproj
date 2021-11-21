@@ -1,13 +1,24 @@
 <Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFrameworks>netstandard2.1;netcoreapp3.1;net5.0;net6.0</TargetFrameworks>
+        <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <AssemblyName>SpaceWizards.Lidgren.Network</AssemblyName>
+        <PackageId>SpaceWizards.Lidgren.Network</PackageId>
+        <Authors>Michael Lidgren, Space Wizards</Authors>
+        <Version>0.1.0</Version>
+        <RepositoryType>Git</RepositoryType>
+        <RepositoryUrl>https://github.com/space-wizards/SpaceWizards.Lidgren.Network</RepositoryUrl>
+        <PackageProjectUrl>https://github.com/space-wizards/SpaceWizards.Lidgren.Network</PackageProjectUrl>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageTags>lidgren,udp,networking,network</PackageTags>
 
-  <PropertyGroup>
-    <TargetFrameworks>netstandard2.1;netcoreapp3.1;net5.0;net6.0</TargetFrameworks>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-  </PropertyGroup>
+        <!-- Uncomment the following line to not get statistics in RELEASE mode -->
+        <DefineConstants>$(DefineConstants);USE_RELEASE_STATISTICS</DefineConstants>
+        <PackageReleaseNotes>https://github.com/space-wizards/SpaceWizards.Lidgren.Network/blob/wizards/RELEASE-NOTES.md</PackageReleaseNotes>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.7.1" Condition="'$(TargetFramework)' == 'netstandard2.1'" />
-  </ItemGroup>
-
+    <ItemGroup>
+        <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.7.1" Condition="'$(TargetFramework)' == 'netstandard2.1'"/>
+    </ItemGroup>
 </Project>

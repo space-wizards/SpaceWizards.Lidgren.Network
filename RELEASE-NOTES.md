@@ -15,6 +15,7 @@ This is the first release. Changes over base Lidgren.Network:
 - Optimized MTU detection code to allocate less.
 - Added extra statistics to `NetPeerStatistics` and `NetConnectionStatistics`.
 - Statistics are now all `long` to avoid rollover.
+- Compiled with `USE_RELEASE_STATISTICS` by default.
 - Added better IPv6 support to various APIs.
 - Can now connect over IPv6 link-locals. Connections get rerouted to correct adapter on response receive.
 - Improvements to IPv6 Dual Stack support.
