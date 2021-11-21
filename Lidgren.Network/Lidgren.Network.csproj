@@ -12,6 +12,7 @@
         <PackageProjectUrl>https://github.com/space-wizards/SpaceWizards.Lidgren.Network</PackageProjectUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageTags>lidgren,udp,networking,network</PackageTags>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
         <!-- Uncomment the following line to not get statistics in RELEASE mode -->
         <DefineConstants>$(DefineConstants);USE_RELEASE_STATISTICS</DefineConstants>
