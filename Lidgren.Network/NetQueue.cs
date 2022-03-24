@@ -82,6 +82,11 @@ namespace Lidgren.Network
 			}
 		}
 
+		private int GetGrowCapacity()
+		{
+			return (int)Math.Pow(2, Math.Log2(m_items.Length) + 1);
+		}
+
 		/// <summary>
 		/// NetQueue constructor
 		/// </summary>
@@ -99,7 +104,7 @@ namespace Lidgren.Network
 			try
 			{
 				if (m_size == m_items.Length)
-					SetCapacity(m_items.Length + 8);
+					SetCapacity(GetGrowCapacity());
 
 				int slot = (m_head + m_size) % m_items.Length;
 				m_items[slot] = item;
@@ -122,7 +127,7 @@ namespace Lidgren.Network
 				foreach (var item in items)
 				{
 					if (m_size == m_items.Length)
-						SetCapacity(m_items.Length + 8); // @TODO move this out of loop
+						SetCapacity(GetGrowCapacity()); // @TODO move this out of loop
 
 					int slot = (m_head + m_size) % m_items.Length;
 					m_items[slot] = item;
@@ -144,7 +149,7 @@ namespace Lidgren.Network
 			try
 			{
 				if (m_size >= m_items.Length)
-					SetCapacity(m_items.Length + 8);
+					SetCapacity(GetGrowCapacity());
 
 				m_head--;
 				if (m_head < 0)
