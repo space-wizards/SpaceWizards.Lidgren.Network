@@ -36,7 +36,7 @@ namespace Lidgren.Network
 			int unEncLenBits = msg.LengthBits;
 
 			var ms = new MemoryStream();
-			var cs = new CryptoStream(ms, m_algorithm.CreateEncryptor(), CryptoStreamMode.Write);
+			using var cs = new CryptoStream(ms, m_algorithm.CreateEncryptor(), CryptoStreamMode.Write);
 			cs.Write(msg.m_data, 0, msg.LengthBytes);
 			cs.FlushFinalBlock();
 
@@ -57,7 +57,7 @@ namespace Lidgren.Network
 			int unEncLenBits = (int)msg.ReadUInt32();
 
 			var ms = new MemoryStream(msg.m_data, 4, msg.LengthBytes - 4);
-			var cs = new CryptoStream(ms, m_algorithm.CreateDecryptor(), CryptoStreamMode.Read);
+			using var cs = new CryptoStream(ms, m_algorithm.CreateDecryptor(), CryptoStreamMode.Read);
 
 			var byteLen = NetUtility.BytesToHoldBits(unEncLenBits);
 			var result = m_peer.GetStorage(byteLen);
@@ -70,8 +70,6 @@ namespace Lidgren.Network
 
 				read += cRead;
 			}
-			
-			cs.Close();
 
 			// TODO: recycle existing msg
 
