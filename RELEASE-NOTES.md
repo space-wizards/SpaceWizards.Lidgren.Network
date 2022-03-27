@@ -2,8 +2,7 @@
 
 ## Master
 
-- Fixed `NetCryptoProviderBase` not properly disposing `CryptoStream` thus making them hit finalizers.
-	- The entire crypto API is terrible and insecure, don't use it.
+- Remove encryption support. The entire existing encryption support was completely insecure and broken, and did not integrate with the internals of the API in any way (i.e. it would be trivial to add on top yourself). 
 
 ## Current (0.1.0)
 

@@ -157,23 +157,5 @@ namespace Lidgren.Network
 			var btmp = B.Add(N.Multiply(k)).Subtract(bx.Multiply(k)).Mod(N);
 			return btmp.ModPow(x.Multiply(u).Add(a), N).ToByteArrayUnsigned();
 		}
-
-		/// <summary>
-		/// Create XTEA symmetrical encryption object from sessionValue
-		/// </summary>
-		public static NetXtea CreateEncryption(NetPeer peer, byte[] sessionValue)
-		{
-			var hash = NetUtility.ComputeSHAHash(sessionValue);
-			
-			var key = new byte[16];
-			for(int i=0;i<16;i++)
-			{
-				key[i] = hash[i];
-				for (int j = 1; j < hash.Length / 16; j++)
-					key[i] ^= hash[i + (j * 16)];
-			}
-
-			return new NetXtea(peer, key);
-		}
 	}
 }

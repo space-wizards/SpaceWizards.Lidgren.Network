@@ -90,16 +90,6 @@ namespace Lidgren.Network
 		}
 
 		/// <summary>
-		/// Decrypt a message
-		/// </summary>
-		/// <param name="encryption">The encryption algorithm used to encrypt the message</param>
-		/// <returns>true on success</returns>
-		public bool Decrypt(NetEncryption encryption)
-		{
-			return encryption.Decrypt(this);
-		}
-
-		/// <summary>
 		/// Reads a value, in local time comparable to NetTime.Now, written using WriteTime()
 		/// Must have a connected sender
 		/// </summary>
