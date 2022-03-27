@@ -1,5 +1,10 @@
 # Release Notes
 
+## Master
+
+- Fixed `NetCryptoProviderBase` not properly disposing `CryptoStream` thus making them hit finalizers.
+	- The entire crypto API is terrible and insecure, don't use it.
+
 ## Current (0.1.0)
 
 This is the first release. Changes over base Lidgren.Network:
