@@ -2,7 +2,8 @@
 
 ## Master
 
-- Remove encryption support. The entire existing encryption support was completely insecure and broken, and did not integrate with the internals of the API in any way (i.e. it would be trivial to add on top yourself). 
+- Remove encryption support. The entire existing encryption support was completely insecure and broken, and did not integrate with the internals of the API in any way (i.e. it would be trivial to add on top yourself).
+- `NetQueue<T>` internal buffer now expands exponentially instead of linearly (similar to `List<T>`). This avoids O(n^2) scenarios.
 
 ## Current (0.1.0)
 
