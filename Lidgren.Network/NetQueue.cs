@@ -84,7 +84,7 @@ namespace Lidgren.Network
 
 		private int GetGrowCapacity()
 		{
-			return m_items.Length * 2;
+			return Math.Max(1, m_items.Length * 2);
 		}
 
 		/// <summary>
