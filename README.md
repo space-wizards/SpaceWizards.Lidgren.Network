@@ -5,4 +5,4 @@ Lidgren.Network is a networking library for .NET, which uses a single UDP socket
 
 ## Contact
 
-If you'd like to get in contact with us or have any questions, you can ask in the development channel on [our Discord](https://discord.ss14.io). Also IRC: `irc.rizon.net#spacebus` <small>(warning: IRC relay perhaps not 100% reliable, nobody uses it)</small>
+If you'd like to get in contact with us or have any questions, you can ask in the development channel on [our Discord](https://discord.ss14.io).
