@@ -3,6 +3,8 @@
 ## Master
 
 - Remove encryption support. The entire existing encryption support was completely insecure and broken, and did not integrate with the internals of the API in any way (i.e. it would be trivial to add on top yourself).
+  - See [this example](https://github.com/space-wizards/RobustToolbox/blob/de8c2c14bb7a2c130c6c3f66f2cc443b748cdd2a/Robust.Shared/Network/NetEncryption.cs) for an implementation that actually has functional security.
+  - I do want to make a better encryption API (that would encrypt packets after message combining and such, to reduce per-message bandwidth overhead) but this is not currently a thing.  
 - `NetQueue<T>` internal buffer now expands exponentially instead of linearly (similar to `List<T>`). This avoids O(n^2) scenarios.
 
 ## Current (0.1.0)
