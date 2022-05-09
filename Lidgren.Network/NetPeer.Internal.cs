@@ -359,9 +359,7 @@ namespace Lidgren.Network
 					}
 				}
 
-#if DEBUG
 				SendDelayedPackets();
-#endif
 
 				// update m_executeFlushSendQueue
 				if (m_configuration.m_autoFlushSendQueue && m_needFlushSendQueue == true)
