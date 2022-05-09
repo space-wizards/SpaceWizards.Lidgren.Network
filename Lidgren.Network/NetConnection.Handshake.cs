@@ -481,6 +481,16 @@ namespace Lidgren.Network
 		/// <param name="byeMessage">the message to send with the disconnect message</param>
 		public void Disconnect(string byeMessage)
 		{
+			Disconnect(byeMessage, true);
+		}
+
+		/// <summary>
+		/// Disconnect from the remote peer
+		/// </summary>
+		/// <param name="byeMessage">the message to send with the disconnect message</param>
+		/// <param name="sendBye">If false, the remote peer will not be told about the disconnect and will be left in the dark. It will continue to try to communicate with this peer which may cause log spam with warnings.</param>
+		public void Disconnect(string byeMessage, bool sendBye)
+		{
 			// user or library thread
 			if (m_status == NetConnectionStatus.None || m_status == NetConnectionStatus.Disconnected)
 				return;
@@ -493,7 +503,7 @@ namespace Lidgren.Network
 
 			m_handshakeAttempts = 0;
 			m_disconnectRequested = true;
-			m_disconnectReqSendBye = true;
+			m_disconnectReqSendBye = sendBye;
 		}
 	}
 }
