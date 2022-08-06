@@ -155,6 +155,8 @@ lidgren_message_types = {
     [141] = "ExpandMTUSuccess"
 }
 
+LIDGREN_HEADER_BYTE_SIZE = 5
+
 lidgren_proto = Proto("lidgren", "Lidgren.Network v3 Protocol")
 
 -- Enum declarations in Lidgren's code use dec, so dec it is here.
@@ -186,43 +188,85 @@ function lidgren_varuint(buffer)
     end
 end
 
-function lidgren_proto.dissector(buffer,pinfo,tree)
-    pinfo.cols.protocol = "LIDGREN"
-    local subtree = tree:add(lidgren_proto,buffer(), "Lidgren.Network v3 Protocol Data")
-    
+-- Returns: remaining buffer, nil if done.
+function lidgren_parsemessage(buffer, tree, index, msgtypes)
     local message_type = buffer(0,1):uint()
-    local message_type_text = string.format("Message type: %s (%d)", lidgren_message_types[message_type], message_type)
-    pinfo.cols.info:append(" " .. message_type_text)
+    local message_type_name = lidgren_message_types[message_type]
+    table.insert(msgtypes, message_type_name)
+ 
+    tree:add_le(lidgren_proto.fields.msgtype, buffer(0, 1))
+    tree:add_le(lidgren_proto.fields.fragmented, buffer(1, 2))
+    tree:add_le(lidgren_proto.fields.sequence, buffer(1, 2))
+    tree:add_le(lidgren_proto.fields.payloadbits, buffer(3, 2))
 
-    subtree:add_le(lidgren_proto.fields.msgtype, buffer(0, 1))
-    subtree:add_le(lidgren_proto.fields.fragmented, buffer(1, 2))
-    subtree:add_le(lidgren_proto.fields.sequence, buffer(1, 2))
-    subtree:add_le(lidgren_proto.fields.payloadbits, buffer(3, 2))
+    local payloadbits = buffer(3, 2):le_uint()
+    local payloadbytes = math.ceil(payloadbits / 8)
 
     local payload_offset = 5
 
-    local fragmented = bit.band(buffer(1,2):le_uint(), 1)
+    local fragmented = bit.band(buffer(1, 2):le_uint(), 1)
 
     if fragmented == 1 then
         -- Fragmentation header fields are variable-length.
         local frag_group, len = lidgren_varuint(buffer(payload_offset))
-        subtree:add_le(lidgren_proto.fields.fragment_group, buffer(payload_offset, len), frag_group)
+        tree:add_le(lidgren_proto.fields.fragment_group, buffer(payload_offset, len), frag_group)
         payload_offset = payload_offset + len
 
         local frag_group_total_bits, len = lidgren_varuint(buffer(payload_offset))
-        subtree:add_le(lidgren_proto.fields.fragment_group_bits, buffer(payload_offset, len), frag_group_total_bits)
+        tree:add_le(lidgren_proto.fields.fragment_group_bits, buffer(payload_offset, len), frag_group_total_bits)
         payload_offset = payload_offset + len
 
         local frag_chunk_byte_size, len = lidgren_varuint(buffer(payload_offset))
-        subtree:add_le(lidgren_proto.fields.fragment_chunk_byte_size, buffer(payload_offset, len), frag_chunk_byte_size)
+        tree:add_le(lidgren_proto.fields.fragment_chunk_byte_size, buffer(payload_offset, len), frag_chunk_byte_size)
         payload_offset = payload_offset + len
 
         local frag_chunk_number, len = lidgren_varuint(buffer(payload_offset))
-        subtree:add_le(lidgren_proto.fields.fragment_chunk_number, buffer(payload_offset, len), frag_chunk_number)
+        tree:add_le(lidgren_proto.fields.fragment_chunk_number, buffer(payload_offset, len), frag_chunk_number)
         payload_offset = payload_offset + len
     end
 
-    subtree:add_le(lidgren_proto.fields.payload, buffer(payload_offset))
+    tree:add_le(lidgren_proto.fields.payload, buffer(payload_offset, payloadbytes))
+
+    tree:set_len(payload_offset + payloadbytes)
+    local fragmented_str = "False"
+    if fragmented then
+        fragmented_str = "True"
+    end
+    tree:set_text(string.format(
+        "Message #%d, Bits: %d, Type: %s (%d), Fragmented: %s",
+        index,
+        payloadbits,
+        message_type_name,
+        message_type,
+        fragmented_str))
+
+    -- You can't have 0-length TvbRanges for some ridiculous reason. Great.
+    local nextoffset = payload_offset + payloadbytes
+    if nextoffset == buffer:len() then
+        return nil
+    end
+
+    return buffer(nextoffset)
+end
+
+function lidgren_proto.dissector(buffer, pinfo, tree)
+    pinfo.cols.protocol = "LIDGREN"
+    local subtree = tree:add(lidgren_proto,buffer(), "Lidgren.Network v3 Protocol Data")
+
+    local msgtypes = {}
+    local countmsg = 1;
+
+    while buffer:len() > LIDGREN_HEADER_BYTE_SIZE do
+        local msgtree = subtree:add(buffer(), "")
+        local remaining = lidgren_parsemessage(buffer, msgtree, countmsg, msgtypes)
+        if remaining == nil then 
+            break
+        end
+        buffer = remaining
+        countmsg = countmsg + 1
+    end
+
+    pinfo.columns.info:append(" " .. table.concat(msgtypes, ", "))
 end
 
 udp_table = DissectorTable.get("udp.port")
