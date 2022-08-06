@@ -4,7 +4,7 @@
 
 - Remove encryption support. The entire existing encryption support was completely insecure and broken, and did not integrate with the internals of the API in any way (i.e. it would be trivial to add on top yourself).
   - See [this example](https://github.com/space-wizards/RobustToolbox/blob/de8c2c14bb7a2c130c6c3f66f2cc443b748cdd2a/Robust.Shared/Network/NetEncryption.cs) for an implementation that actually has functional security.
-  - I do want to make a better encryption API (that would encrypt packets after message combining and such, to reduce per-message bandwidth overhead) but this is not currently a thing.  
+  - I do want to make a better encryption API (that would encrypt packets after message combining and such, to reduce per-message bandwidth overhead) but this is not currently a thing.
 - `NetQueue<T>` internal buffer now expands exponentially instead of linearly (similar to `List<T>`). This avoids O(n^2) scenarios.
 - Removed duplicated packet sending code between `DEBUG` and `RELEASE`. These two paths were split due to latency simulation, and only the `DEBUG` path had been maintained for new features like dual-stack IPv6.
   - This should hopefully avoid any heisenbugs that only happen on `RELEASE`.
@@ -12,6 +12,7 @@
   - Made latency simulation code not O(n<sup>2</sup>) processing large volumes of delayed packets.
 - Added override of `NetConnection.Disconnect()` that avoids sending bye messages, thus leaving the other peer in the dark.
   - Intended for testing and hilarious shenanigans. Use with care.
+- Wireshark Dissector plugin (check the repo)
 
 ## Current (0.1.0)
 
