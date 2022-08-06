@@ -229,7 +229,7 @@ function lidgren_parsemessage(buffer, tree, index, msgtypes)
 
     tree:set_len(payload_offset + payloadbytes)
     local fragmented_str = "False"
-    if fragmented then
+    if fragmented == 1 then
         fragmented_str = "True"
     end
     tree:set_text(string.format(
