@@ -12,7 +12,11 @@
   - Made latency simulation code not O(n<sup>2</sup>) processing large volumes of delayed packets.
 - Added override of `NetConnection.Disconnect()` that avoids sending bye messages, thus leaving the other peer in the dark.
   - Intended for testing and hilarious shenanigans. Use with care.
-- Wireshark Dissector plugin (check the repo)
+- Wireshark Dissector plugin (check the repo).
+- Fix `AutoExpandMTU` for IPv6 sockets. It would previously throw exceptions.
+  - It should properly work for dual-stack IPv6 sockets too.
+- Disabled `AutoExpandMTU` on macOS: this means you get a warning on startup instead of exception spam.
+  - CoreCLR doesn't support the relevant flags for IPv4 don't-fragment on macOS yet, so this never worked.
 
 ## Current (0.1.0)
 

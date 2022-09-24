@@ -213,9 +213,17 @@ namespace Lidgren.Network
 
 		internal bool SendMTUPacket(int numBytes, NetEndPoint target)
 		{
+			if (!CanAutoExpandMTU)
+				throw new NotSupportedException("MTU expansion not currently supported on this operating system");
+			
 			try
 			{
-				m_socket.DontFragment = true;
+				// NOTE: Socket.DontFragment doesn't work on dual-stack sockets.
+				// The equivalent SetSocketOption does work.
+				// See: https://github.com/dotnet/runtime/issues/76410
+				if (m_socket.DualMode || target.AddressFamily == AddressFamily.InterNetwork)
+					m_socket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.DontFragment, true);
+				
 				int bytesSent = m_socket.SendTo(m_sendBuffer, 0, numBytes, SocketFlags.None, target);
 				if (numBytes != bytesSent)
 					LogWarning("Failed to send the full " + numBytes + "; only " + bytesSent + " bytes sent in packet!");
@@ -242,9 +250,14 @@ namespace Lidgren.Network
 			}
 			finally
 			{
-				m_socket.DontFragment = false;
+				if (m_socket.DualMode || target.AddressFamily == AddressFamily.InterNetwork)
+					m_socket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.DontFragment, false);
 			}
 			return true;
 		}
+
+		// CoreCLR can set DontFragment on Windows and Linux, as far as I've tested.
+		// macOS doesn't work yet, probably due to recency of the relevant flags (Big Sur).
+		private static bool CanAutoExpandMTU => NetNativeSocket.IsLinux || NetNativeSocket.IsWindows;
 	}
 }

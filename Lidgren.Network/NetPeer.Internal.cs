@@ -182,6 +182,12 @@ namespace Lidgren.Network
 				if (m_configuration.m_enableUPnP)
 					m_upnp = new NetUPnP(this);
 
+				if (m_configuration.AutoExpandMTU && !CanAutoExpandMTU)
+				{
+					LogWarning("AutoExpandMTU is not supported on this platform: ignoring.");
+					m_configuration.m_autoExpandMTU = false;
+				}
+
 				InitializePools();
 
 				m_releasedIncomingMessages.Clear();
