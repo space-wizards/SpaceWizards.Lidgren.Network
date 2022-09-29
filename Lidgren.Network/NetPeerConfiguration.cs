@@ -27,19 +27,25 @@ namespace Lidgren.Network
 	/// </summary>
 	public sealed class NetPeerConfiguration
 	{
-		// Maximum transmission unit
-		// Ethernet can take 1500 bytes of payload, so lets stay below that.
-		// The aim is for a max full packet to be 1440 bytes (30 x 48 bytes, lower than 1468)
-		// -20 bytes IP header
-		//  -8 bytes UDP header
-		//  -4 bytes to be on the safe side and align to 8-byte boundary
-		// Total 1408 bytes
-		// Note that lidgren headers (5 bytes) are not included here; since it's part of the "mtu payload"
-
+		// Default MTU value used to be a slightly conservative number based off 1500 IP-MTU: 1408 
+		// This was too aggressive and caused connection troubles for some people (CGNAT + VPN lowered MTU too much)
+		// I wasn't able to find good numbers on what "practical" MTU numbers are, but:
+		// * QUIC requires an UDP-payload MTU of 1200. https://datatracker.ietf.org/doc/html/rfc9000#section-14
+		// * I've read at least one forum post by somebody claiming IP-MTU does get as low as 1260
+		// As such, I've lowered this number to 1200.
+		// 
+		// I considered lowering it further to like 506 (extremely conservative, technically IP-spec-minimum)
+		// But decided against it, because in practice that never makes sense I think.
+		// Furthermore, MTU is not purely a performance thing.
+		// Some message types like hail and unreliable are locked to MTU: lowering it too much can cause trouble.
+		
 		/// <summary>
 		/// Default MTU value in bytes
 		/// </summary>
-		public const int kDefaultMTU = 1408;
+		/// <remarks>
+		/// Note that lidgren headers (5 bytes) are not included here; since it's part of the "mtu payload"
+		/// </remarks>
+		public const int kDefaultMTU = 1200;
 
 		private const string c_isLockedMessage = "You may not modify the NetPeerConfiguration after it has been used to initialize a NetPeer";
 

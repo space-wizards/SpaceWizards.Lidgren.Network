@@ -17,6 +17,9 @@
   - It should properly work for dual-stack IPv6 sockets too.
 - Disabled `AutoExpandMTU` on macOS: this means you get a warning on startup instead of exception spam.
   - CoreCLR doesn't support the relevant flags for IPv4 don't-fragment on macOS yet, so this never worked.
+- Lowered default MTU to 1200 bytes.
+  - The previous value (1408) proved too high and could cause issues on some network configurations.
+  - The new value is the same minimum as QUIC, which seems like a reasonable default.
 
 ## Current (0.1.0)
 
