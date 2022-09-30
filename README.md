@@ -3,6 +3,8 @@ Lidgren.Network is a networking library for .NET, which uses a single UDP socket
 
 **Space Wizards Edition** is a maintained fork of Lidgren.Network with improvements such as bugfixes, performance improvements (`Span<T>`!), new features, etc... See the [Release Notes](RELEASE-NOTES.md) for differences.
 
+We're using `SpaceWizards.Lidgren.Network` as a networking layer for [Space Station 14](https://spacestation14.io) and [Robust](https://github.com/space-wizards/RobustToolbox).
+
 ## Contact
 
-If you'd like to get in contact with us or have any questions, you can ask in the development channel on [our Discord](https://discord.ss14.io).
+If you'd like to get in contact with us or have any questions, you can ask in `#other-game-dev` on [our Discord](https://discord.ss14.io).
