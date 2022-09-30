@@ -5,7 +5,7 @@
         <AssemblyName>SpaceWizards.Lidgren.Network</AssemblyName>
         <PackageId>SpaceWizards.Lidgren.Network</PackageId>
         <Authors>Michael Lidgren, Space Wizards</Authors>
-        <Version>0.1.0</Version>
+        <Version>0.2.0</Version>
         <RepositoryType>Git</RepositoryType>
         <RepositoryUrl>https://github.com/space-wizards/SpaceWizards.Lidgren.Network</RepositoryUrl>
         <PackageProjectUrl>https://github.com/space-wizards/SpaceWizards.Lidgren.Network</PackageProjectUrl>

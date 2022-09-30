@@ -2,6 +2,8 @@
 
 ## Master
 
+## 0.2.0
+
 - Remove encryption support. The entire existing encryption support was completely insecure and broken, and did not integrate with the internals of the API in any way (i.e. it would be trivial to add on top yourself).
   - See [this example](https://github.com/space-wizards/RobustToolbox/blob/de8c2c14bb7a2c130c6c3f66f2cc443b748cdd2a/Robust.Shared/Network/NetEncryption.cs) for an implementation that actually has functional security.
   - I do want to make a better encryption API (that would encrypt packets after message combining and such, to reduce per-message bandwidth overhead) but this is not currently a thing.
@@ -22,7 +24,7 @@
   - The new value is the same minimum as QUIC, which seems like a reasonable default.
 - Use fast socket optimizations for MTU expansion.
 
-## Current (0.1.0)
+## 0.1.0
 
 This is the first release. Changes over base Lidgren.Network:
 - **Dropped .NET Framework support.** Minimum required is now .NET Standard 2.1.
