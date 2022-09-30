@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Xml;
 using System.Net;
+using System.Net.Http;
 using System.Net.Sockets;
 using System.Threading;
 
@@ -150,9 +151,9 @@ namespace Lidgren.Network
 			try
 			{
 #endif
-			XmlDocument desc = new XmlDocument();
-			using (var response = WebRequest.Create(resp).GetResponse())
-				desc.Load(response.GetResponseStream());
+			using var httpClient = new HttpClient();
+			var request = new HttpRequestMessage(HttpMethod.Get, resp);
+			XmlDocument desc = SyncSend(httpClient, request);
 
 			XmlNamespaceManager nsMgr = new XmlNamespaceManager(desc.NameTable);
 			nsMgr.AddNamespace("tns", "urn:schemas-upnp-org:device-1-0");
@@ -345,25 +346,39 @@ namespace Lidgren.Network
 			soap +
 			"</s:Body>" +
 			"</s:Envelope>";
-			WebRequest r = HttpWebRequest.Create(url);
-			r.Method = "POST";
-			byte[] b = System.Text.Encoding.UTF8.GetBytes(req);
-			r.Headers.Add("SOAPACTION", "\"urn:schemas-upnp-org:service:" + serviceName + ":1#" + function + "\""); 
-			r.ContentType = "text/xml; charset=\"utf-8\"";
-			r.ContentLength = b.Length;
-			r.GetRequestStream().Write(b, 0, b.Length);
-			using (WebResponse wres = r.GetResponse()) {
-				XmlDocument resp = new XmlDocument();
-				Stream ress = wres.GetResponseStream();
-				resp.Load(ress);
-				return resp;
-			}
+			
+			var request = new HttpRequestMessage(HttpMethod.Post, url);
+			request.Headers.Add("SOAPACTION", $"\"urn:schemas-upnp-org:service:{serviceName}:1#{function}\"");
+			request.Content = new StringContent(req, null, "text/xml");
+
+			using var httpClient = new HttpClient();
+			return SyncSend(httpClient, request);
 		}
 
 		private struct UpnpCandidate
 		{
 			public string Url;
 			public string ServiceName;
+		}
+
+		private static XmlDocument SyncSend(HttpClient httpClient, HttpRequestMessage request)
+		{
+			var xmlDoc = new XmlDocument();
+			
+#if NET5_0_OR_GREATER
+			using var response = httpClient.Send(request);
+			response.EnsureSuccessStatusCode();
+			xmlDoc.Load(response.Content.ReadAsStream());
+#else
+			System.Threading.Tasks.Task.Run(async () =>
+			{
+				using var response = await httpClient.SendAsync(request);
+				response.EnsureSuccessStatusCode();
+				xmlDoc.Load(await response.Content.ReadAsStreamAsync());
+			}).Wait();
+#endif
+			
+			return xmlDoc;
 		}
 	}
 }

@@ -2,6 +2,11 @@
 
 ## Master
 
+## 0.2.2
+
+- `NetRandom.NextSingle()` is an override of the new `Random.NextSingle()` on .NET 6.
+- Fixed compilation warnings due to usages of obsolete symbols like `WebClient`.
+
 ## 0.2.1
 
 - Improve some NuGet package stuff (SourceLink, symbols, README)

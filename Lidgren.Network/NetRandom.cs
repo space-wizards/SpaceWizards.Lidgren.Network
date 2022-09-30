@@ -90,7 +90,11 @@ namespace Lidgren.Network
 		/// <summary>
 		/// Returns random value is greater or equal than 0.0f and less than 1.0f
 		/// </summary>
+#if NET6_0_OR_GREATER
+		public override float NextSingle()
+#else
 		public float NextSingle()
+#endif
 		{
 			var retval = (float)(c_realUnitInt * NextInt32());
 			if (retval == 1.0f)
