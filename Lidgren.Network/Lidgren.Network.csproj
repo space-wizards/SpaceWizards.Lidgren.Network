@@ -1,11 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <TargetFrameworks>netstandard2.1;netcoreapp3.1;net5.0;net6.0</TargetFrameworks>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <Version>0.2.1</Version>
         <AssemblyName>SpaceWizards.Lidgren.Network</AssemblyName>
+        <IncludeSymbols>true</IncludeSymbols>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+        <!-- Uncomment the following line to not get statistics in RELEASE mode -->
+        <DefineConstants>$(DefineConstants);USE_RELEASE_STATISTICS</DefineConstants>
+        <PackageReleaseNotes>https://github.com/space-wizards/SpaceWizards.Lidgren.Network/blob/wizards/RELEASE-NOTES.md</PackageReleaseNotes>
+
+        <!-- NuGet stuff. -->
         <PackageId>SpaceWizards.Lidgren.Network</PackageId>
         <Authors>Michael Lidgren, Space Wizards</Authors>
-        <Version>0.2.0</Version>
         <RepositoryType>Git</RepositoryType>
         <RepositoryUrl>https://github.com/space-wizards/SpaceWizards.Lidgren.Network</RepositoryUrl>
         <PackageProjectUrl>https://github.com/space-wizards/SpaceWizards.Lidgren.Network</PackageProjectUrl>
@@ -13,13 +20,19 @@
         <PackageTags>lidgren,udp,networking,network</PackageTags>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <Description>SpaceWizards.Lidgren.Network is a maintained fork of Lidgren.Network with various improvements and fixes.</Description>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
 
-        <!-- Uncomment the following line to not get statistics in RELEASE mode -->
-        <DefineConstants>$(DefineConstants);USE_RELEASE_STATISTICS</DefineConstants>
-        <PackageReleaseNotes>https://github.com/space-wizards/SpaceWizards.Lidgren.Network/blob/wizards/RELEASE-NOTES.md</PackageReleaseNotes>
+        <!-- SourceLink -->
+        <PublishRepositoryUrl>true</PublishRepositoryUrl>
     </PropertyGroup>
 
     <ItemGroup>
         <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.7.1" Condition="'$(TargetFramework)' == 'netstandard2.1'" />
+        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="..\README.md" Pack="true" PackagePath="\"/>
     </ItemGroup>
 </Project>
