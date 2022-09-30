@@ -20,6 +20,7 @@
 - Lowered default MTU to 1200 bytes.
   - The previous value (1408) proved too high and could cause issues on some network configurations.
   - The new value is the same minimum as QUIC, which seems like a reasonable default.
+- Use fast socket optimizations for MTU expansion.
 
 ## Current (0.1.0)
 

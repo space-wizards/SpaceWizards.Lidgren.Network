@@ -224,7 +224,7 @@ namespace Lidgren.Network
 				if (m_socket.DualMode || target.AddressFamily == AddressFamily.InterNetwork)
 					m_socket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.DontFragment, true);
 				
-				int bytesSent = m_socket.SendTo(m_sendBuffer, 0, numBytes, SocketFlags.None, target);
+				int bytesSent = NetFastSocket.SendTo(m_socket, m_sendBuffer, 0, numBytes, SocketFlags.None, target);
 				if (numBytes != bytesSent)
 					LogWarning("Failed to send the full " + numBytes + "; only " + bytesSent + " bytes sent in packet!");
 
