@@ -82,10 +82,10 @@ namespace Lidgren.Network
 			throw new NotImplementedException();
 		}
 
-		private static readonly SHA1CryptoServiceProvider s_sha = new SHA1CryptoServiceProvider();
 		public static byte[] ComputeSHAHash(byte[] bytes, int offset, int count)
 		{
-			return s_sha.ComputeHash(bytes, offset, count);
+			using var sha = SHA256.Create();
+			return sha.ComputeHash(bytes, offset, count);
 		}
 	}
 

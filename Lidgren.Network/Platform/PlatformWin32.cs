@@ -156,10 +156,10 @@ namespace Lidgren.Network
 			return new IPAddress(bytes);
 		}
 		
-		private static readonly SHA256 s_sha = SHA256.Create();
 		public static byte[] ComputeSHAHash(byte[] bytes, int offset, int count)
 		{
-			return s_sha.ComputeHash(bytes, offset, count);
+			using var sha = SHA256.Create();
+			return sha.ComputeHash(bytes, offset, count);
 		}
 	}
 
