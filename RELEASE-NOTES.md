@@ -2,6 +2,10 @@
 
 ## Master
 
+- Fixed data race bug with `NetUtility.ComputeSHAHash()` and resulting bugs surrounding duplicate UID calculation.
+    - Removed system-global `Mutex` in peer startup that acted as an incorrect "fix" for this.
+        - This fixes compatibility with Xamarin.
+
 ## 0.2.2
 
 - `NetRandom.NextSingle()` is an override of the new `Random.NextSingle()` on .NET 6.
