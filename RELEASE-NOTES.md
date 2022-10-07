@@ -2,9 +2,11 @@
 
 ## Master
 
+## 0.2.3
+
 - Fixed data race bug with `NetUtility.ComputeSHAHash()` and resulting bugs surrounding duplicate UID calculation.
-    - Removed system-global `Mutex` in peer startup that acted as an incorrect "fix" for this.
-        - This fixes compatibility with Xamarin.
+  - Removed system-global `Mutex` in peer startup that acted as an incorrect "fix" for this.
+    - This fixes compatibility with Xamarin.
 
 ## 0.2.2
 
