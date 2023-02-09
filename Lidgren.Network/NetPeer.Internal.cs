@@ -529,7 +529,8 @@ namespace Lidgren.Network
 
 				if (bytesReceived - ptr < payloadByteLength)
 				{
-					LogWarning("Malformed packet; stated payload length " + payloadByteLength + ", remaining bytes " + (bytesReceived - ptr));
+					LogWarning("Malformed packet from " + (NetEndPoint) senderRemote + "; stated payload length " + payloadByteLength
+							+ ", remaining bytes " + (bytesReceived - ptr));
 					return;
 				}
 
