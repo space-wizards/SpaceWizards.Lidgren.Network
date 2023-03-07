@@ -7,4 +7,6 @@ We're using `SpaceWizards.Lidgren.Network` as a networking layer for [Space Stat
 
 ## Contact
 
-If you'd like to get in contact with us or have any questions, you can ask in `#other-game-dev` on [our Discord](https://discord.ss14.io).
+If you'd like to get in contact with us or have any questions, you have two options:
+* You can ask in `#other-game-dev` on [our Discord](https://discord.ss14.io).
+* Use [GitHub discussions](https://github.com/space-wizards/SpaceWizards.Lidgren.Network/discussions)
