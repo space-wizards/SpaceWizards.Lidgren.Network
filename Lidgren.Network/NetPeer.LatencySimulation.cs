@@ -197,7 +197,11 @@ namespace Lidgren.Network
 					connectionReset = true;
 					return false;
 				}
-				LogError("Failed to send packet: " + sx);
+				if (sx.SocketErrorCode != SocketError.Success)
+				{
+					// I have no ideaaa
+					LogError("Failed to send packet: " + sx);
+				}
 			}
 			catch (Exception ex)
 			{
