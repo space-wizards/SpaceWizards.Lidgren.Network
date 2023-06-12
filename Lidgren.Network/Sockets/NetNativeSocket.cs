@@ -18,7 +18,7 @@ namespace Lidgren.Network
 
 		internal static readonly ushort AF_INET = 2;
 		internal static readonly ushort AF_INET6 = (ushort) (IsWindows ? 23 : 10);
-		
+
 		internal struct sockaddr
 		{
 			public ushort sa_family;
@@ -72,7 +72,7 @@ namespace Lidgren.Network
 				? BinaryPrimitives.ReverseEndianness(netlong)
 				: netlong;
 
-		[DllImport("libc", EntryPoint = "sendto")]
+		[DllImport("libc", EntryPoint = "sendto", SetLastError = true)]
 		internal static extern IntPtr sendto_linux(
 			int sockfd,
 			void* buf,
@@ -90,7 +90,7 @@ namespace Lidgren.Network
 			sockaddr* to,
 			int tolen);
 
-		[DllImport("libc", EntryPoint = "recvfrom")]
+		[DllImport("libc", EntryPoint = "recvfrom", SetLastError = true)]
 		internal static extern IntPtr recvfrom_linux(
 			int sockfd,
 			void* buf,
@@ -108,7 +108,7 @@ namespace Lidgren.Network
 			sockaddr* from,
 			int* fromlen);
 
-		
+
 		[DllImport("Ws2_32.dll")]
 		internal static extern int WSAGetLastError();
 		// ReSharper restore InconsistentNaming
