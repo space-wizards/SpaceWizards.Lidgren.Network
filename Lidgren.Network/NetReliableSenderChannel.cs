@@ -157,8 +157,6 @@ namespace Lidgren.Network
 
 			var storedMessage = srm.Message;
 
-			// on each destore; reduce recyclingcount so that when all instances are destored, the outgoing message can be recycled
-			Interlocked.Decrement(ref storedMessage.m_recyclingCount);
 #if DEBUG
 			if (storedMessage == null)
 				throw new NetException("m_storedMessages[" + storeIndex + "].Message is null; sent " + m_storedMessages[storeIndex].NumSent + " times, last time " + (NetTime.Now - m_storedMessages[storeIndex].LastSent) + " seconds ago");
@@ -166,6 +164,9 @@ namespace Lidgren.Network
 			if (storedMessage != null)
 			{
 #endif
+			// on each destore; reduce recyclingcount so that when all instances are destored, the outgoing message can be recycled
+			Interlocked.Decrement(ref storedMessage.m_recyclingCount);
+   
 			if (storedMessage.m_recyclingCount <= 0)
 				m_connection.m_peer.Recycle(storedMessage);
 
