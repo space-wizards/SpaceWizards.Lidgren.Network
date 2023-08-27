@@ -2,6 +2,10 @@
 
 ## Master
 
+## 0.2.6
+
+- Fixed a possible `NullReferenceException` in `NetReliableSenderChannel`.
+
 ## 0.2.5
 
 - Fixed error reporting for socket errors on Linux.
