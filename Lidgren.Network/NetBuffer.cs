@@ -14,7 +14,7 @@ namespace Lidgren.Network
 		private static readonly Dictionary<Type, MethodInfo> s_readMethods;
 		private static readonly Dictionary<Type, MethodInfo> s_writeMethods;
 
-		internal byte[] m_data_not_null => m_data ?? throw new InvalidOperationException($"{nameof(m_data)} is null");
+		internal byte[] BufferData => m_data ?? throw new InvalidOperationException($"{nameof(m_data)} is null");
 
 		internal byte[]? m_data;
 		internal int m_bitLength;
