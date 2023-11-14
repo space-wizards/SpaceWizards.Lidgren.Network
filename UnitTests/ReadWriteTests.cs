@@ -3,10 +3,10 @@ using System.Reflection;
 using Lidgren.Network;
 using NUnit.Framework;
 
-namespace UnitTests
+namespace UnitTests;
+
+public class ReadWriteTests : PeerTestBase
 {
-	public class ReadWriteTests : PeerTestBase
-	{
         [Test]
         public void TestSmallMessage1()
         {
@@ -207,7 +207,7 @@ namespace UnitTests
         }
         
 #if NET5_0
-		[Test]
+	[Test]
         [TestCase(0)]
         [TestCase(1)]
         [TestCase(123.4)]
@@ -215,31 +215,30 @@ namespace UnitTests
         [TestCase(double.PositiveInfinity)]
         [TestCase(double.NegativeInfinity)]
         [TestCase(double.NaN)]
-		public void TestHalf(double val)
-		{
-			var half = (Half) val;
+	public void TestHalf(double val)
+	{
+		var half = (Half) val;
 
-			var msg = new NetBuffer();
-			msg.Write(half);
+		var msg = new NetBuffer();
+		msg.Write(half);
 
-			Assert.That(msg.LengthBits, Is.EqualTo(16));
+		Assert.That(msg.LengthBits, Is.EqualTo(16));
 
-			Assert.That(msg.PeekHalf(), Is.EqualTo(half));
-			Assert.That(msg.ReadHalf(), Is.EqualTo(half));
+		Assert.That(msg.PeekHalf(), Is.EqualTo(half));
+		Assert.That(msg.ReadHalf(), Is.EqualTo(half));
 
-			Assert.That(msg.Position, Is.EqualTo(16));
-		}
+		Assert.That(msg.Position, Is.EqualTo(16));
+	}
 #endif
 
         public class TestItemBase
         {
-	        public int Number;
+        public int Number;
         }
 
         public class TestItem : TestItemBase
         {
-	        public float Age;
-            public string Name;
+        public float Age;
+            public string? Name;
         }
-	}
 }

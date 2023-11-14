@@ -1,8 +1,8 @@
 using Lidgren.Network;
 using NUnit.Framework;
 
-namespace UnitTests
-{
+namespace UnitTests;
+
     [TestFixture]
     [Parallelizable]
     [TestOf(typeof(NetPeerConfiguration))]
@@ -20,4 +20,3 @@ namespace UnitTests
             Assert.That(config.IsMessageTypeEnabled(NetIncomingMessageType.UnconnectedData), Is.False);
         }
     }
-}

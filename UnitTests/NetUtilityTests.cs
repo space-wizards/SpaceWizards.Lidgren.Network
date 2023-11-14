@@ -4,8 +4,8 @@ using System.Threading.Tasks;
 using Lidgren.Network;
 using NUnit.Framework;
 
-namespace UnitTests
-{
+namespace UnitTests;
+
     [TestOf(typeof(NetUtility))]
     [TestFixture]
     [Parallelizable]
@@ -51,7 +51,7 @@ namespace UnitTests
             var addr = NetUtility.Resolve("example.com", 55555);
 
             Assert.That(addr, Is.Not.Null);
-            Assert.That(addr.Port, Is.EqualTo(55555));
+            Assert.That(addr?.Port, Is.EqualTo(55555));
         }
 
         [Test]
@@ -59,11 +59,11 @@ namespace UnitTests
         [TestCase(AddressFamily.InterNetworkV6)]
         public void TestResolveAllowed(AddressFamily family)
         {
-	        IgnoreIfActions();
-	        
+        IgnoreIfActions();
+        
             var addr = NetUtility.Resolve("example.com", family);
 
-            Assert.That(addr.AddressFamily, Is.EqualTo(family));
+            Assert.That(addr?.AddressFamily, Is.EqualTo(family));
         }
 
         [Test]
@@ -88,7 +88,7 @@ namespace UnitTests
             var addr = await NetUtility.ResolveAsync("example.com", 55555);
 
             Assert.That(addr, Is.Not.Null);
-            Assert.That(addr.Port, Is.EqualTo(55555));
+            Assert.That(addr?.Port, Is.EqualTo(55555));
         }
 
         [Test]
@@ -96,11 +96,11 @@ namespace UnitTests
         [TestCase(AddressFamily.InterNetworkV6)]
         public async Task TestResolveAsyncAllowed(AddressFamily family)
         {
-	        IgnoreIfActions();
+        IgnoreIfActions();
          
-	        var addr = await NetUtility.ResolveAsync("example.com", family);
+        var addr = await NetUtility.ResolveAsync("example.com", family);
 
-            Assert.That(addr.AddressFamily, Is.EqualTo(family));
+            Assert.That(addr?.AddressFamily, Is.EqualTo(family));
         }
 
         [Test]
@@ -113,9 +113,10 @@ namespace UnitTests
 
         private static void IgnoreIfActions()
         {
-	        // https://github.com/actions/virtual-environments/issues/668
-	        if (Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true")
-		        Assert.Ignore("GitHub Actions Runners do not support IPv6 and as such this test is disabled.");
-        }
+        // https://github.com/actions/virtual-environments/issues/668
+        if (Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true")
+		{
+			Assert.Ignore("GitHub Actions Runners do not support IPv6 and as such this test is disabled.");
+		}
+	}
     }
-}

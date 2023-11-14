@@ -20,55 +20,58 @@ using System;
 using System.Diagnostics;
 using System.Runtime.Serialization;
 
-namespace Lidgren.Network
+namespace Lidgren.Network;
+
+/// <summary>
+/// Exception thrown in the Lidgren Network Library
+/// </summary>
+public sealed class NetException : Exception
 {
 	/// <summary>
-	/// Exception thrown in the Lidgren Network Library
+	/// NetException constructor
 	/// </summary>
-	public sealed class NetException : Exception
+	public NetException()
+		: base()
 	{
-		/// <summary>
-		/// NetException constructor
-		/// </summary>
-		public NetException()
-			: base()
-		{
-		}
+	}
 
-		/// <summary>
-		/// NetException constructor
-		/// </summary>
-		public NetException(string message)
-			: base(message)
-		{
-		}
+	/// <summary>
+	/// NetException constructor
+	/// </summary>
+	public NetException(string message)
+		: base(message)
+	{
+	}
 
-		/// <summary>
-		/// NetException constructor
-		/// </summary>
-		public NetException(string message, Exception inner)
-			: base(message, inner)
-		{
-		}
+	/// <summary>
+	/// NetException constructor
+	/// </summary>
+	public NetException(string message, Exception inner)
+		: base(message, inner)
+	{
+	}
 
-		/// <summary>
-		/// Throws an exception, in DEBUG only, if first parameter is false
-		/// </summary>
-		[Conditional("DEBUG")]
-		public static void Assert(bool isOk, string message)
+	/// <summary>
+	/// Throws an exception, in DEBUG only, if first parameter is false
+	/// </summary>
+	[Conditional("DEBUG")]
+	public static void Assert(bool isOk, string message)
+	{
+		if (!isOk)
 		{
-			if (!isOk)
-				throw new NetException(message);
+			throw new NetException(message);
 		}
+	}
 
-		/// <summary>
-		/// Throws an exception, in DEBUG only, if first parameter is false
-		/// </summary>
-		[Conditional("DEBUG")]
-		public static void Assert(bool isOk)
+	/// <summary>
+	/// Throws an exception, in DEBUG only, if first parameter is false
+	/// </summary>
+	[Conditional("DEBUG")]
+	public static void Assert(bool isOk)
+	{
+		if (!isOk)
 		{
-			if (!isOk)
-				throw new NetException();
+			throw new NetException();
 		}
 	}
 }

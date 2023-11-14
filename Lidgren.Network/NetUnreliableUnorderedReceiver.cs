@@ -1,23 +1,24 @@
 ﻿using System;
 
-namespace Lidgren.Network
+namespace Lidgren.Network;
+
+internal sealed class NetUnreliableUnorderedReceiver : NetReceiverChannelBase
 {
-	internal sealed class NetUnreliableUnorderedReceiver : NetReceiverChannelBase
+	private readonly bool m_doFlowControl;
+
+	public NetUnreliableUnorderedReceiver(NetConnection connection)
+		: base(connection)
 	{
-		private bool m_doFlowControl;
+		m_doFlowControl = connection.Peer.Configuration.SuppressUnreliableUnorderedAcks == false;
+	}
 
-		public NetUnreliableUnorderedReceiver(NetConnection connection)
-			: base(connection)
+	internal override void ReceiveMessage(NetIncomingMessage msg)
+	{
+		if (m_doFlowControl)
 		{
-			m_doFlowControl = connection.Peer.Configuration.SuppressUnreliableUnorderedAcks == false;
+			m_connection.QueueAck(msg.m_receivedMessageType, msg.m_sequenceNumber);
 		}
 
-		internal override void ReceiveMessage(NetIncomingMessage msg)
-		{
-			if (m_doFlowControl)
-				m_connection.QueueAck(msg.m_receivedMessageType, msg.m_sequenceNumber);
-
-			m_peer.ReleaseMessage(msg);
-		}
+		m_peer.ReleaseMessage(msg);
 	}
 }
