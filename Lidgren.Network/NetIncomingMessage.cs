@@ -24,85 +24,86 @@ using System.Diagnostics;
 using NetEndPoint = System.Net.IPEndPoint;
 #endif
 
-namespace Lidgren.Network;
-
-/// <summary>
-/// Incoming message either sent from a remote peer or generated within the library
-/// </summary>
-[DebuggerDisplay("Type={MessageType} LengthBits={LengthBits}")]
-public sealed class NetIncomingMessage : NetBuffer
+namespace Lidgren.Network
 {
-	internal NetIncomingMessageType m_incomingMessageType;
-	internal NetEndPoint? m_senderEndPoint;
-	internal NetConnection? m_senderConnection;
-	internal int m_sequenceNumber;
-	internal NetMessageType m_receivedMessageType;
-	internal bool m_isFragment;
-	internal double m_receiveTime;
-
 	/// <summary>
-	/// Gets the type of this incoming message
+	/// Incoming message either sent from a remote peer or generated within the library
 	/// </summary>
-	public NetIncomingMessageType MessageType { get { return m_incomingMessageType; } }
-
-	/// <summary>
-	/// Gets the delivery method this message was sent with (if user data)
-	/// </summary>
-	public NetDeliveryMethod DeliveryMethod { get { return NetUtility.GetDeliveryMethod(m_receivedMessageType); } }
-
-	/// <summary>
-	/// Gets the sequence channel this message was sent with (if user data)
-	/// </summary>
-	public int SequenceChannel { get { return (int)m_receivedMessageType - (int)NetUtility.GetDeliveryMethod(m_receivedMessageType); } }
-
-	/// <summary>
-	/// endpoint of sender, if any
-	/// </summary>
-	public NetEndPoint? SenderEndPoint { get { return m_senderEndPoint; } }
-
-	/// <summary>
-	/// NetConnection of sender, if any
-	/// </summary>
-	public NetConnection? SenderConnection { get { return m_senderConnection; } }
-
-	/// <summary>
-	/// What local time the message was received from the network
-	/// </summary>
-	public double ReceiveTime { get { return m_receiveTime; } }
-
-	internal NetIncomingMessage()
+	[DebuggerDisplay("Type={MessageType} LengthBits={LengthBits}")]
+	public sealed class NetIncomingMessage : NetBuffer
 	{
-	}
+		internal NetIncomingMessageType m_incomingMessageType;
+		internal NetEndPoint? m_senderEndPoint;
+		internal NetConnection? m_senderConnection;
+		internal int m_sequenceNumber;
+		internal NetMessageType m_receivedMessageType;
+		internal bool m_isFragment;
+		internal double m_receiveTime;
 
-	internal NetIncomingMessage(NetIncomingMessageType tp)
-	{
-		m_incomingMessageType = tp;
-	}
+		/// <summary>
+		/// Gets the type of this incoming message
+		/// </summary>
+		public NetIncomingMessageType MessageType { get { return m_incomingMessageType; } }
 
-	internal void Reset()
-	{
-		m_incomingMessageType = NetIncomingMessageType.Error;
-		m_readPosition = 0;
-		m_receivedMessageType = NetMessageType.LibraryError;
-		m_senderConnection = null;
-		m_bitLength = 0;
-		m_isFragment = false;
-	}
+		/// <summary>
+		/// Gets the delivery method this message was sent with (if user data)
+		/// </summary>
+		public NetDeliveryMethod DeliveryMethod { get { return NetUtility.GetDeliveryMethod(m_receivedMessageType); } }
 
-	/// <summary>
-	/// Reads a value, in local time comparable to NetTime.Now, written using WriteTime()
-	/// Must have a connected sender
-	/// </summary>
-	public double ReadTime(bool highPrecision)
-	{
-		return ReadTime(m_senderConnection, highPrecision);
-	}
+		/// <summary>
+		/// Gets the sequence channel this message was sent with (if user data)
+		/// </summary>
+		public int SequenceChannel { get { return (int)m_receivedMessageType - (int)NetUtility.GetDeliveryMethod(m_receivedMessageType); } }
 
-	/// <summary>
-	/// Returns a string that represents this object
-	/// </summary>
-	public override string ToString()
-	{
-		return "[NetIncomingMessage #" + m_sequenceNumber + " " + this.LengthBytes + " bytes]";
+		/// <summary>
+		/// endpoint of sender, if any
+		/// </summary>
+		public NetEndPoint? SenderEndPoint { get { return m_senderEndPoint; } }
+
+		/// <summary>
+		/// NetConnection of sender, if any
+		/// </summary>
+		public NetConnection? SenderConnection { get { return m_senderConnection; } }
+
+		/// <summary>
+		/// What local time the message was received from the network
+		/// </summary>
+		public double ReceiveTime { get { return m_receiveTime; } }
+
+		internal NetIncomingMessage()
+		{
+		}
+
+		internal NetIncomingMessage(NetIncomingMessageType tp)
+		{
+			m_incomingMessageType = tp;
+		}
+
+		internal void Reset()
+		{
+			m_incomingMessageType = NetIncomingMessageType.Error;
+			m_readPosition = 0;
+			m_receivedMessageType = NetMessageType.LibraryError;
+			m_senderConnection = null;
+			m_bitLength = 0;
+			m_isFragment = false;
+		}
+
+		/// <summary>
+		/// Reads a value, in local time comparable to NetTime.Now, written using WriteTime()
+		/// Must have a connected sender
+		/// </summary>
+		public double ReadTime(bool highPrecision)
+		{
+			return ReadTime(m_senderConnection, highPrecision);
+		}
+
+		/// <summary>
+		/// Returns a string that represents this object
+		/// </summary>
+		public override string ToString()
+		{
+			return "[NetIncomingMessage #" + m_sequenceNumber + " " + this.LengthBytes + " bytes]";
+		}
 	}
 }

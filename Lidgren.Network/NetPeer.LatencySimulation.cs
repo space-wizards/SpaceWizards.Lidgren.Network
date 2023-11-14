@@ -29,279 +29,247 @@ using System.Diagnostics;
 using NetEndPoint = System.Net.IPEndPoint;
 #endif
 
-namespace Lidgren.Network;
-
-public partial class NetPeer
+namespace Lidgren.Network
 {
-	private readonly List<DelayedPacket> m_delayedPackets = new List<DelayedPacket>();
-	private readonly MWCRandom m_latencyRandom = new MWCRandom();
-
-	private sealed class DelayedPacket
+	public partial class NetPeer
 	{
-		public byte[] Data;
-		public double DelayedUntil;
-		public NetEndPoint Target;
+		private readonly List<DelayedPacket> m_delayedPackets = new List<DelayedPacket>();
+		private readonly MWCRandom m_latencyRandom = new MWCRandom();
 
-		public DelayedPacket(byte[] data, double delayedUntil, NetEndPoint target)
+		private sealed class DelayedPacket
 		{
-			Data = data;
-			DelayedUntil = delayedUntil;
-			Target = target;
-		}
-	}
+			public byte[] Data;
+			public double DelayedUntil;
+			public NetEndPoint Target;
 
-	internal void SendPacket(int numBytes, NetEndPoint target, int numMessages, out bool connectionReset)
-	{
-		connectionReset = false;
-
-		// simulate loss
-		float loss = m_configuration.m_loss;
-		if (loss > 0.0f)
-		{
-			if ((float)m_latencyRandom.NextDouble() < loss)
+			public DelayedPacket(byte[] data, double delayedUntil, NetEndPoint target)
 			{
-				LogVerbose("Sending packet " + numBytes + " bytes - SIMULATED LOST!");
-				return; // packet "lost"
+				Data = data;
+				DelayedUntil = delayedUntil;
+				Target = target;
 			}
 		}
 
-		m_statistics.PacketSent(numBytes, numMessages);
-
-		// simulate latency
-		float m = m_configuration.m_minimumOneWayLatency;
-		float r = m_configuration.m_randomOneWayLatency;
-		if (m == 0.0f && r == 0.0f)
+		internal void SendPacket(int numBytes, NetEndPoint target, int numMessages, out bool connectionReset)
 		{
-			// no latency simulation
-			// LogVerbose("Sending packet " + numBytes + " bytes");
-			_ = ActuallySendPacket(m_sendBuffer, numBytes, target, out connectionReset);
-			// TODO: handle wasSent == false?
+			connectionReset = false;
 
-			if (m_configuration.m_duplicates > 0.0f && m_latencyRandom.NextDouble() < m_configuration.m_duplicates)
+			// simulate loss
+			float loss = m_configuration.m_loss;
+			if (loss > 0.0f)
 			{
-				ActuallySendPacket(m_sendBuffer, numBytes, target, out connectionReset); // send it again!
-			}
-
-			return;
-		}
-
-		int num = 1;
-		if (m_configuration.m_duplicates > 0.0f && m_latencyRandom.NextSingle() < m_configuration.m_duplicates)
-		{
-			num++;
-		}
-
-		for (int i = 0; i < num; i++)
-		{
-			float delay = m + (m_latencyRandom.NextSingle() * r);
-
-			// Enqueue delayed packet
-			DelayedPacket p = new DelayedPacket(new byte[numBytes], NetTime.Now + delay, target);
-
-			Buffer.BlockCopy(m_sendBuffer, 0, p.Data, 0, numBytes);
-
-			m_delayedPackets.Add(p);
-		}
-
-		// LogVerbose("Sending packet " + numBytes + " bytes - delayed " + NetTime.ToReadable(delay));
-	}
-
-	private void SendDelayedPackets()
-	{
-		if (m_delayedPackets.Count <= 0)
-		{
-			return;
-		}
-
-		double now = NetTime.Now;
-
-		for (var i = 0; i < m_delayedPackets.Count; i++)
-		{
-			var p = m_delayedPackets[i];
-			if (now < p.DelayedUntil)
-			{
-				continue;
-			}
-
-			ActuallySendPacket(p.Data, p.Data.Length, p.Target, out _);
-
-			// Swap packet with last entry in list.
-			// This does not preserve order (we don't care) but is O(1).
-			var replaceIdx = m_delayedPackets.Count - 1;
-			var replacement = m_delayedPackets[replaceIdx];
-			m_delayedPackets[i] = replacement;
-			m_delayedPackets.RemoveAt(replaceIdx);
-
-			// Make sure to decrement i so we re-process the element we just swapped in.
-			i -= 1;
-		}
-	}
-
-	private void FlushDelayedPackets()
-	{
-		try
-		{
-			foreach (DelayedPacket p in m_delayedPackets)
-			{
-				ActuallySendPacket(p.Data, p.Data.Length, p.Target, out bool connectionReset);
-			}
-
-			m_delayedPackets.Clear();
-		}
-		catch { }
-	}
-
-	//Avoids allocation on mapping to IPv6
-	private readonly IPEndPoint targetCopy = new IPEndPoint(IPAddress.Any, 0);
-	private readonly IPEndPoint targetCopy2 = new IPEndPoint(IPAddress.Any, 0);
-
-	internal bool ActuallySendPacket(byte[] data, int numBytes, NetEndPoint target, out bool connectionReset)
-	{
-		var dualStack = m_configuration.DualStack && m_configuration.LocalAddress.AddressFamily == AddressFamily.InterNetworkV6;
-		connectionReset = false;
-		IPAddress? ba = default(IPAddress);
-
-		if (m_socket == null)
-		{
-			throw new InvalidOperationException("socket is null");
-		}
-
-		try
-		{
-			var realTarget = target;
-			ba = NetUtility.GetCachedBroadcastAddress();
-
-			// TODO: refactor this check outta here
-			if (target.Address.Equals(ba))
-			{
-				// Some networks do not allow 
-				// a global broadcast so we use the BroadcastAddress from the configuration
-				// this can be resolved to a local broadcast addresss e.g 192.168.x.255                    
-				targetCopy.Address = m_configuration.BroadcastAddress;
-				targetCopy.Port = target.Port;
-				realTarget = targetCopy;
-				m_socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Broadcast, true);
-
-				if (dualStack)
+				if ((float)m_latencyRandom.NextDouble() < loss)
 				{
-					NetUtility.CopyEndpoint(realTarget, targetCopy2); //Maps to IPv6 for Dual Mode
-					realTarget = targetCopy2;
+					LogVerbose("Sending packet " + numBytes + " bytes - SIMULATED LOST!");
+					return; // packet "lost"
 				}
 			}
-			else if (dualStack)
+
+			m_statistics.PacketSent(numBytes, numMessages);
+
+			// simulate latency
+			float m = m_configuration.m_minimumOneWayLatency;
+			float r = m_configuration.m_randomOneWayLatency;
+			if (m == 0.0f && r == 0.0f)
 			{
-				NetUtility.CopyEndpoint(target, targetCopy); //Maps to IPv6 for Dual Mode
-				realTarget = targetCopy;
+				// no latency simulation
+				// LogVerbose("Sending packet " + numBytes + " bytes");
+				_ = ActuallySendPacket(m_sendBuffer, numBytes, target, out connectionReset);
+				// TODO: handle wasSent == false?
+
+				if (m_configuration.m_duplicates > 0.0f && m_latencyRandom.NextDouble() < m_configuration.m_duplicates)
+					ActuallySendPacket(m_sendBuffer, numBytes, target, out connectionReset); // send it again!
+
+				return;
 			}
 
-			int bytesSent = NetFastSocket.SendTo(m_socket, data, 0, numBytes, SocketFlags.None, realTarget);
-			if (numBytes != bytesSent)
+			int num = 1;
+			if (m_configuration.m_duplicates > 0.0f && m_latencyRandom.NextSingle() < m_configuration.m_duplicates)
+				num++;
+
+			for (int i = 0; i < num; i++)
 			{
-				LogWarning("Failed to send the full " + numBytes + "; only " + bytesSent + " bytes sent in packet!");
+				float delay = m + (m_latencyRandom.NextSingle() * r);
+
+				// Enqueue delayed packet
+				DelayedPacket p = new DelayedPacket(new byte[numBytes], NetTime.Now + delay, target);
+
+				Buffer.BlockCopy(m_sendBuffer, 0, p.Data, 0, numBytes);
+
+				m_delayedPackets.Add(p);
 			}
 
-			// LogDebug("Sent " + numBytes + " bytes");
+			// LogVerbose("Sending packet " + numBytes + " bytes - delayed " + NetTime.ToReadable(delay));
 		}
-		catch (SocketException sx)
+
+		private void SendDelayedPackets()
 		{
-			if (sx.SocketErrorCode == SocketError.WouldBlock)
-			{
-				// send buffer full?
-				LogWarning("Socket threw exception; would block - send buffer full? Increase in NetPeerConfiguration");
-				return false;
-			}
+			if (m_delayedPackets.Count <= 0)
+				return;
 
-			if (sx.SocketErrorCode == SocketError.ConnectionReset)
-			{
-				// connection reset by peer, aka connection forcibly closed aka "ICMP port unreachable" 
-				connectionReset = true;
-				return false;
-			}
+			double now = NetTime.Now;
 
-			LogError("Failed to send packet: " + sx);
+
+			for (var i = 0; i < m_delayedPackets.Count; i++)
+			{
+				var p = m_delayedPackets[i];
+				if (now < p.DelayedUntil)
+					continue;
+				ActuallySendPacket(p.Data, p.Data.Length, p.Target, out _);
+
+				// Swap packet with last entry in list.
+				// This does not preserve order (we don't care) but is O(1).
+				var replaceIdx = m_delayedPackets.Count - 1;
+				var replacement = m_delayedPackets[replaceIdx];
+				m_delayedPackets[i] = replacement;
+				m_delayedPackets.RemoveAt(replaceIdx);
+
+				// Make sure to decrement i so we re-process the element we just swapped in.
+				i -= 1;
+			}
 		}
-		catch (Exception ex)
+
+		private void FlushDelayedPackets()
 		{
-			LogError("Failed to send packet: " + ex);
-		}
-		finally
-		{
-			if (target.Address.Equals(ba))
+			try
 			{
-				m_socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Broadcast, false);
+				foreach (DelayedPacket p in m_delayedPackets)
+					ActuallySendPacket(p.Data, p.Data.Length, p.Target, out bool connectionReset);
+				m_delayedPackets.Clear();
 			}
+			catch { }
 		}
 
-		return true;
+		//Avoids allocation on mapping to IPv6
+		private readonly IPEndPoint targetCopy = new IPEndPoint(IPAddress.Any, 0);
+		private readonly IPEndPoint targetCopy2 = new IPEndPoint(IPAddress.Any, 0);
+
+		internal bool ActuallySendPacket(byte[] data, int numBytes, NetEndPoint target, out bool connectionReset)
+		{
+			var dualStack = m_configuration.DualStack && m_configuration.LocalAddress.AddressFamily == AddressFamily.InterNetworkV6;
+			connectionReset = false;
+			IPAddress? ba = default(IPAddress);
+
+			if (m_socket == null)
+			{
+				throw new InvalidOperationException("socket is null");
+			}
+
+			try
+			{
+				var realTarget = target;
+				ba = NetUtility.GetCachedBroadcastAddress();
+
+				// TODO: refactor this check outta here
+				if (target.Address.Equals(ba))
+				{
+					// Some networks do not allow 
+					// a global broadcast so we use the BroadcastAddress from the configuration
+					// this can be resolved to a local broadcast addresss e.g 192.168.x.255                    
+					targetCopy.Address = m_configuration.BroadcastAddress;
+					targetCopy.Port = target.Port;
+					realTarget = targetCopy;
+					m_socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Broadcast, true);
+
+					if (dualStack)
+					{
+						NetUtility.CopyEndpoint(realTarget, targetCopy2); //Maps to IPv6 for Dual Mode
+						realTarget = targetCopy2;
+					}
+
+				}
+				else if (dualStack)
+				{
+					NetUtility.CopyEndpoint(target, targetCopy); //Maps to IPv6 for Dual Mode
+					realTarget = targetCopy;
+				}
+
+				int bytesSent = NetFastSocket.SendTo(m_socket, data, 0, numBytes, SocketFlags.None, realTarget);
+				if (numBytes != bytesSent)
+					LogWarning("Failed to send the full " + numBytes + "; only " + bytesSent + " bytes sent in packet!");
+
+				// LogDebug("Sent " + numBytes + " bytes");
+			}
+			catch (SocketException sx)
+			{
+				if (sx.SocketErrorCode == SocketError.WouldBlock)
+				{
+					// send buffer full?
+					LogWarning("Socket threw exception; would block - send buffer full? Increase in NetPeerConfiguration");
+					return false;
+				}
+				if (sx.SocketErrorCode == SocketError.ConnectionReset)
+				{
+					// connection reset by peer, aka connection forcibly closed aka "ICMP port unreachable" 
+					connectionReset = true;
+					return false;
+				}
+				LogError("Failed to send packet: " + sx);
+			}
+			catch (Exception ex)
+			{
+				LogError("Failed to send packet: " + ex);
+			}
+			finally
+			{
+				if (target.Address.Equals(ba))
+					m_socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Broadcast, false);
+			}
+			return true;
+		}
+
+		internal bool SendMTUPacket(int numBytes, NetEndPoint target)
+		{
+			if (!CanAutoExpandMTU)
+				throw new NotSupportedException("MTU expansion not currently supported on this operating system");
+
+			if (m_socket == null)
+			{
+				throw new InvalidOperationException("m_socket is null");
+			}
+
+			try
+			{
+				// NOTE: Socket.DontFragment doesn't work on dual-stack sockets.
+				// The equivalent SetSocketOption does work.
+				// See: https://github.com/dotnet/runtime/issues/76410
+				if (m_socket.DualMode || target.AddressFamily == AddressFamily.InterNetwork)
+					m_socket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.DontFragment, true);
+
+				int bytesSent = NetFastSocket.SendTo(m_socket, m_sendBuffer, 0, numBytes, SocketFlags.None, target);
+				if (numBytes != bytesSent)
+					LogWarning("Failed to send the full " + numBytes + "; only " + bytesSent + " bytes sent in packet!");
+
+				m_statistics.PacketSent(numBytes, 1);
+			}
+			catch (SocketException sx)
+			{
+				if (sx.SocketErrorCode == SocketError.MessageSize)
+					return false;
+				if (sx.SocketErrorCode == SocketError.WouldBlock)
+				{
+					// send buffer full?
+					LogWarning("Socket threw exception; would block - send buffer full? Increase in NetPeerConfiguration");
+					return true;
+				}
+				if (sx.SocketErrorCode == SocketError.ConnectionReset)
+					return true;
+				LogError("Failed to send packet: (" + sx.SocketErrorCode + ") " + sx);
+			}
+			catch (Exception ex)
+			{
+				LogError("Failed to send packet: " + ex);
+			}
+			finally
+			{
+				if (m_socket.DualMode || target.AddressFamily == AddressFamily.InterNetwork)
+					m_socket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.DontFragment, false);
+			}
+			return true;
+		}
+
+		// CoreCLR can set DontFragment on Windows and Linux, as far as I've tested.
+		// macOS doesn't work yet, probably due to recency of the relevant flags (Big Sur).
+		private static bool CanAutoExpandMTU => NetNativeSocket.IsLinux || NetNativeSocket.IsWindows;
 	}
-
-	internal bool SendMTUPacket(int numBytes, NetEndPoint target)
-	{
-		if (!CanAutoExpandMTU)
-		{
-			throw new NotSupportedException("MTU expansion not currently supported on this operating system");
-		}
-
-		if (m_socket == null)
-		{
-			throw new InvalidOperationException("m_socket is null");
-		}
-
-		try
-		{
-			// NOTE: Socket.DontFragment doesn't work on dual-stack sockets.
-			// The equivalent SetSocketOption does work.
-			// See: https://github.com/dotnet/runtime/issues/76410
-			if (m_socket.DualMode || target.AddressFamily == AddressFamily.InterNetwork)
-			{
-				m_socket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.DontFragment, true);
-			}
-
-			int bytesSent = NetFastSocket.SendTo(m_socket, m_sendBuffer, 0, numBytes, SocketFlags.None, target);
-			if (numBytes != bytesSent)
-			{
-				LogWarning("Failed to send the full " + numBytes + "; only " + bytesSent + " bytes sent in packet!");
-			}
-
-			m_statistics.PacketSent(numBytes, 1);
-		}
-		catch (SocketException sx)
-		{
-			if (sx.SocketErrorCode == SocketError.MessageSize)
-			{
-				return false;
-			}
-
-			if (sx.SocketErrorCode == SocketError.WouldBlock)
-			{
-				// send buffer full?
-				LogWarning("Socket threw exception; would block - send buffer full? Increase in NetPeerConfiguration");
-				return true;
-			}
-
-			if (sx.SocketErrorCode == SocketError.ConnectionReset)
-			{
-				return true;
-			}
-
-			LogError("Failed to send packet: (" + sx.SocketErrorCode + ") " + sx);
-		}
-		catch (Exception ex)
-		{
-			LogError("Failed to send packet: " + ex);
-		}
-		finally
-		{
-			if (m_socket.DualMode || target.AddressFamily == AddressFamily.InterNetwork)
-			{
-				m_socket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.DontFragment, false);
-			}
-		}
-
-		return true;
-	}
-
-	// CoreCLR can set DontFragment on Windows and Linux, as far as I've tested.
-	// macOS doesn't work yet, probably due to recency of the relevant flags (Big Sur).
-	private static bool CanAutoExpandMTU => NetNativeSocket.IsLinux || NetNativeSocket.IsWindows;
 }

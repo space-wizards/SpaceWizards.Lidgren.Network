@@ -20,53 +20,52 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 using System;
 using System.Diagnostics;
 
-namespace Lidgren.Network;
-
-public partial class NetPeer
+namespace Lidgren.Network
 {
-	internal event Action<NetIncomingMessageType, string> LogEvent = delegate { };
-
-	[Conditional("DEBUG")]
-	internal void LogVerbose(string message)
+	public partial class NetPeer
 	{
-#if __ANDROID__
-		Android.Util.Log.WriteLine(Android.Util.LogPriority.Verbose, "", message);
-#endif
-		SendLogBase(NetIncomingMessageType.VerboseDebugMessage, message);
-	}
+		internal event Action<NetIncomingMessageType, string> LogEvent = delegate { };
 
-	[Conditional("DEBUG")]
-	internal void LogDebug(string message)
-	{
-#if __ANDROID__
-		Android.Util.Log.WriteLine(Android.Util.LogPriority.Debug, "", message);
-#endif
-		SendLogBase(NetIncomingMessageType.DebugMessage, message);
-	}
-
-	internal void LogWarning(string message)
-	{
-#if __ANDROID__
-		Android.Util.Log.WriteLine(Android.Util.LogPriority.Warn, "", message);
-#endif
-		SendLogBase(NetIncomingMessageType.WarningMessage, message);
-	}
-
-	internal void LogError(string message)
-	{
-#if __ANDROID__
-		Android.Util.Log.WriteLine(Android.Util.LogPriority.Error, "", message);
-#endif
-		SendLogBase(NetIncomingMessageType.ErrorMessage, message);
-	}
-
-	private void SendLogBase(NetIncomingMessageType type, string text)
-	{
-		LogEvent?.Invoke(type, text);
-
-		if (m_configuration.IsMessageTypeEnabled(type))
+		[Conditional("DEBUG")]
+		internal void LogVerbose(string message)
 		{
-			ReleaseMessage(CreateIncomingMessage(type, text));
+#if __ANDROID__
+			Android.Util.Log.WriteLine(Android.Util.LogPriority.Verbose, "", message);
+#endif
+			SendLogBase(NetIncomingMessageType.VerboseDebugMessage, message);
+		}
+
+		[Conditional("DEBUG")]
+		internal void LogDebug(string message)
+		{
+#if __ANDROID__
+			Android.Util.Log.WriteLine(Android.Util.LogPriority.Debug, "", message);
+#endif
+			SendLogBase(NetIncomingMessageType.DebugMessage, message);
+		}
+
+		internal void LogWarning(string message)
+		{
+#if __ANDROID__
+			Android.Util.Log.WriteLine(Android.Util.LogPriority.Warn, "", message);
+#endif
+			SendLogBase(NetIncomingMessageType.WarningMessage, message);
+		}
+
+		internal void LogError(string message)
+		{
+#if __ANDROID__
+			Android.Util.Log.WriteLine(Android.Util.LogPriority.Error, "", message);
+#endif
+			SendLogBase(NetIncomingMessageType.ErrorMessage, message);
+		}
+
+		private void SendLogBase(NetIncomingMessageType type, string text)
+		{
+			LogEvent?.Invoke(type, text);
+
+			if (m_configuration.IsMessageTypeEnabled(type))
+				ReleaseMessage(CreateIncomingMessage(type, text));
 		}
 	}
 }

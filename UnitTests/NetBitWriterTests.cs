@@ -1,8 +1,8 @@
 using Lidgren.Network;
 using NUnit.Framework;
 
-namespace UnitTests;
-
+namespace UnitTests
+{
     [TestFixture]
     [Parallelizable]
     [TestOf(typeof(NetBitWriter))]
@@ -30,3 +30,4 @@ namespace UnitTests;
             Assert.That(dst, Is.EqualTo(new byte[] {0, 0b10101010}));
         }
     }
+}

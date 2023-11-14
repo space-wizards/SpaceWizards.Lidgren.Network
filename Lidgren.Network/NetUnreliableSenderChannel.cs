@@ -1,162 +1,151 @@
 ﻿using System;
 using System.Threading;
 
-namespace Lidgren.Network;
-
-/// <summary>
-/// Sender part of Selective repeat ARQ for a particular NetChannel
-/// </summary>
-internal sealed class NetUnreliableSenderChannel : NetSenderChannelBase
+namespace Lidgren.Network
 {
-	private readonly NetConnection m_connection;
-	private int m_windowStart;
-	private readonly int m_windowSize;
-	private int m_sendStart;
-	private readonly bool m_doFlowControl;
-
-	private readonly NetBitVector m_receivedAcks;
-
-	internal override int WindowSize { get { return m_windowSize; } }
-
-	internal NetUnreliableSenderChannel(NetConnection connection, int windowSize, NetDeliveryMethod method) : base(new NetQueue<NetOutgoingMessage>(8))
+	/// <summary>
+	/// Sender part of Selective repeat ARQ for a particular NetChannel
+	/// </summary>
+	internal sealed class NetUnreliableSenderChannel : NetSenderChannelBase
 	{
-		m_connection = connection;
-		m_windowSize = windowSize;
-		m_windowStart = 0;
-		m_sendStart = 0;
-		m_receivedAcks = new NetBitVector(NetConstants.NumSequenceNumbers);
+		private readonly NetConnection m_connection;
+		private int m_windowStart;
+		private readonly int m_windowSize;
+		private int m_sendStart;
+		private readonly bool m_doFlowControl;
 
-		m_doFlowControl = true;
-		if (method == NetDeliveryMethod.Unreliable && connection.Peer.Configuration.SuppressUnreliableUnorderedAcks == true)
-		{
-			m_doFlowControl = false;
-		}
-	}
+		private readonly NetBitVector m_receivedAcks;
 
-	internal override int GetAllowedSends()
-	{
-		if (!m_doFlowControl)
+		internal override int WindowSize { get { return m_windowSize; } }
+
+		internal NetUnreliableSenderChannel(NetConnection connection, int windowSize, NetDeliveryMethod method) : base(new NetQueue<NetOutgoingMessage>(8))
 		{
-			return int.MaxValue; // always allowed to send without flow control!
+			m_connection = connection;
+			m_windowSize = windowSize;
+			m_windowStart = 0;
+			m_sendStart = 0;
+			m_receivedAcks = new NetBitVector(NetConstants.NumSequenceNumbers);
+
+			m_doFlowControl = true;
+			if (method == NetDeliveryMethod.Unreliable && connection.Peer.Configuration.SuppressUnreliableUnorderedAcks == true)
+				m_doFlowControl = false;
 		}
 
-		int retval = m_windowSize - ((m_sendStart + NetConstants.NumSequenceNumbers) - m_windowStart) % m_windowSize;
-		NetException.Assert(retval >= 0 && retval <= m_windowSize);
-		return retval;
-	}
-
-	internal override void Reset()
-	{
-		m_receivedAcks.Clear();
-		m_queuedSends.Clear();
-		m_windowStart = 0;
-		m_sendStart = 0;
-	}
-
-	internal override NetSendResult Enqueue(NetOutgoingMessage message)
-	{
-		int queueLen = m_queuedSends.Count + 1;
-		int left = GetAllowedSends();
-		if (queueLen > left || (message.LengthBytes > m_connection.m_currentMTU && m_connection.m_peerConfiguration.UnreliableSizeBehaviour == NetUnreliableSizeBehaviour.DropAboveMTU))
+		internal override int GetAllowedSends()
 		{
-			// drop message
-			return NetSendResult.Dropped;
+			if (!m_doFlowControl)
+				return int.MaxValue; // always allowed to send without flow control!
+			int retval = m_windowSize - ((m_sendStart + NetConstants.NumSequenceNumbers) - m_windowStart) % m_windowSize;
+			NetException.Assert(retval >= 0 && retval <= m_windowSize);
+			return retval;
 		}
 
-		if (message.LengthBits >= ushort.MaxValue
-			&& m_connection.m_peerConfiguration.UnreliableSizeBehaviour == NetUnreliableSizeBehaviour.IgnoreMTU)
+		internal override void Reset()
 		{
-			// drop message
-			this.m_connection.m_peer.LogError(
-				string.Format("Unreliable message max size exceeded: {0} bits (max {1})",
-							  message.LengthBits,
-							  ushort.MaxValue));
-			return NetSendResult.Dropped;
+			m_receivedAcks.Clear();
+			m_queuedSends.Clear();
+			m_windowStart = 0;
+			m_sendStart = 0;
 		}
 
-		m_queuedSends.Enqueue(message);
-		m_connection.m_peer.m_needFlushSendQueue = true; // a race condition to this variable will simply result in a single superflous call to FlushSendQueue()
-		return NetSendResult.Sent;
-	}
-
-	// call this regularely
-	internal override void SendQueuedMessages(double now)
-	{
-		int num = GetAllowedSends();
-		if (num < 1)
+		internal override NetSendResult Enqueue(NetOutgoingMessage message)
 		{
-			return;
-		}
-
-		// queued sends
-		while (num > 0 && m_queuedSends.Count > 0)
-		{
-			if (m_queuedSends.TryDequeue(out NetOutgoingMessage? om))
+			int queueLen = m_queuedSends.Count + 1;
+			int left = GetAllowedSends();
+			if (queueLen > left || (message.LengthBytes > m_connection.m_currentMTU && m_connection.m_peerConfiguration.UnreliableSizeBehaviour == NetUnreliableSizeBehaviour.DropAboveMTU))
 			{
-				ExecuteSend(om);
+				// drop message
+				return NetSendResult.Dropped;
 			}
 
-			num--;
-		}
-	}
+			if (message.LengthBits >= ushort.MaxValue
+				&& m_connection.m_peerConfiguration.UnreliableSizeBehaviour == NetUnreliableSizeBehaviour.IgnoreMTU)
+			{
+				// drop message
+				this.m_connection.m_peer.LogError(
+					string.Format("Unreliable message max size exceeded: {0} bits (max {1})",
+								  message.LengthBits,
+								  ushort.MaxValue));
+				return NetSendResult.Dropped;
+			}
 
-	private void ExecuteSend(NetOutgoingMessage message)
-	{
-		m_connection.m_peer.VerifyNetworkThread();
-
-		int seqNr = m_sendStart;
-		m_sendStart = (m_sendStart + 1) % NetConstants.NumSequenceNumbers;
-
-		m_connection.QueueSendMessage(message, seqNr);
-
-		if (message.m_recyclingCount <= 0)
-		{
-			m_connection.m_peer.Recycle(message);
+			m_queuedSends.Enqueue(message);
+			m_connection.m_peer.m_needFlushSendQueue = true; // a race condition to this variable will simply result in a single superflous call to FlushSendQueue()
+			return NetSendResult.Sent;
 		}
 
-		return;
-	}
-
-	// remoteWindowStart is remote expected sequence number; everything below this has arrived properly
-	// seqNr is the actual nr received
-	internal override void ReceiveAcknowledge(double now, int seqNr)
-	{
-		if (m_doFlowControl == false)
+		// call this regularely
+		internal override void SendQueuedMessages(double now)
 		{
-			// we have no use for acks on this channel since we don't respect the window anyway
-			m_connection.m_peer.LogWarning("SuppressUnreliableUnorderedAcks sender/receiver mismatch!");
-			return;
+			int num = GetAllowedSends();
+			if (num < 1)
+				return;
+
+			// queued sends
+			while (num > 0 && m_queuedSends.Count > 0)
+			{
+				if (m_queuedSends.TryDequeue(out NetOutgoingMessage? om))
+					ExecuteSend(om);
+				num--;
+			}
 		}
 
-		// late (dupe), on time or early ack?
-		int relate = NetUtility.RelativeSequenceNumber(seqNr, m_windowStart);
-
-		if (relate < 0)
+		private void ExecuteSend(NetOutgoingMessage message)
 		{
-			//m_connection.m_peer.LogDebug("Received late/dupe ack for #" + seqNr);
-			return; // late/duplicate ack
-		}
+			m_connection.m_peer.VerifyNetworkThread();
 
-		if (relate == 0)
-		{
-			//m_connection.m_peer.LogDebug("Received right-on-time ack for #" + seqNr);
+			int seqNr = m_sendStart;
+			m_sendStart = (m_sendStart + 1) % NetConstants.NumSequenceNumbers;
 
-			// ack arrived right on time
-			NetException.Assert(seqNr == m_windowStart);
+			m_connection.QueueSendMessage(message, seqNr);
 
-			m_receivedAcks[m_windowStart] = false;
-			m_windowStart = (m_windowStart + 1) % NetConstants.NumSequenceNumbers;
+			if (message.m_recyclingCount <= 0)
+				m_connection.m_peer.Recycle(message);
 
 			return;
 		}
 
-		// Advance window to this position
-		m_receivedAcks[seqNr] = true;
-
-		while (m_windowStart != seqNr)
+		// remoteWindowStart is remote expected sequence number; everything below this has arrived properly
+		// seqNr is the actual nr received
+		internal override void ReceiveAcknowledge(double now, int seqNr)
 		{
-			m_receivedAcks[m_windowStart] = false;
-			m_windowStart = (m_windowStart + 1) % NetConstants.NumSequenceNumbers;
+			if (m_doFlowControl == false)
+			{
+				// we have no use for acks on this channel since we don't respect the window anyway
+				m_connection.m_peer.LogWarning("SuppressUnreliableUnorderedAcks sender/receiver mismatch!");
+				return;
+			}
+
+			// late (dupe), on time or early ack?
+			int relate = NetUtility.RelativeSequenceNumber(seqNr, m_windowStart);
+
+			if (relate < 0)
+			{
+				//m_connection.m_peer.LogDebug("Received late/dupe ack for #" + seqNr);
+				return; // late/duplicate ack
+			}
+
+			if (relate == 0)
+			{
+				//m_connection.m_peer.LogDebug("Received right-on-time ack for #" + seqNr);
+
+				// ack arrived right on time
+				NetException.Assert(seqNr == m_windowStart);
+
+				m_receivedAcks[m_windowStart] = false;
+				m_windowStart = (m_windowStart + 1) % NetConstants.NumSequenceNumbers;
+
+				return;
+			}
+
+			// Advance window to this position
+			m_receivedAcks[seqNr] = true;
+
+			while (m_windowStart != seqNr)
+			{
+				m_receivedAcks[m_windowStart] = false;
+				m_windowStart = (m_windowStart + 1) % NetConstants.NumSequenceNumbers;
+			}
 		}
 	}
 }

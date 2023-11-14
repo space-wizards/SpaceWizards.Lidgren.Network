@@ -25,192 +25,185 @@ using System;
 using System.Text;
 using System.Diagnostics;
 
-namespace Lidgren.Network;
-
-/// <summary>
-/// Statistics for a NetPeer instance
-/// </summary>
-public sealed class NetPeerStatistics
+namespace Lidgren.Network
 {
-	private readonly NetPeer m_peer;
-
-	internal long m_sentPackets;
-	internal long m_receivedPackets;
-
-	internal long m_sentMessages;
-	internal long m_receivedMessages;
-	internal long m_receivedFragments;
-	internal long m_droppedMessages;
-
-	internal long m_sentBytes;
-	internal long m_receivedBytes;
-
-	internal long m_bytesAllocated;
-
-	internal long m_resentMessagesDueToDelay;
-	internal long m_resentMessagesDueToHole;
-
-	internal NetPeerStatistics(NetPeer peer)
+	/// <summary>
+	/// Statistics for a NetPeer instance
+	/// </summary>
+	public sealed class NetPeerStatistics
 	{
-		m_peer = peer;
-		Reset();
-	}
+		private readonly NetPeer m_peer;
 
-	internal void Reset()
-	{
-		m_sentPackets = 0;
-		m_receivedPackets = 0;
+		internal long m_sentPackets;
+		internal long m_receivedPackets;
 
-		m_sentMessages = 0;
-		m_receivedMessages = 0;
-		m_receivedFragments = 0;
+		internal long m_sentMessages;
+		internal long m_receivedMessages;
+		internal long m_receivedFragments;
+		internal long m_droppedMessages;
 
-		m_sentBytes = 0;
-		m_receivedBytes = 0;
+		internal long m_sentBytes;
+		internal long m_receivedBytes;
 
-		m_bytesAllocated = 0;
-	}
+		internal long m_bytesAllocated;
 
-	/// <summary>
-	/// Gets the number of sent packets since the NetPeer was initialized
-	/// </summary>
-	public long SentPackets { get { return m_sentPackets; } }
+		internal long m_resentMessagesDueToDelay;
+		internal long m_resentMessagesDueToHole;
 
-	/// <summary>
-	/// Gets the number of received packets since the NetPeer was initialized
-	/// </summary>
-	public long ReceivedPackets { get { return m_receivedPackets; } }
-
-	/// <summary>
-	/// Gets the number of sent messages since the NetPeer was initialized
-	/// </summary>
-	public long SentMessages { get { return m_sentMessages; } }
-
-	/// <summary>
-	/// Gets the number of received messages since the NetPeer was initialized
-	/// </summary>
-	public long ReceivedMessages { get { return m_receivedMessages; } }
-
-	/// <summary>
-	/// Gets the number of sent bytes since the NetPeer was initialized
-	/// </summary>
-	public long SentBytes { get { return m_sentBytes; } }
-
-	/// <summary>
-	/// Gets the number of received bytes since the NetPeer was initialized
-	/// </summary>
-	public long ReceivedBytes { get { return m_receivedBytes; } }
-
-	/// <summary>
-	/// Gets the number of bytes allocated (and possibly garbage collected) for message storage
-	/// </summary>
-	public long StorageBytesAllocated { get { return m_bytesAllocated; } }
-
-	/// <summary>
-	/// Gets the number of bytes in the recycled pool
-	/// </summary>
-	public int BytesInRecyclePool
-	{
-		get
+		internal NetPeerStatistics(NetPeer peer)
 		{
-			var pool = m_peer.m_storagePool;
+			m_peer = peer;
+			Reset();
+		}
 
-			if (pool == null)
+		internal void Reset()
+		{
+			m_sentPackets = 0;
+			m_receivedPackets = 0;
+
+			m_sentMessages = 0;
+			m_receivedMessages = 0;
+			m_receivedFragments = 0;
+
+			m_sentBytes = 0;
+			m_receivedBytes = 0;
+
+			m_bytesAllocated = 0;
+		}
+
+		/// <summary>
+		/// Gets the number of sent packets since the NetPeer was initialized
+		/// </summary>
+		public long SentPackets { get { return m_sentPackets; } }
+
+		/// <summary>
+		/// Gets the number of received packets since the NetPeer was initialized
+		/// </summary>
+		public long ReceivedPackets { get { return m_receivedPackets; } }
+
+		/// <summary>
+		/// Gets the number of sent messages since the NetPeer was initialized
+		/// </summary>
+		public long SentMessages { get { return m_sentMessages; } }
+
+		/// <summary>
+		/// Gets the number of received messages since the NetPeer was initialized
+		/// </summary>
+		public long ReceivedMessages { get { return m_receivedMessages; } }
+
+		/// <summary>
+		/// Gets the number of sent bytes since the NetPeer was initialized
+		/// </summary>
+		public long SentBytes { get { return m_sentBytes; } }
+
+		/// <summary>
+		/// Gets the number of received bytes since the NetPeer was initialized
+		/// </summary>
+		public long ReceivedBytes { get { return m_receivedBytes; } }
+
+		/// <summary>
+		/// Gets the number of bytes allocated (and possibly garbage collected) for message storage
+		/// </summary>
+		public long StorageBytesAllocated { get { return m_bytesAllocated; } }
+
+		/// <summary>
+		/// Gets the number of bytes in the recycled pool
+		/// </summary>
+		public int BytesInRecyclePool
+		{
+			get
 			{
-				throw new InvalidOperationException("m_storagePool is null");
+				var pool = m_peer.m_storagePool;
+
+				if (pool == null)
+				{
+					throw new InvalidOperationException("m_storagePool is null");
+				}
+
+				lock (pool)
+					return m_peer.m_storagePoolBytes;
 			}
-
-			lock (pool)
-			{
-				return m_peer.m_storagePoolBytes;
-			}
 		}
-	}
 
-	/// <summary>
-	/// Gets the number of resent reliable messages since the NetPeer was initialized
-	/// </summary>
-	public long ResentMessages => m_resentMessagesDueToHole + m_resentMessagesDueToDelay;
+		/// <summary>
+		/// Gets the number of resent reliable messages since the NetPeer was initialized
+		/// </summary>
+		public long ResentMessages => m_resentMessagesDueToHole + m_resentMessagesDueToDelay;
 
-	/// <summary>
-	/// Gets the number of resent reliable messages because of holes in acks since the NetPeer was initialized.
-	/// </summary>
-	public long ResentMessagesDueToHole => m_resentMessagesDueToHole;
+		/// <summary>
+		/// Gets the number of resent reliable messages because of holes in acks since the NetPeer was initialized.
+		/// </summary>
+		public long ResentMessagesDueToHole => m_resentMessagesDueToHole;
 
-	/// <summary>
-	/// Gets the number of resent reliable messages because of delays in acks since the NetPeer was initialized.
-	/// </summary>
-	public long ResentMessagesDueToDelay => m_resentMessagesDueToDelay;
+		/// <summary>
+		/// Gets the number of resent reliable messages because of delays in acks since the NetPeer was initialized.
+		/// </summary>
+		public long ResentMessagesDueToDelay => m_resentMessagesDueToDelay;
 
-	/// <summary>
-	/// Gets the number of dropped messages since the NetPeer was initialized.
-	/// </summary>
-	public long DroppedMessages => m_droppedMessages;
+		/// <summary>
+		/// Gets the number of dropped messages since the NetPeer was initialized.
+		/// </summary>
+		public long DroppedMessages => m_droppedMessages;
 
-#if !USE_RELEASE_STATISTICS
-	[Conditional("DEBUG")]
-#endif
-	internal void PacketSent(int numBytes, int numMessages)
-	{
-		m_sentPackets++;
-		m_sentBytes += numBytes;
-		m_sentMessages += numMessages;
-	}
 
 #if !USE_RELEASE_STATISTICS
-	[Conditional("DEBUG")]
+		[Conditional("DEBUG")]
 #endif
-	internal void PacketReceived(int numBytes, int numMessages, int numFragments)
-	{
-		m_receivedPackets++;
-		m_receivedBytes += numBytes;
-		m_receivedMessages += numMessages;
-		m_receivedFragments += numFragments;
-	}
-
-#if !USE_RELEASE_STATISTICS
-	[Conditional("DEBUG")]
-#endif
-	internal void MessageResent(MessageResendReason reason)
-	{
-		if (reason == MessageResendReason.Delay)
+		internal void PacketSent(int numBytes, int numMessages)
 		{
-			m_resentMessagesDueToDelay++;
+			m_sentPackets++;
+			m_sentBytes += numBytes;
+			m_sentMessages += numMessages;
 		}
-		else
-		{
-			m_resentMessagesDueToHole++;
-		}
-	}
 
 #if !USE_RELEASE_STATISTICS
-	[Conditional("DEBUG")]
+		[Conditional("DEBUG")]
 #endif
-	internal void MessageDropped()
-	{
-		m_droppedMessages++;
-	}
+		internal void PacketReceived(int numBytes, int numMessages, int numFragments)
+		{
+			m_receivedPackets++;
+			m_receivedBytes += numBytes;
+			m_receivedMessages += numMessages;
+			m_receivedFragments += numFragments;
+		}
 
-	/// <summary>
-	/// Returns a string that represents this object
-	/// </summary>
-	public override string ToString()
-	{
-		StringBuilder bdr = new StringBuilder();
-		bdr.AppendLine(m_peer.ConnectionsCount.ToString() + " connections");
+#if !USE_RELEASE_STATISTICS
+		[Conditional("DEBUG")]
+#endif
+		internal void MessageResent(MessageResendReason reason)
+		{
+			if (reason == MessageResendReason.Delay)
+				m_resentMessagesDueToDelay++;
+			else
+				m_resentMessagesDueToHole++;
+		}
+
+#if !USE_RELEASE_STATISTICS
+		[Conditional("DEBUG")]
+#endif
+		internal void MessageDropped()
+		{
+			m_droppedMessages++;
+		}
+
+		/// <summary>
+		/// Returns a string that represents this object
+		/// </summary>
+		public override string ToString()
+		{
+			StringBuilder bdr = new StringBuilder();
+			bdr.AppendLine(m_peer.ConnectionsCount.ToString() + " connections");
 #if DEBUG || USE_RELEASE_STATISTICS
-		bdr.AppendLine("Sent " + m_sentBytes + " bytes in " + m_sentMessages + " messages in " + m_sentPackets + " packets");
-		bdr.AppendLine("Received " + m_receivedBytes + " bytes in " + m_receivedMessages + " messages (of which " + m_receivedFragments + " fragments) in " + m_receivedPackets + " packets");
+			bdr.AppendLine("Sent " + m_sentBytes + " bytes in " + m_sentMessages + " messages in " + m_sentPackets + " packets");
+			bdr.AppendLine("Received " + m_receivedBytes + " bytes in " + m_receivedMessages + " messages (of which " + m_receivedFragments + " fragments) in " + m_receivedPackets + " packets");
 #else
-		bdr.AppendLine("Sent (n/a) bytes in (n/a) messages in (n/a) packets");
-		bdr.AppendLine("Received (n/a) bytes in (n/a) messages in (n/a) packets");
+			bdr.AppendLine("Sent (n/a) bytes in (n/a) messages in (n/a) packets");
+			bdr.AppendLine("Received (n/a) bytes in (n/a) messages in (n/a) packets");
 #endif
-		bdr.AppendLine("Storage allocated " + m_bytesAllocated + " bytes");
-		if (m_peer.m_storagePool != null)
-		{
-			bdr.AppendLine("Recycled pool " + m_peer.m_storagePoolBytes + " bytes (" + m_peer.m_storageSlotsUsedCount + " entries)");
+			bdr.AppendLine("Storage allocated " + m_bytesAllocated + " bytes");
+			if (m_peer.m_storagePool != null)
+				bdr.AppendLine("Recycled pool " + m_peer.m_storagePoolBytes + " bytes (" + m_peer.m_storageSlotsUsedCount + " entries)");
+			return bdr.ToString();
 		}
-
-		return bdr.ToString();
 	}
 }

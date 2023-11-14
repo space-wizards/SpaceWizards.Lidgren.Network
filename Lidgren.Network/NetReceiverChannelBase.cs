@@ -1,17 +1,18 @@
 ﻿using System;
 
-namespace Lidgren.Network;
-
-internal abstract class NetReceiverChannelBase
+namespace Lidgren.Network
 {
-	internal NetPeer m_peer;
-	internal NetConnection m_connection;
-
-	public NetReceiverChannelBase(NetConnection connection)
+	internal abstract class NetReceiverChannelBase
 	{
-		m_connection = connection;
-		m_peer = connection.m_peer;
-	}
+		internal NetPeer m_peer;
+		internal NetConnection m_connection;
 
-	internal abstract void ReceiveMessage(NetIncomingMessage msg);
+		public NetReceiverChannelBase(NetConnection connection)
+		{
+			m_connection = connection;
+			m_peer = connection.m_peer;
+		}
+
+		internal abstract void ReceiveMessage(NetIncomingMessage msg);
+	}
 }
