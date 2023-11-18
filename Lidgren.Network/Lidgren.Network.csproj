@@ -5,8 +5,8 @@
         <AssemblyName>SpaceWizards.Lidgren.Network</AssemblyName>
         <IncludeSymbols>true</IncludeSymbols>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<Nullable>enable</Nullable>
-		<LangVersion>latest</LangVersion>
+        <Nullable>enable</Nullable>
+        <LangVersion>11.0</LangVersion>
 
         <!-- Uncomment the following line to not get statistics in RELEASE mode -->
         <DefineConstants>$(DefineConstants);USE_RELEASE_STATISTICS</DefineConstants>

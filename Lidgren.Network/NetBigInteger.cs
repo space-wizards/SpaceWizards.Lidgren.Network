@@ -53,6 +53,7 @@ namespace Lidgren.Network
 
 		private NetBigInteger()
 		{
+			m_magnitude = null!;
 		}
 
 		private NetBigInteger(
@@ -1131,10 +1132,8 @@ namespace Lidgren.Network
 
 			yVal = new int[m.m_magnitude.Length];
 
-			if (zVal == null || yAccum == null)
-			{
-				throw new InvalidOperationException("both zVal and yAccum should not be null");
-			}
+			NetException.ThrowIfNull(zVal);
+			NetException.ThrowIfNull(yAccum);
 
 			//
 			// from LSW to MSW

@@ -74,7 +74,7 @@ namespace Lidgren.Network
 			{
 				// no latency simulation
 				// LogVerbose("Sending packet " + numBytes + " bytes");
-				_ = ActuallySendPacket(m_sendBuffer, numBytes, target, out connectionReset);
+				bool wasSent = ActuallySendPacket(m_sendBuffer, numBytes, target, out connectionReset);
 				// TODO: handle wasSent == false?
 
 				if (m_configuration.m_duplicates > 0.0f && m_latencyRandom.NextDouble() < m_configuration.m_duplicates)
@@ -150,10 +150,7 @@ namespace Lidgren.Network
 			connectionReset = false;
 			IPAddress? ba = default(IPAddress);
 
-			if (m_socket == null)
-			{
-				throw new InvalidOperationException("socket is null");
-			}
+			NetException.ThrowIfNull(m_socket);
 
 			try
 			{
@@ -223,10 +220,7 @@ namespace Lidgren.Network
 			if (!CanAutoExpandMTU)
 				throw new NotSupportedException("MTU expansion not currently supported on this operating system");
 
-			if (m_socket == null)
-			{
-				throw new InvalidOperationException("m_socket is null");
-			}
+			NetException.ThrowIfNull(m_socket);
 
 			try
 			{

@@ -104,9 +104,9 @@ namespace Lidgren.Network
 		/// </summary>
 		public static bool IsLocal(NetAddress remote)
 		{
-			var local = GetMyAddress(out NetAddress? mask);
+			var local = NetException.ThrowIfNull(GetMyAddress(out NetAddress? mask));
 
-			if (local == null || mask == null)
+			if (mask == null)
 				return false;
 
 			uint maskBits = BitConverter.ToUInt32(mask.GetAddressBytes(), 0);
@@ -279,13 +279,13 @@ namespace Lidgren.Network
 		/// <summary>
 		/// Creates a comma delimited string from a lite of items
 		/// </summary>
-		public static string MakeCommaDelimitedList<T>(IReadOnlyList<T> list)
+		public static string MakeCommaDelimitedList<T>(IReadOnlyList<T> list) where T : notnull
 		{
 			var cnt = list.Count;
 			StringBuilder bdr = new StringBuilder(cnt * 5); // educated guess
 			for (int i = 0; i < cnt; i++)
 			{
-				bdr.Append(list[i]?.ToString());
+				bdr.Append(list[i].ToString());
 				if (i != cnt - 1)
 					bdr.Append(", ");
 			}

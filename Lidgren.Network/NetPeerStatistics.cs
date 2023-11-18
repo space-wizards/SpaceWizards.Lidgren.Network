@@ -117,7 +117,7 @@ namespace Lidgren.Network
 
 				if (pool == null)
 				{
-					throw new InvalidOperationException("m_storagePool is null");
+					return 0;
 				}
 
 				lock (pool)

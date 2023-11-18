@@ -18,7 +18,8 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 using System;
 using System.Diagnostics;
-using System.Runtime.Serialization;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 
 namespace Lidgren.Network
 {
@@ -70,5 +71,25 @@ namespace Lidgren.Network
 			if (!isOk)
 				throw new NetException();
 		}
+
+		/// <summary>Returns the passed <paramref name="argument"/>, but throws an <see cref="NetException"/> if the <paramref name="argument"/> is null.</summary>
+		/// <param name="argument">The reference type argument to validate as non-null.</param>
+		/// <param name="paramName">The name of the parameter with which <paramref name="argument"/> corresponds.</param>
+#if !DEBUG
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static T ThrowIfNull<T>(T argument, string? paramName = null)
+		{
+			return argument;
+		}
+#else
+#if NET5_0_OR_GREATER
+		public static T ThrowIfNull<T>([NotNull] T? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null) where T : class
+#else
+		public static T ThrowIfNull<T>([NotNull] T? argument, string? paramName = null) where T : class
+#endif
+		{
+			return argument ?? throw new NetException($"{paramName ?? "argument"} is null");
+		}
 	}
+#endif
 }

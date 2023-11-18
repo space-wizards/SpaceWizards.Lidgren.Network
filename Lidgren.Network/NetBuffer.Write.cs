@@ -557,7 +557,7 @@ namespace Lidgren.Network
 		/// <summary>
 		/// Write a string
 		/// </summary>
-		public void Write(string source)
+		public void Write(string? source)
 		{
 			if (string.IsNullOrEmpty(source))
 			{
@@ -640,7 +640,7 @@ namespace Lidgren.Network
 		{
 			EnsureBufferSize(m_bitLength + (buffer.LengthBytes * 8));
 
-			Write(buffer.m_data, 0, buffer.LengthBytes);
+			Write(buffer.Data, 0, buffer.LengthBytes);
 
 			// did we write excessive bits?
 			int bitsInLastByte = (buffer.m_bitLength & 7);

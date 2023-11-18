@@ -4,19 +4,6 @@ using System.Collections.Generic;
 
 namespace Lidgren.Network
 {
-	internal sealed class ReceivedFragmentGroup
-	{
-		//public float LastReceived;
-		public byte[] Data;
-		public NetBitVector ReceivedChunks;
-
-		public ReceivedFragmentGroup(byte[] data, NetBitVector receivedChunks)
-		{
-			Data = data;
-			ReceivedChunks = receivedChunks;
-		}
-	}
-
 	public partial class NetPeer
 	{
 		private int m_lastUsedFragmentGroup;
@@ -89,16 +76,11 @@ namespace Lidgren.Network
 		{
 			VerifyNetworkThread();
 
-			if (im.m_data == null)
-			{
-				throw new InvalidOperationException("m_data is null");
-			}
-
 			//
 			// read fragmentation header and combine fragments
 			//
 			int ptr = NetFragmentationHelper.ReadHeader(
-				im.m_data, 0,
+				im.Data, 0,
 				out int group,
 				out int totalBits,
 				out int chunkByteSize,
@@ -124,10 +106,7 @@ namespace Lidgren.Network
 				return;
 			}
 
-			if (im.SenderConnection == null)
-			{
-				throw new InvalidOperationException("im.SenderConnection is null");
-			}
+			NetException.ThrowIfNull(im.SenderConnection);
 
 			if (!m_receivedFragmentGroups.TryGetValue(im.SenderConnection, out Dictionary<int, ReceivedFragmentGroup>? groups))
 			{
@@ -146,7 +125,7 @@ namespace Lidgren.Network
 
 			// copy to data
 			int offset = (chunkNumber * chunkByteSize);
-			Buffer.BlockCopy(im.m_data, ptr, info.Data, offset, im.LengthBytes - ptr);
+			Buffer.BlockCopy(im.Data, ptr, info.Data, offset, im.LengthBytes - ptr);
 
 			int cnt = info.ReceivedChunks.Count();
 			//LogVerbose($"Found fragment #{chunkNumber} in group {group} offset {offset} of total bits {totalBits} (total chunks done {cnt})");

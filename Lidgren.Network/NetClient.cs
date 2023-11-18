@@ -90,7 +90,8 @@ namespace Lidgren.Network
 			{
 				if (m_connections.Count > 0)
 				{
-					throw new InvalidOperationException("Connect attempt failed; Already connected");
+					LogWarning("Connect attempt failed; Already connected");
+					return null!;
 				}
 			}
 
@@ -98,7 +99,8 @@ namespace Lidgren.Network
 			{
 				if (m_handshakes.Count > 0)
 				{
-					throw new InvalidOperationException("Connect attempt failed; Handshake already in progress");
+					LogWarning("Connect attempt failed; Handshake already in progress");
+					return null!;
 				}
 			}
 

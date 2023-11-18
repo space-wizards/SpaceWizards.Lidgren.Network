@@ -27,7 +27,7 @@ namespace Lidgren.Network
 
 		private static NetworkInterface? GetNetworkInterface()
 		{
-			IPAddress? defaultAddress = ProbeDefaultRouteAddress();
+			var defaultAddress = ProbeDefaultRouteAddress();
 			
 			// Forgive me father for I have LINQ'd.
 			return NetworkInterface.GetAllNetworkInterfaces()
@@ -72,7 +72,7 @@ namespace Lidgren.Network
 				// This basically gets us the network interface address "that goes to the router".
 				using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
 				socket.Connect(new IPAddress(new byte[] { 1, 1, 1, 1 }), 12345);
-				return (socket.LocalEndPoint as IPEndPoint)?.Address;
+				return ((IPEndPoint)socket.LocalEndPoint!).Address;
 			}
 			catch
 			{

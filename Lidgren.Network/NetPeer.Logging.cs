@@ -24,7 +24,7 @@ namespace Lidgren.Network
 {
 	public partial class NetPeer
 	{
-		internal event Action<NetIncomingMessageType, string> LogEvent = delegate { };
+		internal event Action<NetIncomingMessageType, string>? LogEvent;
 
 		[Conditional("DEBUG")]
 		internal void LogVerbose(string message)

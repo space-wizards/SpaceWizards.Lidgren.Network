@@ -84,7 +84,7 @@ namespace Lidgren.Network
 		{
 			NetException.Assert(m_bitLength - m_readPosition + 7 >= (into.Length * 8), c_readOverflowError);
 
-			NetBitWriter.ReadBytes(m_data, m_readPosition, into);
+			NetBitWriter.ReadBytes(Data, m_readPosition, into);
 			m_readPosition += (8 * into.Length);
 			return into;
 		}
@@ -111,7 +111,7 @@ namespace Lidgren.Network
 			}
 
 			result = new byte[numberOfBytes];
-			NetBitWriter.ReadBytes(BufferData, numberOfBytes, m_readPosition, result, 0);
+			NetBitWriter.ReadBytes(Data, numberOfBytes, m_readPosition, result, 0);
 			m_readPosition += (8 * numberOfBytes);
 			return true;
 		}
@@ -126,7 +126,7 @@ namespace Lidgren.Network
 				return false;
 			}
 
-			NetBitWriter.ReadBytes(m_data, m_readPosition, into);
+			NetBitWriter.ReadBytes(Data, m_readPosition, into);
 			m_readPosition += (8 * into.Length);
 			return true;
 		}
@@ -142,7 +142,7 @@ namespace Lidgren.Network
 			NetException.Assert(m_bitLength - m_readPosition + 7 >= (numberOfBytes * 8), c_readOverflowError);
 			NetException.Assert(offset + numberOfBytes <= into.Length);
 
-			NetBitWriter.ReadBytes(m_data, numberOfBytes, m_readPosition, into, offset);
+			NetBitWriter.ReadBytes(Data, numberOfBytes, m_readPosition, into, offset);
 			m_readPosition += (8 * numberOfBytes);
 			return;
 		}
@@ -160,7 +160,7 @@ namespace Lidgren.Network
 			int numberOfWholeBytes = numberOfBits / 8;
 			int extraBits = numberOfBits - (numberOfWholeBytes * 8);
 
-			NetBitWriter.ReadBytes(m_data, m_readPosition, into.Slice(0, numberOfWholeBytes));
+			NetBitWriter.ReadBytes(Data, m_readPosition, into.Slice(0, numberOfWholeBytes));
 			m_readPosition += (8 * numberOfWholeBytes);
 
 			if (extraBits > 0)
@@ -598,7 +598,7 @@ namespace Lidgren.Network
 		/// <summary>
 		/// Reads a string written using Write(string) and returns true for success
 		/// </summary>
-		public bool ReadString(out string result)
+		public bool ReadString([MaybeNullWhen(false)] out string result)
 		{
 			if (ReadVariableUInt32(out uint byteLen) == false)
 			{
@@ -645,7 +645,7 @@ namespace Lidgren.Network
 				return false;
 			}
 
-			if (ReadBytes((int)byteLen, out byte[] bytes) == false)
+			if (ReadBytes((int)byteLen, out byte[]? bytes) == false)
 			{
 				result = string.Empty;
 				return false;

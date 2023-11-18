@@ -82,7 +82,7 @@ namespace Lidgren.Network
 #endif
 			}
 
-			for(int i=0;i<count;i++)
+			for (int i = 0; i < count; i++)
 			{
 				var conn = recipients[i];
 				int cmtu = conn.m_currentMTU;
@@ -243,7 +243,7 @@ namespace Lidgren.Network
 			im.m_isFragment = false;
 			im.m_receiveTime = NetTime.Now;
 			im.m_senderConnection = null;
-			im.m_senderEndPoint = m_socket?.LocalEndPoint as NetEndPoint;
+			im.m_senderEndPoint = (NetEndPoint?)NetException.ThrowIfNull(m_socket).LocalEndPoint;
 			NetException.Assert(im.m_bitLength == om.LengthBits);
 
 			// recycle outgoing message

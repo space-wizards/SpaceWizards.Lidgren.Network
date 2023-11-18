@@ -51,7 +51,7 @@ namespace UnitTests
             var addr = NetUtility.Resolve("example.com", 55555);
 
             Assert.That(addr, Is.Not.Null);
-            Assert.That(addr?.Port, Is.EqualTo(55555));
+            Assert.That(addr.Port, Is.EqualTo(55555));
         }
 
         [Test]
@@ -88,7 +88,7 @@ namespace UnitTests
             var addr = await NetUtility.ResolveAsync("example.com", 55555);
 
             Assert.That(addr, Is.Not.Null);
-            Assert.That(addr?.Port, Is.EqualTo(55555));
+            Assert.That(addr.Port, Is.EqualTo(55555));
         }
 
         [Test]

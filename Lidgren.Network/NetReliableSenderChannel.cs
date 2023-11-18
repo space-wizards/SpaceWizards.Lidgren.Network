@@ -76,7 +76,7 @@ namespace Lidgren.Network
 			for (int i = 0; i < m_storedMessages.Length; i++)
 			{
 				var storedMsg = m_storedMessages[i];
-				NetOutgoingMessage om = storedMsg.Message;
+				NetOutgoingMessage? om = storedMsg.Message;
 				if (om == null)
 					continue;
 
@@ -263,7 +263,7 @@ namespace Lidgren.Network
 					if (m_storedMessages[slot].NumSent == 1)
 					{
 						// just sent once; resend immediately since we found gap in ack sequence
-						NetOutgoingMessage rmsg = m_storedMessages[slot].Message;
+						NetOutgoingMessage rmsg = NetException.ThrowIfNull(m_storedMessages[slot].Message);
 						//m_connection.m_peer.LogVerbose("Resending #" + rnr + " (" + rmsg + ")");
 
 						if (now - m_storedMessages[slot].LastSent < (m_resendDelay * 0.35))

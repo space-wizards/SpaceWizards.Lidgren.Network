@@ -113,7 +113,7 @@ namespace Lidgren.Network
 			m_timeoutDeadline = now + m_peerConfiguration.m_connectionTimeout;
 		}
 
-		internal void SetStatus(NetConnectionStatus status, string reason)
+		internal void SetStatus(NetConnectionStatus status, string? reason)
 		{
 			// user or library thread
 

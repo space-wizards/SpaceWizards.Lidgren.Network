@@ -51,7 +51,7 @@ namespace Lidgren.Network
 		// [6] item
 		// [7] item
 		//
-		private T?[] m_items;
+		private T[] m_items;
 		private readonly ReaderWriterLockSlim m_lock = new ReaderWriterLockSlim();
 		private int m_size;
 		private int m_head;
@@ -218,7 +218,7 @@ namespace Lidgren.Network
 				item = m_items[m_head]!;
 				if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
 				{
-					m_items[m_head] = default(T);
+					m_items[m_head] = default!;
 				}
 
 				m_head = (m_head + 1) % m_items.Length;
@@ -255,12 +255,12 @@ namespace Lidgren.Network
 				int added = m_size;
 				while (m_size > 0)
 				{
-					var item = m_items[m_head] ?? throw new InvalidOperationException($"Read null at {nameof(m_items)}[{m_head}]");
+					var item = m_items[m_head];
 					addTo.Add(item);
 
 					if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
 					{
-						m_items[m_head] = default(T);
+						m_items[m_head] = default!;
 					}
 					m_head = (m_head + 1) % m_items.Length;
 					m_size--;
@@ -360,7 +360,7 @@ namespace Lidgren.Network
 				if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
 				{
 					for (int i = 0; i < m_items.Length; i++)
-						m_items[i] = default(T);
+						m_items[i] = default!;
 				}
 				m_head = 0;
 				m_size = 0;

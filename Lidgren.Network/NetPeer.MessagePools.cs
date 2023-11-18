@@ -81,7 +81,7 @@ namespace Lidgren.Network
 					// pool is full; replace randomly chosen entry to keep size distribution
 					var idx = NetRandom.Instance.Next(m_storagePool.Count);
 
-					m_storagePoolBytes -= m_storagePool[idx].Length;
+					m_storagePoolBytes -= m_storagePool[idx]!.Length;
 					m_storagePoolBytes += storage.Length;
 
 					m_storagePool[idx] = storage; // replace
@@ -171,13 +171,9 @@ namespace Lidgren.Network
 
 			NetException.Assert(m_incomingMessagesPool.Contains(msg) == false, "Recyling already recycled incoming message! Thread race?");
 
-			byte[]? storage = msg.m_data;
+			byte[] storage = msg.Data;
 			msg.m_data = null;
-
-			if (storage != null)
-			{
-				Recycle(storage);
-			}
+			Recycle(storage);
 
 			msg.Reset();
 
@@ -209,12 +205,12 @@ namespace Lidgren.Network
 			// however, in RELEASE, we'll just have to accept this and move on with life
 			msg.m_recyclingCount = 0;
 
-			byte[]? storage = msg.m_data;
+			byte[] storage = msg.Data;
 			msg.m_data = null;
 
 			// message fragments cannot be recycled
 			// TODO: find a way to recycle large message after all fragments has been acknowledged; or? possibly better just to garbage collect them
-			if (msg.m_fragmentGroup == 0 && storage != null)
+			if (msg.m_fragmentGroup == 0)
 				Recycle(storage);
 
 			msg.Reset();

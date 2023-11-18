@@ -21,7 +21,7 @@ namespace Lidgren.Network
 		private Socket? m_socket;
 		internal readonly byte[] m_sendBuffer;
 		internal readonly byte[] m_receiveBuffer;
-		internal NetIncomingMessage? m_readHelperMessage;
+		internal readonly NetIncomingMessage m_readHelperMessage;
 		private EndPoint m_senderRemote;
 		private readonly object m_initializeLock = new object();
 		private uint m_frameCounter;
@@ -157,12 +157,11 @@ namespace Lidgren.Network
 				// ignore; SIO_UDP_CONNRESET not supported on this platform
 			}
 
-			var boundEp = m_socket.LocalEndPoint as NetEndPoint;
+			var boundEp = NetException.ThrowIfNull((NetEndPoint?)m_socket.LocalEndPoint);
 			LogDebug("Socket bound to " + boundEp + ": " + m_socket.IsBound);
-			m_listenPort = boundEp?.Port ?? throw new InvalidOperationException("m_socket.LocalEndPoint is null");
+			m_listenPort = boundEp.Port;
 		}
 
-		[MemberNotNull(nameof(m_readHelperMessage))]
 		private void InitializeNetwork()
 		{
 			lock (m_initializeLock)
@@ -187,12 +186,9 @@ namespace Lidgren.Network
 				// bind to socket
 				BindSocket(false);
 
-				m_readHelperMessage = new NetIncomingMessage(NetIncomingMessageType.Error);
-				m_readHelperMessage.m_data = m_receiveBuffer;
-
 				byte[] macBytes = NetUtility.GetMacAddressBytes() ?? new byte[0];
 
-				NetEndPoint boundEp = m_socket.LocalEndPoint as NetEndPoint ?? throw new InvalidOperationException("m_socket.LocalEndPoint is null");
+				NetEndPoint boundEp = NetException.ThrowIfNull(m_socket?.LocalEndPoint as NetEndPoint);
 
 				byte[] epBytes = BitConverter.GetBytes(boundEp.GetHashCode());
 				byte[] combined = new byte[epBytes.Length + macBytes.Length];
@@ -446,7 +442,7 @@ namespace Lidgren.Network
 		private void ReceiveSocketData(double now)
 		{
 			int bytesReceived = NetFastSocket.ReceiveFrom(
-				m_socket ?? throw new InvalidOperationException($"{nameof(m_socket)} is null"),
+				NetException.ThrowIfNull(m_socket),
 				m_receiveBuffer, 0, m_receiveBuffer.Length,
 				SocketFlags.None,
 				out var senderRemote,
@@ -557,7 +553,7 @@ namespace Lidgren.Network
 						msg.m_senderEndPoint = (NetEndPoint)senderRemote;
 						msg.m_bitLength = payloadBitLength;
 
-						Buffer.BlockCopy(m_receiveBuffer, ptr, msg.m_data, 0, payloadByteLength);
+						Buffer.BlockCopy(m_receiveBuffer, ptr, msg.Data, 0, payloadByteLength);
 						if (sender != null)
 						{
 							if (tp == NetMessageType.Unconnected)
@@ -612,12 +608,7 @@ namespace Lidgren.Network
 
 			if (payloadByteLength > 0)
 			{
-				if (m_receiveBuffer == null || dm.m_data == null)
-				{
-					throw new InvalidOperationException();
-				}
-
-				Buffer.BlockCopy(m_receiveBuffer, ptr, dm.m_data, 0, payloadByteLength);
+				Buffer.BlockCopy(m_receiveBuffer, ptr, dm.Data, 0, payloadByteLength);
 			}
 
 			dm.m_receiveTime = now;
@@ -637,12 +628,7 @@ namespace Lidgren.Network
 
 			if (payloadByteLength > 0)
 			{
-				if (m_receiveBuffer == null || dr.m_data == null)
-				{
-					throw new InvalidOperationException();
-				}
-
-				Buffer.BlockCopy(m_receiveBuffer, ptr, dr.m_data, 0, payloadByteLength);
+				Buffer.BlockCopy(NetException.ThrowIfNull(m_receiveBuffer), ptr, dr.Data, 0, payloadByteLength);
 			}
 
 			dr.m_receiveTime = now;

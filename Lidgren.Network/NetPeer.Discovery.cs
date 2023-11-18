@@ -19,7 +19,7 @@ namespace Lidgren.Network
 			um.m_messageType = NetMessageType.Discovery;
 			Interlocked.Increment(ref um.m_recyclingCount);
 
-			m_unsentUnconnectedMessages.Enqueue(new NetTuple<NetEndPoint, NetOutgoingMessage>(new NetEndPoint(NetUtility.GetBroadcastAddress() ?? throw new InvalidOperationException(), serverPort), um));
+			m_unsentUnconnectedMessages.Enqueue(new NetTuple<NetEndPoint, NetOutgoingMessage>(new NetEndPoint(NetException.ThrowIfNull(NetUtility.GetBroadcastAddress()), serverPort), um));
 		}
 
 		/// <summary>

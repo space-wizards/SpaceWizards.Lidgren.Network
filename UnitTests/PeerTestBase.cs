@@ -36,7 +36,7 @@ namespace UnitTests
 			Peer.Shutdown("Unit test teardown.");
 		}
 
-		protected static NetIncomingMessage CreateIncomingMessage(byte[]? fromData, int bitLength)
+		protected static NetIncomingMessage CreateIncomingMessage(byte[] fromData, int bitLength)
 		{
 			return new NetIncomingMessage
 			{

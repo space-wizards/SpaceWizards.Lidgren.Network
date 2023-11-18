@@ -39,7 +39,7 @@ namespace Lidgren.Network
 		public bool PeekBoolean()
 		{
 			NetException.Assert(m_bitLength - m_readPosition >= 1, c_readOverflowError);
-			byte retval = NetBitWriter.ReadByte(BufferData, 1, m_readPosition);
+			byte retval = NetBitWriter.ReadByte(Data, 1, m_readPosition);
 			return (retval > 0 ? true : false);
 		}
 
@@ -52,7 +52,7 @@ namespace Lidgren.Network
 		public byte PeekByte()
 		{
 			NetException.Assert(m_bitLength - m_readPosition >= 8, c_readOverflowError);
-			byte retval = NetBitWriter.ReadByte(BufferData, 8, m_readPosition);
+			byte retval = NetBitWriter.ReadByte(Data, 8, m_readPosition);
 			return retval;
 		}
 
@@ -63,7 +63,7 @@ namespace Lidgren.Network
 		public sbyte PeekSByte()
 		{
 			NetException.Assert(m_bitLength - m_readPosition >= 8, c_readOverflowError);
-			byte retval = NetBitWriter.ReadByte(BufferData, 8, m_readPosition);
+			byte retval = NetBitWriter.ReadByte(Data, 8, m_readPosition);
 			return (sbyte)retval;
 		}
 
@@ -72,7 +72,7 @@ namespace Lidgren.Network
 		/// </summary>
 		public byte PeekByte(int numberOfBits)
 		{
-			byte retval = NetBitWriter.ReadByte(BufferData, numberOfBits, m_readPosition);
+			byte retval = NetBitWriter.ReadByte(Data, numberOfBits, m_readPosition);
 			return retval;
 		}
 
@@ -86,7 +86,7 @@ namespace Lidgren.Network
 		{
 			NetException.Assert(m_bitLength - m_readPosition >= (into.Length * 8), c_readOverflowError);
 
-			NetBitWriter.ReadBytes(BufferData, m_readPosition, into);
+			NetBitWriter.ReadBytes(Data, m_readPosition, into);
 
 			return into;
 		}
@@ -119,7 +119,7 @@ namespace Lidgren.Network
 		public short PeekInt16()
 		{
 			NetException.Assert(m_bitLength - m_readPosition >= 16, c_readOverflowError);
-			uint retval = NetBitWriter.ReadUInt16(BufferData, 16, m_readPosition);
+			uint retval = NetBitWriter.ReadUInt16(Data, 16, m_readPosition);
 			return (short)retval;
 		}
 
@@ -130,7 +130,7 @@ namespace Lidgren.Network
 		public ushort PeekUInt16()
 		{
 			NetException.Assert(m_bitLength - m_readPosition >= 16, c_readOverflowError);
-			uint retval = NetBitWriter.ReadUInt16(BufferData, 16, m_readPosition);
+			uint retval = NetBitWriter.ReadUInt16(Data, 16, m_readPosition);
 			return (ushort)retval;
 		}
 
@@ -143,7 +143,7 @@ namespace Lidgren.Network
 		public int PeekInt32()
 		{
 			NetException.Assert(m_bitLength - m_readPosition >= 32, c_readOverflowError);
-			uint retval = NetBitWriter.ReadUInt32(BufferData, 32, m_readPosition);
+			uint retval = NetBitWriter.ReadUInt32(Data, 32, m_readPosition);
 			return (int)retval;
 		}
 
@@ -155,7 +155,7 @@ namespace Lidgren.Network
 			NetException.Assert((numberOfBits > 0 && numberOfBits <= 32), "ReadInt() can only read between 1 and 32 bits");
 			NetException.Assert(m_bitLength - m_readPosition >= numberOfBits, c_readOverflowError);
 
-			uint retval = NetBitWriter.ReadUInt32(BufferData, numberOfBits, m_readPosition);
+			uint retval = NetBitWriter.ReadUInt32(Data, numberOfBits, m_readPosition);
 
 			if (numberOfBits == 32)
 				return (int)retval;
@@ -180,7 +180,7 @@ namespace Lidgren.Network
 		public uint PeekUInt32()
 		{
 			NetException.Assert(m_bitLength - m_readPosition >= 32, c_readOverflowError);
-			uint retval = NetBitWriter.ReadUInt32(BufferData, 32, m_readPosition);
+			uint retval = NetBitWriter.ReadUInt32(Data, 32, m_readPosition);
 			return retval;
 		}
 
@@ -193,7 +193,7 @@ namespace Lidgren.Network
 			NetException.Assert((numberOfBits > 0 && numberOfBits <= 32), "ReadUInt() can only read between 1 and 32 bits");
 			//NetException.Assert(m_bitLength - m_readBitPtr >= numberOfBits, "tried to read past buffer size");
 
-			uint retval = NetBitWriter.ReadUInt32(BufferData, numberOfBits, m_readPosition);
+			uint retval = NetBitWriter.ReadUInt32(Data, numberOfBits, m_readPosition);
 			return retval;
 		}
 
@@ -208,8 +208,8 @@ namespace Lidgren.Network
 		{
 			NetException.Assert(m_bitLength - m_readPosition >= 64, c_readOverflowError);
 
-			ulong low = NetBitWriter.ReadUInt32(BufferData, 32, m_readPosition);
-			ulong high = NetBitWriter.ReadUInt32(BufferData, 32, m_readPosition + 32);
+			ulong low = NetBitWriter.ReadUInt32(Data, 32, m_readPosition);
+			ulong high = NetBitWriter.ReadUInt32(Data, 32, m_readPosition + 32);
 
 			ulong retval = low + (high << 32);
 
@@ -242,12 +242,12 @@ namespace Lidgren.Network
 			ulong retval;
 			if (numberOfBits <= 32)
 			{
-				retval = (ulong)NetBitWriter.ReadUInt32(BufferData, numberOfBits, m_readPosition);
+				retval = (ulong)NetBitWriter.ReadUInt32(Data, numberOfBits, m_readPosition);
 			}
 			else
 			{
-				retval = NetBitWriter.ReadUInt32(BufferData, 32, m_readPosition);
-				retval |= (ulong)NetBitWriter.ReadUInt32(BufferData, numberOfBits - 32, m_readPosition + 32) << 32;
+				retval = NetBitWriter.ReadUInt32(Data, 32, m_readPosition);
+				retval |= (ulong)NetBitWriter.ReadUInt32(Data, numberOfBits - 32, m_readPosition + 32) << 32;
 			}
 			return retval;
 		}
@@ -299,7 +299,7 @@ namespace Lidgren.Network
 
 			if ((m_readPosition & 7) == 0) // read directly
 			{
-				float retval = BitConverter.ToSingle(BufferData, m_readPosition >> 3);
+				float retval = BitConverter.ToSingle(Data, m_readPosition >> 3);
 				return retval;
 			}
 
@@ -317,7 +317,7 @@ namespace Lidgren.Network
 			if ((m_readPosition & 7) == 0) // read directly
 			{
 				// read directly
-				double retval = BitConverter.ToDouble(BufferData, m_readPosition >> 3);
+				double retval = BitConverter.ToDouble(Data, m_readPosition >> 3);
 				return retval;
 			}
 

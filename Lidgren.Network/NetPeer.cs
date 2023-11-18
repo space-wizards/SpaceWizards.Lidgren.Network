@@ -85,7 +85,7 @@ namespace Lidgren.Network
 			get
 			{
 				lock (m_connections)
-					return m_connections.AsReadOnly();
+					return new List<NetConnection>(m_connections);
 			}
 		}
 
@@ -135,6 +135,9 @@ namespace Lidgren.Network
 
 			m_receiveBuffer = new byte[m_configuration.ReceiveBufferSize];
 			m_sendBuffer = new byte[m_configuration.SendBufferSize];
+
+			m_readHelperMessage = new NetIncomingMessage(NetIncomingMessageType.Error);
+			m_readHelperMessage.m_data = m_receiveBuffer;
 		}
 
 		/// <summary>
@@ -220,10 +223,7 @@ namespace Lidgren.Network
 				{
 					NetConnectionStatus status = (NetConnectionStatus)retval.PeekByte();
 
-					if (retval.SenderConnection == null)
-					{
-						throw new InvalidOperationException("retval.SenderConnection is null");
-					}
+					NetException.ThrowIfNull(retval.SenderConnection);
 
 					retval.SenderConnection.m_visibleStatus = status;
 				}
@@ -258,10 +258,7 @@ namespace Lidgren.Network
 					{
 						NetConnectionStatus status = (NetConnectionStatus)nim.PeekByte();
 
-						if (nim.SenderConnection == null)
-						{
-							throw new InvalidOperationException("retval.SenderConnection is null");
-						}
+						NetException.ThrowIfNull(nim.SenderConnection);
 
 						nim.SenderConnection.m_visibleStatus = status;
 					}

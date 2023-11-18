@@ -47,15 +47,14 @@ namespace Lidgren.Network
 
 				while (m_earlyReceived[nextSeqNr % m_windowSize])
 				{
-					message = m_withheldMessages[nextSeqNr % m_windowSize]!;
-					NetException.Assert(message != null);
+					message = NetException.ThrowIfNull(m_withheldMessages[nextSeqNr % m_windowSize]);
 
 					// remove it from withheld messages
 					m_withheldMessages[nextSeqNr % m_windowSize] = null;
 
 					m_peer.LogVerbose("Releasing withheld message #" + message);
 
-					m_peer.ReleaseMessage(message!);
+					m_peer.ReleaseMessage(message);
 
 					AdvanceWindow();
 					nextSeqNr++;
