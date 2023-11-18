@@ -90,6 +90,6 @@ namespace Lidgren.Network
 		{
 			return argument ?? throw new NetException($"{paramName ?? "argument"} is null");
 		}
-	}
 #endif
+	}
 }
