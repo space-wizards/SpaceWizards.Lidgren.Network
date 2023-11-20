@@ -67,7 +67,7 @@ namespace Lidgren.Network
 			return NetSendResult.Queued;
 		}
 
-		// call this regularely
+		// call this regularly
 		internal override void SendQueuedMessages(double now)
 		{
 			//
@@ -166,7 +166,7 @@ namespace Lidgren.Network
 #endif
 			// on each destore; reduce recyclingcount so that when all instances are destored, the outgoing message can be recycled
 			Interlocked.Decrement(ref storedMessage.m_recyclingCount);
-   
+
 			if (storedMessage.m_recyclingCount <= 0)
 				m_connection.m_peer.Recycle(storedMessage);
 

@@ -20,6 +20,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 //#define USE_RELEASE_STATISTICS
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
@@ -36,9 +37,10 @@ namespace Lidgren.Network
 		private readonly List<DelayedPacket> m_delayedPackets = new List<DelayedPacket>();
 		private MWCRandom m_latencyRandom = new MWCRandom();
 
-		private sealed class DelayedPacket
+		private record struct DelayedPacket
 		{
 			public byte[] Data;
+			public int Length;
 			public double DelayedUntil;
 			public NetEndPoint Target;
 		}
@@ -84,13 +86,18 @@ namespace Lidgren.Network
 			for (int i = 0; i < num; i++)
 			{
 				delay = m + (m_latencyRandom.NextSingle() * r);
+				var data = GetStorage(numBytes);
+
+				Buffer.BlockCopy(m_sendBuffer, 0, data, 0, numBytes);
 
 				// Enqueue delayed packet
-				DelayedPacket p = new DelayedPacket();
-				p.Target = target;
-				p.Data = new byte[numBytes];
-				Buffer.BlockCopy(m_sendBuffer, 0, p.Data, 0, numBytes);
-				p.DelayedUntil = NetTime.Now + delay;
+				var p = new DelayedPacket
+				{
+					Target = target,
+					Data = data,
+					Length = numBytes,
+					DelayedUntil = NetTime.Now + delay
+				};
 
 				m_delayedPackets.Add(p);
 			}
@@ -110,18 +117,20 @@ namespace Lidgren.Network
 			for (var i = 0; i < m_delayedPackets.Count; i++)
 			{
 				var p = m_delayedPackets[i];
-				if (now < p.DelayedUntil) 
+				if (now < p.DelayedUntil)
 					continue;
-				
-				ActuallySendPacket(p.Data, p.Data.Length, p.Target, out connectionReset);
-				
+
+				ActuallySendPacket(p.Data, p.Length, p.Target, out connectionReset);
+
 				// Swap packet with last entry in list.
 				// This does not preserve order (we don't care) but is O(1).
 				var replaceIdx = m_delayedPackets.Count - 1;
 				var replacement = m_delayedPackets[replaceIdx];
 				m_delayedPackets[i] = replacement;
 				m_delayedPackets.RemoveAt(replaceIdx);
-				
+
+				Recycle(p.Data);
+
 				// Make sure to decrement i so we re-process the element we just swapped in.
 				i -= 1;
 			}
@@ -133,7 +142,11 @@ namespace Lidgren.Network
 			{
 				bool connectionReset;
 				foreach (DelayedPacket p in m_delayedPackets)
-					ActuallySendPacket(p.Data, p.Data.Length, p.Target, out connectionReset);
+				{
+					ActuallySendPacket(p.Data, p.Length, p.Target, out connectionReset);
+					Recycle(p.Data);
+				}
+
 				m_delayedPackets.Clear();
 			}
 			catch { }
@@ -156,20 +169,20 @@ namespace Lidgren.Network
                 // TODO: refactor this check outta here
                 if (target.Address.Equals(ba))
                 {
-                    // Some networks do not allow 
+                    // Some networks do not allow
                     // a global broadcast so we use the BroadcastAddress from the configuration
-                    // this can be resolved to a local broadcast addresss e.g 192.168.x.255                    
+                    // this can be resolved to a local broadcast addresss e.g 192.168.x.255
                     targetCopy.Address = m_configuration.BroadcastAddress;
                     targetCopy.Port = target.Port;
                     realTarget = targetCopy;
                     m_socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Broadcast, true);
-                    
+
                     if (dualStack)
                     {
 	                    NetUtility.CopyEndpoint(realTarget, targetCopy2); //Maps to IPv6 for Dual Mode
 	                    realTarget = targetCopy2;
                     }
-	                    
+
                 }
                 else if (dualStack)
                 {
@@ -193,7 +206,7 @@ namespace Lidgren.Network
 				}
 				if (sx.SocketErrorCode == SocketError.ConnectionReset)
 				{
-					// connection reset by peer, aka connection forcibly closed aka "ICMP port unreachable" 
+					// connection reset by peer, aka connection forcibly closed aka "ICMP port unreachable"
 					connectionReset = true;
 					return false;
 				}
@@ -215,7 +228,7 @@ namespace Lidgren.Network
 		{
 			if (!CanAutoExpandMTU)
 				throw new NotSupportedException("MTU expansion not currently supported on this operating system");
-			
+
 			try
 			{
 				// NOTE: Socket.DontFragment doesn't work on dual-stack sockets.
@@ -223,7 +236,7 @@ namespace Lidgren.Network
 				// See: https://github.com/dotnet/runtime/issues/76410
 				if (m_socket.DualMode || target.AddressFamily == AddressFamily.InterNetwork)
 					m_socket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.DontFragment, true);
-				
+
 				int bytesSent = NetFastSocket.SendTo(m_socket, m_sendBuffer, 0, numBytes, SocketFlags.None, target);
 				if (numBytes != bytesSent)
 					LogWarning("Failed to send the full " + numBytes + "; only " + bytesSent + " bytes sent in packet!");
