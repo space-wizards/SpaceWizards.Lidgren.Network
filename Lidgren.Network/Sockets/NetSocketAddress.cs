@@ -151,7 +151,7 @@ namespace Lidgren.Network
 			return Port == other.Port && Address.Equals(other.Address);
 		}
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			return obj is NetSocketAddressV4 other && Equals(other);
 		}
@@ -196,7 +196,7 @@ namespace Lidgren.Network
 			return Port == other.Port && Address.Equals(other.Address) && ScopeId == other.ScopeId;
 		}
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			return obj is NetSocketAddressV6 other && Equals(other);
 		}

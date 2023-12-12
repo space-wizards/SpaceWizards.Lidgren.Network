@@ -5,8 +5,8 @@ namespace Lidgren.Network
 	internal sealed class NetReliableUnorderedReceiver : NetReceiverChannelBase
 	{
 		private int m_windowStart;
-		private int m_windowSize;
-		private NetBitVector m_earlyReceived;
+		private readonly int m_windowSize;
+		private readonly NetBitVector m_earlyReceived;
 
 		public NetReliableUnorderedReceiver(NetConnection connection, int windowSize)
 			: base(connection)

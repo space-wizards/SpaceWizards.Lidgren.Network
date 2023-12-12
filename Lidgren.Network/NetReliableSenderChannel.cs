@@ -8,14 +8,14 @@ namespace Lidgren.Network
 	/// </summary>
 	internal sealed class NetReliableSenderChannel : NetSenderChannelBase
 	{
-		private NetConnection m_connection;
+		private readonly NetConnection m_connection;
 		private int m_windowStart;
-		private int m_windowSize;
+		private readonly int m_windowSize;
 		private int m_sendStart;
 
 		private bool m_anyStoredResends;
 
-		private NetBitVector m_receivedAcks;
+		private readonly NetBitVector m_receivedAcks;
 		internal NetStoredReliableMessage[] m_storedMessages;
 
 		internal double m_resendDelay;
@@ -27,7 +27,7 @@ namespace Lidgren.Network
 			return base.NeedToSendMessages() || m_anyStoredResends;
 		}
 
-		internal NetReliableSenderChannel(NetConnection connection, int windowSize)
+		internal NetReliableSenderChannel(NetConnection connection, int windowSize) : base(new NetQueue<NetOutgoingMessage>(8))
 		{
 			m_connection = connection;
 			m_windowSize = windowSize;
@@ -36,7 +36,6 @@ namespace Lidgren.Network
 			m_anyStoredResends = false;
 			m_receivedAcks = new NetBitVector(NetConstants.NumSequenceNumbers);
 			m_storedMessages = new NetStoredReliableMessage[m_windowSize];
-			m_queuedSends = new NetQueue<NetOutgoingMessage>(8);
 			m_resendDelay = m_connection.GetResendDelay();
 		}
 
@@ -77,7 +76,7 @@ namespace Lidgren.Network
 			for (int i = 0; i < m_storedMessages.Length; i++)
 			{
 				var storedMsg = m_storedMessages[i];
-				NetOutgoingMessage om = storedMsg.Message;
+				NetOutgoingMessage? om = storedMsg.Message;
 				if (om == null)
 					continue;
 
@@ -117,8 +116,7 @@ namespace Lidgren.Network
 			// queued sends
 			while (num > 0 && m_queuedSends.Count > 0)
 			{
-				NetOutgoingMessage om;
-				if (m_queuedSends.TryDequeue(out om))
+				if (m_queuedSends.TryDequeue(out NetOutgoingMessage? om))
 					ExecuteSend(now, om);
 				num--;
 				NetException.Assert(num == GetAllowedSends());
@@ -166,7 +164,7 @@ namespace Lidgren.Network
 #endif
 			// on each destore; reduce recyclingcount so that when all instances are destored, the outgoing message can be recycled
 			Interlocked.Decrement(ref storedMessage.m_recyclingCount);
-   
+
 			if (storedMessage.m_recyclingCount <= 0)
 				m_connection.m_peer.Recycle(storedMessage);
 
@@ -196,9 +194,8 @@ namespace Lidgren.Network
 				// ack arrived right on time
 				NetException.Assert(seqNr == m_windowStart);
 
-				bool resetTimeout;
 				m_receivedAcks[m_windowStart] = false;
-				DestoreMessage(now, m_windowStart % m_windowSize, out resetTimeout);
+				DestoreMessage(now, m_windowStart % m_windowSize, out bool resetTimeout);
 				m_windowStart = (m_windowStart + 1) % NetConstants.NumSequenceNumbers;
 
 				// advance window if we already have early acks
@@ -206,8 +203,7 @@ namespace Lidgren.Network
 				{
 					//m_connection.m_peer.LogDebug("Using early ack for #" + m_windowStart + "...");
 					m_receivedAcks[m_windowStart] = false;
-					bool rt;
-					DestoreMessage(now, m_windowStart % m_windowSize, out rt);
+					DestoreMessage(now, m_windowStart % m_windowSize, out bool rt);
 					resetTimeout |= rt;
 
 					NetException.Assert(m_storedMessages[m_windowStart % m_windowSize].Message == null); // should already be destored
@@ -267,7 +263,9 @@ namespace Lidgren.Network
 					if (m_storedMessages[slot].NumSent == 1)
 					{
 						// just sent once; resend immediately since we found gap in ack sequence
-						NetOutgoingMessage rmsg = m_storedMessages[slot].Message;
+						var rmsg = m_storedMessages[slot].Message;
+						NetException.Assert(rmsg != null);
+
 						//m_connection.m_peer.LogVerbose("Resending #" + rnr + " (" + rmsg + ")");
 
 						if (now - m_storedMessages[slot].LastSent < (m_resendDelay * 0.35))

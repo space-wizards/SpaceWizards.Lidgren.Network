@@ -14,17 +14,21 @@ namespace Lidgren.Network
 		private static readonly Dictionary<Type, MethodInfo> s_readMethods;
 		private static readonly Dictionary<Type, MethodInfo> s_writeMethods;
 
-		internal byte[] m_data;
+		internal byte[]? m_data;
 		internal int m_bitLength;
 		internal int m_readPosition;
 
 		/// <summary>
-		/// Gets or sets the internal data buffer
+		/// Gets or sets the internal data buffer.
 		/// </summary>
+		/// <remarks>
+		/// Throws an <see cref="NetException"/> if internal <see cref="m_data"/> field is null or if set a null value.
+		/// </remarks>
+		/// <exception cref="NetException"/>
 		public byte[] Data
 		{
-			get { return m_data; }
-			set { m_data = value; }
+			get { return m_data ?? throw new InvalidOperationException("Buffer is is pooled and has no valid data buffer."); }
+			set { m_data = value ?? throw new ArgumentNullException(nameof(value)); }
 		}
 
 		/// <summary>
@@ -69,7 +73,7 @@ namespace Lidgren.Network
 		{
 			get { return (int)(m_readPosition / 8); }
 		}
-		
+
 		static NetBuffer()
 		{
 			s_readMethods = new Dictionary<Type, MethodInfo>();

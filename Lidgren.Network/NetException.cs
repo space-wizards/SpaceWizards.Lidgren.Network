@@ -18,7 +18,8 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 using System;
 using System.Diagnostics;
-using System.Runtime.Serialization;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 
 namespace Lidgren.Network
 {
@@ -55,7 +56,7 @@ namespace Lidgren.Network
 		/// Throws an exception, in DEBUG only, if first parameter is false
 		/// </summary>
 		[Conditional("DEBUG")]
-		public static void Assert(bool isOk, string message)
+		public static void Assert([DoesNotReturnIf(false)] bool isOk, string message)
 		{
 			if (!isOk)
 				throw new NetException(message);
@@ -65,7 +66,7 @@ namespace Lidgren.Network
 		/// Throws an exception, in DEBUG only, if first parameter is false
 		/// </summary>
 		[Conditional("DEBUG")]
-		public static void Assert(bool isOk)
+		public static void Assert([DoesNotReturnIf(false)] bool isOk)
 		{
 			if (!isOk)
 				throw new NetException();

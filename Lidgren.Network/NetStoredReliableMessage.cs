@@ -6,7 +6,7 @@ namespace Lidgren.Network
 	{
 		public int NumSent;
 		public double LastSent;
-		public NetOutgoingMessage Message;
+		public NetOutgoingMessage? Message;
 		public int SequenceNumber;
 
 		public void Reset()

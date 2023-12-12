@@ -63,7 +63,7 @@ namespace UnitTests
 	        
             var addr = NetUtility.Resolve("example.com", family);
 
-            Assert.That(addr.AddressFamily, Is.EqualTo(family));
+            Assert.That(addr?.AddressFamily, Is.EqualTo(family));
         }
 
         [Test]
@@ -100,7 +100,7 @@ namespace UnitTests
          
 	        var addr = await NetUtility.ResolveAsync("example.com", family);
 
-            Assert.That(addr.AddressFamily, Is.EqualTo(family));
+            Assert.That(addr?.AddressFamily, Is.EqualTo(family));
         }
 
         [Test]

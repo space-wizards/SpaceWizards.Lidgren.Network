@@ -5,7 +5,7 @@ namespace Lidgren.Network
 	internal sealed class NetReliableSequencedReceiver : NetReceiverChannelBase
 	{
 		private int m_windowStart;
-		private int m_windowSize;
+		private readonly int m_windowSize;
 
 		public NetReliableSequencedReceiver(NetConnection connection, int windowSize)
 			: base(connection)

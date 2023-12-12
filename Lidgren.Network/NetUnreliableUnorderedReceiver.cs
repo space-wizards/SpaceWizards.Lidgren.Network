@@ -4,7 +4,7 @@ namespace Lidgren.Network
 {
 	internal sealed class NetUnreliableUnorderedReceiver : NetReceiverChannelBase
 	{
-		private bool m_doFlowControl;
+		private readonly bool m_doFlowControl;
 
 		public NetUnreliableUnorderedReceiver(NetConnection connection)
 			: base(connection)

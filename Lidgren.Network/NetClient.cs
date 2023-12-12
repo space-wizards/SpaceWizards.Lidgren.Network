@@ -33,11 +33,11 @@ namespace Lidgren.Network
 		/// <summary>
 		/// Gets the connection to the server, if any
 		/// </summary>
-		public NetConnection ServerConnection
+		public NetConnection? ServerConnection
 		{
 			get
 			{
-				NetConnection retval = null;
+				NetConnection? retval = null;
 				if (m_connections.Count > 0)
 				{
 					try
@@ -84,14 +84,14 @@ namespace Lidgren.Network
 		/// <param name="remoteEndPoint">The remote endpoint to connect to</param>
 		/// <param name="hailMessage">The hail message to pass</param>
 		/// <returns>server connection, or null if already connected</returns>
-		public override NetConnection Connect(NetEndPoint remoteEndPoint, NetOutgoingMessage hailMessage)
+		public override NetConnection Connect(NetEndPoint remoteEndPoint, NetOutgoingMessage? hailMessage)
 		{
 			lock (m_connections)
 			{
 				if (m_connections.Count > 0)
 				{
 					LogWarning("Connect attempt failed; Already connected");
-					return null;
+					return null!;
 				}
 			}
 
@@ -100,7 +100,7 @@ namespace Lidgren.Network
 				if (m_handshakes.Count > 0)
 				{
 					LogWarning("Connect attempt failed; Handshake already in progress");
-					return null;
+					return null!;
 				}
 			}
 
@@ -113,7 +113,7 @@ namespace Lidgren.Network
 		/// <param name="byeMessage">reason for disconnect</param>
 		public void Disconnect(string byeMessage)
 		{
-			NetConnection serverConnection = ServerConnection;
+			NetConnection? serverConnection = ServerConnection;
 			if (serverConnection == null)
 			{
 				lock (m_handshakes)
@@ -138,7 +138,7 @@ namespace Lidgren.Network
 		/// </summary>
 		public NetSendResult SendMessage(NetOutgoingMessage msg, NetDeliveryMethod method)
 		{
-			NetConnection serverConnection = ServerConnection;
+			NetConnection? serverConnection = ServerConnection;
 			if (serverConnection == null)
 			{
 				LogWarning("Cannot send message, no server connection!");
@@ -153,7 +153,7 @@ namespace Lidgren.Network
 		/// </summary>
 		public NetSendResult SendMessage(NetOutgoingMessage msg, NetDeliveryMethod method, int sequenceChannel)
 		{
-			NetConnection serverConnection = ServerConnection;
+			NetConnection? serverConnection = ServerConnection;
 			if (serverConnection == null)
 			{
 				LogWarning("Cannot send message, no server connection!");
@@ -169,7 +169,7 @@ namespace Lidgren.Network
 		/// </summary>
 		public override string ToString()
 		{
-			return "[NetClient " + ServerConnection + "]";
+			return $"[NetClient {ServerConnection}]";
 		}
 
 	}

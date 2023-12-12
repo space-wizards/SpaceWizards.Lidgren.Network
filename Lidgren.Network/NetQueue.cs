@@ -23,6 +23,7 @@ using System.Diagnostics;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Diagnostics.CodeAnalysis;
 
 //
 // Comment for Linux Mono users: reports of library thread hangs on EnterReadLock() suggests switching to plain lock() works better
@@ -58,7 +59,8 @@ namespace Lidgren.Network
 		/// <summary>
 		/// Gets the number of items in the queue
 		/// </summary>
-		public int Count {
+		public int Count
+		{
 			get
 			{
 				m_lock.EnterReadLock();
@@ -196,7 +198,7 @@ namespace Lidgren.Network
 		/// <summary>
 		/// Gets an item from the head of the queue, or returns default(T) if empty
 		/// </summary>
-		public bool TryDequeue(out T item)
+		public bool TryDequeue([MaybeNullWhen(false)] out T item)
 		{
 			if (m_size == 0)
 			{
@@ -213,11 +215,11 @@ namespace Lidgren.Network
 					return false;
 				}
 
-				item = m_items[m_head];
+				item = m_items[m_head]!;
 				if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
-                {
-                    m_items[m_head] = default(T);
-                }
+				{
+					m_items[m_head] = default!;
+				}
 
 				m_head = (m_head + 1) % m_items.Length;
 				m_size--;
@@ -258,7 +260,7 @@ namespace Lidgren.Network
 
 					if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
 					{
-						m_items[m_head] = default(T);
+						m_items[m_head] = default!;
 					}
 					m_head = (m_head + 1) % m_items.Length;
 					m_size--;
@@ -274,7 +276,7 @@ namespace Lidgren.Network
 		/// <summary>
 		/// Returns default(T) if queue is empty
 		/// </summary>
-		public T TryPeek(int offset)
+		public T? TryPeek(int offset)
 		{
 			if (m_size == 0)
 				return default(T);
@@ -310,7 +312,7 @@ namespace Lidgren.Network
 					}
 					else
 					{
-						if (m_items[ptr].Equals(item))
+						if (EqualityComparer<T>.Default.Equals(m_items[ptr], item))
 							return true;
 					}
 					ptr = (ptr + 1) % m_items.Length;
@@ -358,7 +360,7 @@ namespace Lidgren.Network
 				if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
 				{
 					for (int i = 0; i < m_items.Length; i++)
-						m_items[i] = default(T);
+						m_items[i] = default!;
 				}
 				m_head = 0;
 				m_size = 0;

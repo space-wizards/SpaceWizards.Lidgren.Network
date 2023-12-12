@@ -46,11 +46,10 @@ namespace Lidgren.Network
 
 			foreach (FieldInfo fi in fields)
 			{
-				object value;
+				object? value;
 
 				// find read method
-				MethodInfo readMethod;
-				if (s_readMethods.TryGetValue(fi.FieldType, out readMethod))
+				if (s_readMethods.TryGetValue(fi.FieldType, out MethodInfo? readMethod))
 				{
 					// read value
 					value = readMethod.Invoke(this, null);
@@ -83,11 +82,10 @@ namespace Lidgren.Network
 			NetUtility.SortMembersList(fields);
 			foreach (PropertyInfo fi in fields)
 			{
-				object value;
+				object? value;
 
 				// find read method
-				MethodInfo readMethod;
-				if (s_readMethods.TryGetValue(fi.PropertyType, out readMethod))
+				if (s_readMethods.TryGetValue(fi.PropertyType, out MethodInfo? readMethod))
 				{
 					// read value
 					value = readMethod.Invoke(this, null);
@@ -95,7 +93,7 @@ namespace Lidgren.Network
 					// set the value
 					var setMethod = fi.GetSetMethod();
 					if (setMethod != null)
-						setMethod.Invoke(target, new object[] { value });
+						setMethod.Invoke(target, new object?[] { value });
 				}
 			}
 		}

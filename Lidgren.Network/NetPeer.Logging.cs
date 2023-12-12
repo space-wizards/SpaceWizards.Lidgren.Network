@@ -24,7 +24,7 @@ namespace Lidgren.Network
 {
 	public partial class NetPeer
 	{
-		internal event Action<NetIncomingMessageType, string> LogEvent; 
+		internal event Action<NetIncomingMessageType, string>? LogEvent;
 
 		[Conditional("DEBUG")]
 		internal void LogVerbose(string message)
@@ -63,7 +63,7 @@ namespace Lidgren.Network
 		private void SendLogBase(NetIncomingMessageType type, string text)
 		{
 			LogEvent?.Invoke(type, text);
-			
+
 			if (m_configuration.IsMessageTypeEnabled(type))
 				ReleaseMessage(CreateIncomingMessage(type, text));
 		}

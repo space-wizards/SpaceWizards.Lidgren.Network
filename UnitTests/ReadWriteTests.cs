@@ -239,7 +239,7 @@ namespace UnitTests
         public class TestItem : TestItemBase
         {
 	        public float Age;
-            public string Name;
+            public string? Name;
         }
 	}
 }

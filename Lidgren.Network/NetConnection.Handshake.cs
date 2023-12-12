@@ -14,16 +14,16 @@ namespace Lidgren.Network
 		internal bool m_connectRequested;
 		internal bool m_disconnectRequested;
 		internal bool m_disconnectReqSendBye;
-		internal string m_disconnectMessage;
+		internal string? m_disconnectMessage;
 		internal bool m_connectionInitiator;
-		internal NetIncomingMessage m_remoteHailMessage;
+		internal NetIncomingMessage? m_remoteHailMessage;
 		internal double m_lastHandshakeSendTime;
 		internal int m_handshakeAttempts;
 
 		/// <summary>
 		/// The message that the remote part specified via Connect() or Approve() - can be null.
 		/// </summary>
-		public NetIncomingMessage RemoteHailMessage { get { return m_remoteHailMessage; } }
+		public NetIncomingMessage? RemoteHailMessage { get { return m_remoteHailMessage; } }
 
 		// heartbeat called when connection still is in m_handshakes of NetPeer
 		internal void UnconnectedHeartbeat(double now)
@@ -95,7 +95,7 @@ namespace Lidgren.Network
 			}
 		}
 
-		internal void ExecuteDisconnect(string reason, bool sendByeMessage)
+		internal void ExecuteDisconnect(string? reason, bool sendByeMessage)
 		{
 			m_peer.VerifyNetworkThread();
 
@@ -182,7 +182,7 @@ namespace Lidgren.Network
 			SetStatus(NetConnectionStatus.RespondedConnect, "Remotely requested connect");
 		}
 
-		internal void SendDisconnect(string reason, bool onLibraryThread)
+		internal void SendDisconnect(string? reason, bool onLibraryThread)
 		{
 			if (onLibraryThread)
 				m_peer.VerifyNetworkThread();
@@ -200,12 +200,12 @@ namespace Lidgren.Network
 		{
 			if (m_localHailMessage != null)
 			{
-				byte[] hi = m_localHailMessage.Data;
+				byte[]? hi = m_localHailMessage.Data;
 				if (hi != null && hi.Length >= m_localHailMessage.LengthBytes)
 				{
 					if (om.LengthBytes + m_localHailMessage.LengthBytes > m_peerConfiguration.m_maximumTransmissionUnit - 10)
 						m_peer.ThrowOrLog("Hail message too large; can maximally be " + (m_peerConfiguration.m_maximumTransmissionUnit - 10 - om.LengthBytes));
-					om.Write(m_localHailMessage.Data, 0, m_localHailMessage.LengthBytes);
+					om.Write(hi, 0, m_localHailMessage.LengthBytes);
 				}
 			}
 		}
@@ -283,14 +283,13 @@ namespace Lidgren.Network
 		{
 			m_peer.VerifyNetworkThread();
 
-			byte[] hail;
 			switch (tp)
 			{
 				case NetMessageType.Connect:
 					if (m_status == NetConnectionStatus.ReceivedInitiation)
 					{
 						// Whee! Server full has already been checked
-						bool ok = ValidateHandshakeData(ptr, payloadLength, out hail);
+						bool ok = ValidateHandshakeData(ptr, payloadLength, out byte[]? hail);
 						if (ok)
 						{
 							if (hail != null)
@@ -300,7 +299,7 @@ namespace Lidgren.Network
 							}
 							else
 							{
-								m_remoteHailMessage = null; 
+								m_remoteHailMessage = null;
 							}
 
 							if (m_peerConfiguration.IsMessageTypeEnabled(NetIncomingMessageType.ConnectionApproval))
@@ -311,7 +310,7 @@ namespace Lidgren.Network
 								appMsg.m_senderConnection = this;
 								appMsg.m_senderEndPoint = this.m_remoteEndPoint;
 								if (m_remoteHailMessage != null)
-									appMsg.Write(m_remoteHailMessage.m_data, 0, m_remoteHailMessage.LengthBytes);
+									appMsg.Write(m_remoteHailMessage.Data, 0, m_remoteHailMessage.LengthBytes);
 								SetStatus(NetConnectionStatus.RespondedAwaitingApproval, "Awaiting approval");
 								m_peer.ReleaseMessage(appMsg);
 								return;
@@ -357,7 +356,7 @@ namespace Lidgren.Network
 							break;
 						case NetConnectionStatus.RespondedConnect:
 							// awesome
-				
+
 							NetIncomingMessage msg = m_peer.SetupReadHelperMessage(ptr, payloadLength);
 							InitializeRemoteTimeOffset(msg.ReadSingle());
 
@@ -402,7 +401,7 @@ namespace Lidgren.Network
 
 		private void HandleConnectResponse(double now, NetMessageType tp, int ptr, int payloadLength)
 		{
-			byte[] hail;
+			byte[]? hail;
 			switch (m_status)
 			{
 				case NetConnectionStatus.InitiatedConnect:
@@ -441,7 +440,7 @@ namespace Lidgren.Network
 			}
 		}
 
-		private bool ValidateHandshakeData(int ptr, int payloadLength, out byte[] hail)
+		private bool ValidateHandshakeData(int ptr, int payloadLength, out byte[]? hail)
 		{
 			hail = null;
 

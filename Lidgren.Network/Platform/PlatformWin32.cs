@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
@@ -24,7 +25,7 @@ namespace Lidgren.Network
 
 		public static double Now { get { return (double)(Stopwatch.GetTimestamp() - s_timeInitialized) * s_dInvFreq; } }
 
-		private static NetworkInterface GetNetworkInterface()
+		private static NetworkInterface? GetNetworkInterface()
 		{
 			var defaultAddress = ProbeDefaultRouteAddress();
 			
@@ -60,7 +61,7 @@ namespace Lidgren.Network
 				.FirstOrDefault();
 		}
 
-		private static IPAddress ProbeDefaultRouteAddress()
+		private static IPAddress? ProbeDefaultRouteAddress()
 		{
 			try
 			{
@@ -71,7 +72,7 @@ namespace Lidgren.Network
 				// This basically gets us the network interface address "that goes to the router".
 				using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
 				socket.Connect(new IPAddress(new byte[] { 1, 1, 1, 1 }), 12345);
-				return ((IPEndPoint)socket.LocalEndPoint).Address;
+				return ((IPEndPoint)socket.LocalEndPoint!).Address;
 			}
 			catch
 			{
@@ -83,7 +84,7 @@ namespace Lidgren.Network
 		/// <summary>
 		/// If available, returns the bytes of the physical (MAC) address for the first usable network interface
 		/// </summary>
-		public static byte[] GetMacAddressBytes()
+		public static byte[]? GetMacAddressBytes()
 		{
 			var ni = GetNetworkInterface();
 			if (ni == null)
@@ -91,7 +92,7 @@ namespace Lidgren.Network
 			return ni.GetPhysicalAddress().GetAddressBytes();
 		}
 
-		public static IPAddress GetBroadcastAddress()
+		public static IPAddress? GetBroadcastAddress()
 		{
 			var ni = GetNetworkInterface();
 			if (ni == null)
@@ -123,7 +124,7 @@ namespace Lidgren.Network
 		/// <summary>
 		/// Gets my local IPv4 address (not necessarily external) and subnet mask
 		/// </summary>
-		public static IPAddress GetMyAddress(out IPAddress mask)
+		public static IPAddress? GetMyAddress(out IPAddress? mask)
 		{
 			var ni = GetNetworkInterface();
 			if (ni == null)

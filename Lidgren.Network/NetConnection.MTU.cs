@@ -152,8 +152,7 @@ namespace Lidgren.Network
 			om.Write(size);
 			om.m_messageType = NetMessageType.ExpandMTUSuccess;
 			int len = om.Encode(m_peer.m_sendBuffer, 0, 0);
-			bool connectionReset;
-			m_peer.SendPacket(len, m_remoteEndPoint, 1, out connectionReset);
+			m_peer.SendPacket(len, m_remoteEndPoint, 1, out _);
 			m_peer.Recycle(om);
 
 			//m_peer.LogDebug("Received MTU expand request for " + size + " bytes");

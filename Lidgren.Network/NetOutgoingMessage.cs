@@ -78,7 +78,7 @@ namespace Lidgren.Network
 				int byteLen = NetUtility.BytesToHoldBits(m_bitLength);
 				if (byteLen > 0)
 				{
-					Buffer.BlockCopy(m_data, 0, intoBuffer, ptr, byteLen);
+					Buffer.BlockCopy(Data, 0, intoBuffer, ptr, byteLen);
 					ptr += byteLen;
 				}
 			}
@@ -102,7 +102,7 @@ namespace Lidgren.Network
 				int byteLen = NetUtility.BytesToHoldBits(m_bitLength);
 				if (byteLen > 0)
 				{
-					Buffer.BlockCopy(m_data, (int)(m_fragmentChunkNumber * m_fragmentChunkByteSize), intoBuffer, ptr, byteLen);
+					Buffer.BlockCopy(Data, (int)(m_fragmentChunkNumber * m_fragmentChunkByteSize), intoBuffer, ptr, byteLen);
 					ptr += byteLen;
 				}
 			}
@@ -125,10 +125,7 @@ namespace Lidgren.Network
 		/// </summary>
 		public override string ToString()
 		{
-			if (m_isSent)
-				return "[NetOutgoingMessage " + m_messageType + " " + this.LengthBytes + " bytes]";
-
-			return "[NetOutgoingMessage " + this.LengthBytes + " bytes]";
+			return m_isSent ? $"[NetOutgoingMessage {m_messageType} {LengthBytes} bytes]" : $"[NetOutgoingMessage {LengthBytes} bytes]";
 		}
 	}
 }
