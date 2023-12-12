@@ -2,6 +2,8 @@
 
 ## Master
 
+## 0.2.7
+
 - All APIs now use Nullable Reference Types.
 - `NetQueue<T>.Contains(T)` now uses `EqualityComparer<T>.Default` instead of direct `object.Equals()`.
 - `NetException.Assert()` now specifies `[DoesNotReturnIf(false)]`.
