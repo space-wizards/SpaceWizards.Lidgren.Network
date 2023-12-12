@@ -106,7 +106,7 @@ namespace Lidgren.Network
 				return;
 			}
 
-			NetException.ThrowIfNull(im.SenderConnection);
+			NetException.Assert(im.SenderConnection != null);
 
 			if (!m_receivedFragmentGroups.TryGetValue(im.SenderConnection, out Dictionary<int, ReceivedFragmentGroup>? groups))
 			{

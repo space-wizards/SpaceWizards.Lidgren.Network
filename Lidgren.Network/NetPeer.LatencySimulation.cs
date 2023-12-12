@@ -150,7 +150,7 @@ namespace Lidgren.Network
 			connectionReset = false;
 			IPAddress? ba = default(IPAddress);
 
-			NetException.ThrowIfNull(m_socket);
+			NetException.Assert(m_socket != null);
 
 			try
 			{
@@ -220,7 +220,7 @@ namespace Lidgren.Network
 			if (!CanAutoExpandMTU)
 				throw new NotSupportedException("MTU expansion not currently supported on this operating system");
 
-			NetException.ThrowIfNull(m_socket);
+			NetException.Assert(m_socket != null);
 
 			try
 			{

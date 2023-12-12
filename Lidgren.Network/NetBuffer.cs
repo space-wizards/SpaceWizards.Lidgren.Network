@@ -27,8 +27,8 @@ namespace Lidgren.Network
 		/// <exception cref="NetException"/>
 		public byte[] Data
 		{
-			get { return NetException.ThrowIfNull(m_data); }
-			set { m_data = NetException.ThrowIfNull(value); }
+			get { return m_data ?? throw new InvalidOperationException("Buffer is is pooled and has no valid data buffer."); }
+			set { m_data = value ?? throw new ArgumentNullException(nameof(value)); }
 		}
 
 		/// <summary>

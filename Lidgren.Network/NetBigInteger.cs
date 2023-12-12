@@ -1132,8 +1132,8 @@ namespace Lidgren.Network
 
 			yVal = new int[m.m_magnitude.Length];
 
-			NetException.ThrowIfNull(zVal);
-			NetException.ThrowIfNull(yAccum);
+			NetException.Assert(yAccum != null);
+			NetException.Assert(zVal != null);
 
 			//
 			// from LSW to MSW

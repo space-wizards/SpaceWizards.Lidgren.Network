@@ -47,7 +47,9 @@ namespace Lidgren.Network
 
 				while (m_earlyReceived[nextSeqNr % m_windowSize])
 				{
-					message = NetException.ThrowIfNull(m_withheldMessages[nextSeqNr % m_windowSize]);
+					var popMessage = m_withheldMessages[nextSeqNr % m_windowSize];
+					NetException.Assert(popMessage != null);
+					message = popMessage;
 
 					// remove it from withheld messages
 					m_withheldMessages[nextSeqNr % m_windowSize] = null;

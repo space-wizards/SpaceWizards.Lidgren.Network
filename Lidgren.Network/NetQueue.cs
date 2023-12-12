@@ -328,12 +328,12 @@ namespace Lidgren.Network
 		/// <summary>
 		/// Copies the queue items to a new array
 		/// </summary>
-		public T?[] ToArray()
+		public T[] ToArray()
 		{
 			m_lock.EnterReadLock();
 			try
 			{
-				T?[] retval = new T[m_size];
+				T[] retval = new T[m_size];
 				int ptr = m_head;
 				for (int i = 0; i < m_size; i++)
 				{

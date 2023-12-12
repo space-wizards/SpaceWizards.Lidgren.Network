@@ -85,8 +85,10 @@ namespace Lidgren.Network
 
 			m_peer.LogDebug("Attempting UPnP discovery");
 
-			NetException.ThrowIfNull(peer.Socket);
-			IPAddress broadcastAddress = NetException.ThrowIfNull(NetUtility.GetBroadcastAddress());
+			NetException.Assert(peer.Socket != null);
+			IPAddress? broadcastAddress = NetUtility.GetBroadcastAddress();
+			if (broadcastAddress == null)
+				throw new InvalidOperationException("Unable to determine broadcast address");
 
 			peer.Socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Broadcast, true);
 			peer.RawSend(arr, 0, arr.Length, new NetEndPoint(broadcastAddress, 1900));
@@ -237,9 +239,11 @@ namespace Lidgren.Network
 			if (internalPort == 0)
 				internalPort = externalPort;
 
+			NetException.Assert(m_serviceUrl != null);
+
 			try
 			{
-				SOAPRequest(NetException.ThrowIfNull(m_serviceUrl), m_serviceName,
+				SOAPRequest(m_serviceUrl, m_serviceName,
 					"<u:AddPortMapping xmlns:u=\"urn:schemas-upnp-org:service:" + m_serviceName + ":1\">" +
 					"<NewRemoteHost></NewRemoteHost>" +
 					"<NewExternalPort>" + externalPort.ToString() + "</NewExternalPort>" +
@@ -273,9 +277,11 @@ namespace Lidgren.Network
 			if (!CheckAvailability())
 				return false;
 
+			NetException.Assert(m_serviceUrl != null);
+
 			try
 			{
-				SOAPRequest(NetException.ThrowIfNull(m_serviceUrl), m_serviceName,
+				SOAPRequest(m_serviceUrl, m_serviceName,
 				"<u:DeletePortMapping xmlns:u=\"urn:schemas-upnp-org:service:" + m_serviceName + ":1\">" +
 				"<NewRemoteHost>" +
 				"</NewRemoteHost>" +
@@ -299,7 +305,9 @@ namespace Lidgren.Network
 			if (!CheckAvailability())
 				return null;
 
-			return GetExternalIP(NetException.ThrowIfNull(m_serviceUrl), m_serviceName);
+			NetException.Assert(m_serviceUrl != null);
+
+			return GetExternalIP(m_serviceUrl, m_serviceName);
 		}
 
 		private IPAddress? GetExternalIP(string url, string name)
