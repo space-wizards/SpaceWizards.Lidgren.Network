@@ -56,7 +56,7 @@ namespace Lidgren.Network
 		/// Throws an exception, in DEBUG only, if first parameter is false
 		/// </summary>
 		[Conditional("DEBUG")]
-		public static void Assert(bool isOk, string message)
+		public static void Assert([DoesNotReturnIf(false)] bool isOk, string message)
 		{
 			if (!isOk)
 				throw new NetException(message);
@@ -66,30 +66,10 @@ namespace Lidgren.Network
 		/// Throws an exception, in DEBUG only, if first parameter is false
 		/// </summary>
 		[Conditional("DEBUG")]
-		public static void Assert(bool isOk)
+		public static void Assert([DoesNotReturnIf(false)] bool isOk)
 		{
 			if (!isOk)
 				throw new NetException();
 		}
-
-		/// <summary>Returns the passed <paramref name="argument"/>, but throws an <see cref="NetException"/> if the <paramref name="argument"/> is null.</summary>
-		/// <param name="argument">The reference type argument to validate as non-null.</param>
-		/// <param name="paramName">The name of the parameter with which <paramref name="argument"/> corresponds.</param>
-#if !DEBUG
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static T ThrowIfNull<T>(T argument, string? paramName = null)
-		{
-			return argument;
-		}
-#else
-#if NET5_0_OR_GREATER
-		public static T ThrowIfNull<T>([NotNull] T? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null) where T : class
-#else
-		public static T ThrowIfNull<T>([NotNull] T? argument, string? paramName = null) where T : class
-#endif
-		{
-			return argument ?? throw new NetException($"{paramName ?? "argument"} is null");
-		}
-#endif
 	}
 }

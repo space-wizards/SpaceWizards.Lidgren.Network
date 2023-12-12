@@ -228,6 +228,10 @@ namespace Lidgren.Network
 			if (om.m_isSent)
 				throw new NetException("This message has already been sent! Use NetPeer.SendMessage() to send to multiple recipients efficiently");
 
+			var selfEndPoint = m_socket?.LocalEndPoint;
+			if (selfEndPoint == null)
+				throw new InvalidOperationException("Local socket is not bound");
+
 			om.m_messageType = NetMessageType.Unconnected;
 			om.m_isSent = true;
 
@@ -243,7 +247,7 @@ namespace Lidgren.Network
 			im.m_isFragment = false;
 			im.m_receiveTime = NetTime.Now;
 			im.m_senderConnection = null;
-			im.m_senderEndPoint = (NetEndPoint?)NetException.ThrowIfNull(m_socket).LocalEndPoint;
+			im.m_senderEndPoint = (NetEndPoint?)selfEndPoint;
 			NetException.Assert(im.m_bitLength == om.LengthBits);
 
 			// recycle outgoing message

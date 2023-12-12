@@ -104,10 +104,12 @@ namespace Lidgren.Network
 		/// </summary>
 		public static bool IsLocal(NetAddress remote)
 		{
-			var local = NetException.ThrowIfNull(GetMyAddress(out NetAddress? mask));
+			var local = GetMyAddress(out NetAddress? mask);
 
-			if (mask == null)
-				return false;
+			if (local == null)
+				throw new InvalidOperationException("Unable to determine local address");
+
+			NetException.Assert(mask != null);
 
 			uint maskBits = BitConverter.ToUInt32(mask.GetAddressBytes(), 0);
 			uint remoteBits = BitConverter.ToUInt32(remote.GetAddressBytes(), 0);

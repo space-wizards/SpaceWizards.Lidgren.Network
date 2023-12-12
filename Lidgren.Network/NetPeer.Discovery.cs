@@ -19,7 +19,11 @@ namespace Lidgren.Network
 			um.m_messageType = NetMessageType.Discovery;
 			Interlocked.Increment(ref um.m_recyclingCount);
 
-			m_unsentUnconnectedMessages.Enqueue(new NetTuple<NetEndPoint, NetOutgoingMessage>(new NetEndPoint(NetException.ThrowIfNull(NetUtility.GetBroadcastAddress()), serverPort), um));
+			var broadcastAddress = NetUtility.GetBroadcastAddress();
+			if (broadcastAddress == null)
+				throw new NetException("Unable to determine broadcast address.");
+
+			m_unsentUnconnectedMessages.Enqueue(new NetTuple<NetEndPoint, NetOutgoingMessage>(new NetEndPoint(broadcastAddress, serverPort), um));
 		}
 
 		/// <summary>

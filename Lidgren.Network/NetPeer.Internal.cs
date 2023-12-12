@@ -157,7 +157,8 @@ namespace Lidgren.Network
 				// ignore; SIO_UDP_CONNRESET not supported on this platform
 			}
 
-			var boundEp = NetException.ThrowIfNull((NetEndPoint?)m_socket.LocalEndPoint);
+			NetException.Assert(m_socket.LocalEndPoint != null);
+			var boundEp = (NetEndPoint)m_socket.LocalEndPoint;
 			LogDebug("Socket bound to " + boundEp + ": " + m_socket.IsBound);
 			m_listenPort = boundEp.Port;
 		}
@@ -188,7 +189,8 @@ namespace Lidgren.Network
 
 				byte[] macBytes = NetUtility.GetMacAddressBytes() ?? new byte[0];
 
-				NetEndPoint boundEp = NetException.ThrowIfNull(m_socket?.LocalEndPoint as NetEndPoint);
+				Debug.Assert(m_socket?.LocalEndPoint != null);
+				NetEndPoint boundEp = (NetEndPoint) m_socket.LocalEndPoint;
 
 				byte[] epBytes = BitConverter.GetBytes(boundEp.GetHashCode());
 				byte[] combined = new byte[epBytes.Length + macBytes.Length];
@@ -441,8 +443,10 @@ namespace Lidgren.Network
 
 		private void ReceiveSocketData(double now)
 		{
+			Debug.Assert(m_socket != null);
+
 			int bytesReceived = NetFastSocket.ReceiveFrom(
-				NetException.ThrowIfNull(m_socket),
+				m_socket,
 				m_receiveBuffer, 0, m_receiveBuffer.Length,
 				SocketFlags.None,
 				out var senderRemote,
@@ -628,7 +632,7 @@ namespace Lidgren.Network
 
 			if (payloadByteLength > 0)
 			{
-				Buffer.BlockCopy(NetException.ThrowIfNull(m_receiveBuffer), ptr, dr.Data, 0, payloadByteLength);
+				Buffer.BlockCopy(m_receiveBuffer, ptr, dr.Data, 0, payloadByteLength);
 			}
 
 			dr.m_receiveTime = now;

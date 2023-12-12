@@ -223,7 +223,7 @@ namespace Lidgren.Network
 				{
 					NetConnectionStatus status = (NetConnectionStatus)retval.PeekByte();
 
-					NetException.ThrowIfNull(retval.SenderConnection);
+					NetException.Assert(retval.SenderConnection != null);
 
 					retval.SenderConnection.m_visibleStatus = status;
 				}
@@ -258,7 +258,7 @@ namespace Lidgren.Network
 					{
 						NetConnectionStatus status = (NetConnectionStatus)nim.PeekByte();
 
-						NetException.ThrowIfNull(nim.SenderConnection);
+						NetException.Assert(nim.SenderConnection != null);
 
 						nim.SenderConnection.m_visibleStatus = status;
 					}
