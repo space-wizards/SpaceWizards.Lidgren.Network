@@ -15,7 +15,7 @@ namespace Lidgren.Network
 
 		// Only Linux and Windows supported right now.
 		// I couldn't get macOS to work and gave up for now.
-		
+
 		public static int SendTo(Socket socket, byte[] buffer, int offset, int size, SocketFlags socketFlags,
 			IPEndPoint endPoint)
 		{
@@ -83,7 +83,7 @@ namespace Lidgren.Network
 			{
 				sockaddr_in6 address6 = default;
 
-				ref var refAddress6 = ref Unsafe.AsRef(socketAddress.V6);
+				ref var refAddress6 = ref Unsafe.AsRef(in socketAddress.V6);
 
 				address6.sin6_port = htons(refAddress6.Port);
 				address6.sin6_family = AF_INET6;
@@ -97,7 +97,7 @@ namespace Lidgren.Network
 			{
 				Debug.Assert(socketAddress.Family == NetIpAddressFamily.V4);
 
-				ref var refAddress4 = ref Unsafe.AsRef(socketAddress.V4);
+				ref var refAddress4 = ref Unsafe.AsRef(in socketAddress.V4);
 
 				sockaddr_in address4 = default;
 				address4.sin_port = htons(refAddress4.Port);
