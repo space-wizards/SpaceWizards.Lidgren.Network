@@ -566,7 +566,7 @@ namespace Lidgren.Network
 				throw new NetException(c_readOverflowError);
 #else
 				m_readPosition = m_bitLength;
-				return null; // unfortunate; but we need to protect against DDOS
+				return ""; // unfortunate; but we need to protect against DDOS
 #endif
 			}
 
