@@ -2,6 +2,10 @@
 
 ## Master
 
+- Add explicit .NET 8 target framework
+- Removed .NET Core 3.1 and .NET 5 target frameworks
+- Updated dependencies
+
 ## 0.2.7
 
 - All APIs now use Nullable Reference Types.
