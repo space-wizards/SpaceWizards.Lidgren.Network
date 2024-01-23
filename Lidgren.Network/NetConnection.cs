@@ -24,8 +24,8 @@ namespace Lidgren.Network
 		internal NetConnectionStatus m_outputtedStatus; // status that has been sent as StatusChanged message
 		internal NetConnectionStatus m_visibleStatus; // status visible by querying the Status property
 		internal NetEndPoint m_remoteEndPoint;
-		internal NetSenderChannelBase[] m_sendChannels;
-		internal NetReceiverChannelBase[] m_receiveChannels;
+		internal NetSenderChannelBase?[] m_sendChannels;
+		internal NetReceiverChannelBase?[] m_receiveChannels;
 		internal NetOutgoingMessage? m_localHailMessage;
 		internal long m_remoteUniqueIdentifier;
 		internal NetQueue<NetTuple<NetMessageType, int>> m_queuedOutgoingAcks;
@@ -243,7 +243,7 @@ namespace Lidgren.Network
 				while (m_queuedIncomingAcks.TryDequeue(out NetTuple<NetMessageType, int> incAck))
 				{
 					//m_peer.LogVerbose("Received ack for " + acktp + "#" + seqNr);
-					NetSenderChannelBase chan = m_sendChannels[(int)incAck.Item1 - 1];
+					NetSenderChannelBase? chan = m_sendChannels[(int)incAck.Item1 - 1];
 
 					// If we haven't sent a message on this channel there is no reason to ack it
 					if (chan == null)
@@ -351,7 +351,7 @@ namespace Lidgren.Network
 
 			// TODO: do we need to make this more thread safe?
 			int channelSlot = (int)method - 1 + sequenceChannel;
-			NetSenderChannelBase chan = m_sendChannels[channelSlot];
+			NetSenderChannelBase? chan = m_sendChannels[channelSlot];
 			if (chan == null)
 				chan = CreateSenderChannel(tp);
 
@@ -377,7 +377,7 @@ namespace Lidgren.Network
 				if (m_sendChannels[channelSlot] != null)
 				{
 					// we were pre-empted by another call to this method
-					chan = m_sendChannels[channelSlot];
+					chan = m_sendChannels[channelSlot]!;
 				}
 				else
 				{
@@ -488,7 +488,7 @@ namespace Lidgren.Network
 			NetMessageType tp = msg.m_receivedMessageType;
 
 			int channelSlot = (int)tp - 1;
-			NetReceiverChannelBase chan = m_receiveChannels[channelSlot];
+			NetReceiverChannelBase? chan = m_receiveChannels[channelSlot];
 			if (chan == null)
 				chan = CreateReceiverChannel(tp);
 

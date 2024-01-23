@@ -102,7 +102,7 @@ namespace Lidgren.Network
 			// clear send queues
 			for (int i = 0; i < m_sendChannels.Length; i++)
 			{
-				NetSenderChannelBase channel = m_sendChannels[i];
+				NetSenderChannelBase? channel = m_sendChannels[i];
 				if (channel != null)
 					channel.Reset();
 			}
