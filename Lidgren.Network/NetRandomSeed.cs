@@ -39,7 +39,7 @@ namespace Lidgren.Network
 				((ulong)guidBytes[6] << (8 * 6)) |
 				((ulong)guidBytes[7] << (8 * 7));
 
-			return seed ^ NetUtility.GetPlatformSeed(m_seedIncrement);
+			return seed ^ NetUtility.GetPlatformSeedCore(m_seedIncrement);
 		}
 	}
 }

@@ -44,6 +44,15 @@ namespace Lidgren.Network
 		private static readonly bool IsMono = Type.GetType("Mono.Runtime") != null;
 
 		private static IPAddress? s_broadcastAddress;
+
+		/// <summary>
+		/// Get a cached copy of <see cref="GetBroadcastAddress"/>.
+		/// </summary>
+		/// <remarks>
+		/// This value is cached when this function is first called.
+		/// </remarks>
+		/// <seealso cref="GetBroadcastAddress"/>
+		/// <seealso cref="GetMyAddress"/>
 		public static IPAddress? GetCachedBroadcastAddress()
 		{
 			if (s_broadcastAddress == null)
@@ -67,6 +76,14 @@ namespace Lidgren.Network
 			return ToHexString(data.AsSpan());
 		}
 
+		/// <summary>
+		/// Create a hex string from an array of bytes
+		/// </summary>
+		/// <param name="data">Array containing the bytes to turn into hex.</param>
+		/// <param name="offset">Position in <paramref name="data"/> that the data to convert starts at.</param>
+		/// <param name="length">Amount of bytes of data to convert from <paramref name="offset"/>.</param>
+		/// <remarks>
+		/// </remarks>
 		public static string ToHexString(byte[] data, int offset, int length)
 		{
 			return ToHexString(data.AsSpan(offset, length));
@@ -294,6 +311,11 @@ namespace Lidgren.Network
 			return bdr.ToString();
 		}
 
+		/// <summary>
+		/// Compute the SHA-256 hash of an array of data.
+		/// </summary>
+		/// <param name="bytes">An array containing the data to hash.</param>
+		/// <returns>The hash result.</returns>
 		public static byte[] ComputeSHAHash(byte[] bytes)
 		{
 			// this is defined in the platform specific files

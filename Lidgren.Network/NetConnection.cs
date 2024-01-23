@@ -555,6 +555,15 @@ namespace Lidgren.Network
 			return;
 		}
 
+		/// <summary>
+		/// Test whether the client window allows a message to be sent immediately.
+		/// </summary>
+		/// <param name="method">The delivery method that a message would be sent on.</param>
+		/// <param name="sequenceChannel">The sequence channel that a message would be sent on.</param>
+		/// <remarks>
+		/// If this returns false, messages may still be queued but will not be sent out
+		/// until the client window allows it.
+		/// </remarks>
 		public bool CanSendImmediately(NetDeliveryMethod method, int sequenceChannel)
 		{
 			int channelSlot = (int)method - 1 + sequenceChannel;

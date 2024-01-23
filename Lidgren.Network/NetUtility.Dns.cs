@@ -14,23 +14,81 @@ namespace Lidgren.Network
 	public static partial class NetUtility
 	{
 		/// <summary>
-		/// Resolve endpoint callback
+		/// Asynchronous callback raised when a remote <see cref="NetEndPoint"/> has been resolved.
 		/// </summary>
+		/// <remarks>
+		/// This callback is not raised on any particular thread.
+		/// </remarks>
+		/// <param name="endPoint">
+		/// Null if the resolved host name does not exist or does not contain suitable DNS records.
+		/// </param>
 		public delegate void ResolveEndPointCallback(NetEndPoint? endPoint);
 
 		/// <summary>
 		/// Resolve address callback
 		/// </summary>
+		/// <remarks>
+		/// This callback is not raised on any particular thread.
+		/// </remarks>
+		/// <param name="adr">
+		/// Null if the resolved host name does not exist or does not contain suitable DNS records.
+		/// </param>
 		public delegate void ResolveAddressCallback(NetAddress? adr);
 
 		/// <summary>
-		/// Get IPv4 or IPv6 address from notation (xxx.xxx.xxx.xxx or xxxx:xxxx:...:xxxx) or hostname (asynchronous version)
+		/// Resolve an IP address or hostname into a <see cref="NetEndPoint"/>. (asynchronous callback version)
 		/// </summary>
+		/// <remarks>
+		/// <para>
+		///	This function can accept host names or direct IP addresses
+		/// (in standard notation, i.e. <c>xxx.xxx.xxx.xxx</c> for IPv4 or <c>xxxx:xxxx:...:xxxx</c> for IPv6).
+		/// If an IP address is given, it is parsed and immediately returned.
+		/// </para>
+		/// <para>
+		/// This is an asynchronous callback version.
+		/// Instead of returning a value directly, <paramref name="callback"/> is called with the result.
+		/// </para>
+		/// </remarks>
+		/// <param name="ipOrHost">IP address or host name string to resolve.</param>
+		/// <param name="port">Port to use on the returned <see cref="NetEndPoint"/> instance.</param>
+		/// <param name="callback">Callback that is ran when resolution completes.</param>
+		/// <exception cref="ArgumentException">Thrown if <paramref name="ipOrHost"/> is empty.</exception>
+		/// <exception cref="SocketException">Thrown if a network error occurs.</exception>
+		[Obsolete("This function does not handle network errors properly, prefer task-based ResolveAsync instead.")]
 		public static void ResolveAsync(string ipOrHost, int port, ResolveEndPointCallback callback)
 		{
 			ResolveAsync(ipOrHost, port, null, callback);
 		}
 
+		/// <summary>
+		/// Resolve an IP address or hostname into a <see cref="NetEndPoint"/>. (asynchronous callback version)
+		/// </summary>
+		/// <remarks>
+		/// <para>
+		///	This function can accept host names or direct IP addresses
+		/// (in standard notation, i.e. <c>xxx.xxx.xxx.xxx</c> for IPv4 or <c>xxxx:xxxx:...:xxxx</c> for IPv6).
+		/// If an IP address is given, it is parsed and immediately returned.
+		/// </para>
+		/// <para>
+		/// This is an asynchronous callback version.
+		/// Instead of returning a value directly, <paramref name="callback"/> is called with the result.
+		/// </para>
+		/// </remarks>
+		/// <param name="ipOrHost">IP address or host name string to resolve.</param>
+		/// <param name="port">Port to use on the returned <see cref="NetEndPoint"/> instance.</param>
+		/// <param name="allowedFamily">
+		/// If not <see langword="null"/>, only allow the given address family to be returned.
+		/// Otherwise, both IPv4 and IPv6 addresses can be returned.
+		/// </param>
+		/// <param name="callback">Callback that is ran when resolution completes.</param>
+		/// <exception cref="ArgumentException">
+		/// Thrown if <paramref name="ipOrHost"/> is empty
+		/// OR
+		/// <paramref name="allowedFamily"/> is not null and not one of <see cref="AddressFamily.InterNetwork"/>
+		/// or <see cref="AddressFamily.InterNetworkV6"/>.
+		/// </exception>
+		/// <exception cref="SocketException">Thrown if a network error occurs.</exception>
+		[Obsolete("This function does not handle network errors properly, prefer task-based ResolveAsync instead.")]
 		public static void ResolveAsync(string ipOrHost, int port, AddressFamily? allowedFamily,
 			ResolveEndPointCallback callback)
 		{
@@ -48,13 +106,59 @@ namespace Lidgren.Network
 		}
 
 		/// <summary>
-		/// Get IPv4 or IPv6 address from notation (xxx.xxx.xxx.xxx or xxxx:xxxx:...:xxxx) or hostname
+		/// Resolve an IP address or hostname into a <see cref="NetEndPoint"/>.
 		/// </summary>
+		/// <remarks>
+		/// <para>
+		///	This function can accept host names or direct IP addresses
+		/// (in standard notation, i.e. <c>xxx.xxx.xxx.xxx</c> for IPv4 or <c>xxxx:xxxx:...:xxxx</c> for IPv6).
+		/// If an IP address is given, it is parsed and immediately returned.
+		/// </para>
+		/// <para>
+		/// This function is synchronous,
+		/// prefer using <see cref="M:Lidgren.Network.NetUtility.ResolveAsync(System.String,System.Int32)"/>
+		/// to avoid hanging the current thread if the network has to be accessed.
+		/// </para>
+		/// </remarks>
+		/// <param name="ipOrHost">IP address or host name string to resolve.</param>
+		/// <param name="port">Port to use on the returned <see cref="NetEndPoint"/> instance.</param>
+		/// <exception cref="ArgumentException">Thrown if <paramref name="ipOrHost"/> is empty.</exception>
+		/// <exception cref="SocketException">Thrown if a network error occurs.</exception>
+		/// <returns><see langword="null"/> if the given host does not exist.</returns>
 		public static NetEndPoint? Resolve(string ipOrHost, int port)
 		{
 			return Resolve(ipOrHost, port, null);
 		}
 
+		/// <summary>
+		/// Resolve an IP address or hostname into a <see cref="NetEndPoint"/>.
+		/// </summary>
+		/// <remarks>
+		/// <para>
+		///	This function can accept host names or direct IP addresses
+		/// (in standard notation, i.e. <c>xxx.xxx.xxx.xxx</c> for IPv4 or <c>xxxx:xxxx:...:xxxx</c> for IPv6).
+		/// If an IP address is given, it is parsed and immediately returned.
+		/// </para>
+		/// <para>
+		/// This function is synchronous,
+		/// prefer using <see cref="M:Lidgren.Network.NetUtility.ResolveAsync(System.String,System.Int32)"/>
+		/// to avoid hanging the current thread if the network has to be accessed.
+		/// </para>
+		/// </remarks>
+		/// <param name="ipOrHost">IP address or host name string to resolve.</param>
+		/// <param name="port">Port to use on the returned <see cref="NetEndPoint"/> instance.</param>
+		/// <param name="allowedFamily">
+		/// If not <see langword="null"/>, only allow the given address family to be returned.
+		/// Otherwise, both IPv4 and IPv6 addresses can be returned.
+		/// </param>
+		/// <exception cref="ArgumentException">
+		/// Thrown if <paramref name="ipOrHost"/> is empty
+		/// OR
+		/// <paramref name="allowedFamily"/> is not null and not one of <see cref="AddressFamily.InterNetwork"/>
+		/// or <see cref="AddressFamily.InterNetworkV6"/>.
+		/// </exception>
+		/// <exception cref="SocketException">Thrown if a network error occurs.</exception>
+		/// <returns><see langword="null"/> if the given host does not exist.</returns>
 		public static NetEndPoint? Resolve(string ipOrHost, int port, AddressFamily? allowedFamily)
 		{
 			var adr = Resolve(ipOrHost, allowedFamily);
@@ -62,16 +166,57 @@ namespace Lidgren.Network
 		}
 
 		/// <summary>
-		/// Get IPv4 or IPv6 address from notation (xxx.xxx.xxx.xxx or xxxx:xxxx:...:xxxx) or hostname (asynchronous version)
+		/// Resolve an IP address or hostname into a <see cref="NetAddress"/>. (asynchronous callback version)
 		/// </summary>
+		/// <remarks>
+		/// <para>
+		///	This function can accept host names or direct IP addresses
+		/// (in standard notation, i.e. <c>xxx.xxx.xxx.xxx</c> for IPv4 or <c>xxxx:xxxx:...:xxxx</c> for IPv6).
+		/// If an IP address is given, it is parsed and immediately returned.
+		/// </para>
+		/// <para>
+		/// This is an asynchronous callback version.
+		/// Instead of returning a value directly, <paramref name="callback"/> is called with the result.
+		/// </para>
+		/// </remarks>
+		/// <param name="ipOrHost">IP address or host name string to resolve.</param>
+		/// <param name="callback">Callback that is ran when resolution completes.</param>
+		/// <exception cref="ArgumentException">Thrown if <paramref name="ipOrHost"/> is empty.</exception>
+		/// <exception cref="SocketException">Thrown if a network error occurs.</exception>
+		[Obsolete("This function does not handle network errors properly, prefer task-based ResolveAsync instead.")]
 		public static void ResolveAsync(string ipOrHost, ResolveAddressCallback callback)
 		{
 			ResolveAsync(ipOrHost, null, callback);
 		}
 
 		/// <summary>
-		/// Get IPv4 or IPv6 address from notation (xxx.xxx.xxx.xxx or xxxx:xxxx:...:xxxx) or hostname (asynchronous version)
+		/// Resolve an IP address or hostname into a <see cref="NetAddress"/>. (asynchronous callback version)
 		/// </summary>
+		/// <remarks>
+		/// <para>
+		///	This function can accept host names or direct IP addresses
+		/// (in standard notation, i.e. <c>xxx.xxx.xxx.xxx</c> for IPv4 or <c>xxxx:xxxx:...:xxxx</c> for IPv6).
+		/// If an IP address is given, it is parsed and immediately returned.
+		/// </para>
+		/// <para>
+		/// This is an asynchronous callback version.
+		/// Instead of returning a value directly, <paramref name="callback"/> is called with the result.
+		/// </para>
+		/// </remarks>
+		/// <param name="ipOrHost">IP address or host name string to resolve.</param>
+		/// <param name="allowedFamily">
+		/// If not <see langword="null"/>, only allow the given address family to be returned.
+		/// Otherwise, both IPv4 and IPv6 addresses can be returned.
+		/// </param>
+		/// <param name="callback">Callback that is ran when resolution completes.</param>
+		/// <exception cref="ArgumentException">
+		/// Thrown if <paramref name="ipOrHost"/> is empty
+		/// OR
+		/// <paramref name="allowedFamily"/> is not null and not one of <see cref="AddressFamily.InterNetwork"/>
+		/// or <see cref="AddressFamily.InterNetworkV6"/>.
+		/// </exception>
+		/// <exception cref="SocketException">Thrown if a network error occurs.</exception>
+		[Obsolete("This function does not handle network errors properly, prefer task-based ResolveAsync instead.")]
 		public static void ResolveAsync(string ipOrHost, AddressFamily? allowedFamily, ResolveAddressCallback callback)
 		{
 			if (ResolveHead(ref ipOrHost, allowedFamily, out var resolve))
@@ -128,17 +273,79 @@ namespace Lidgren.Network
 			}
 		}
 
+		/// <summary>
+		/// Resolve an IP address or hostname into a <see cref="NetEndPoint"/>. (asynchronous task version)
+		/// </summary>
+		/// <remarks>
+		/// <para>
+		///	This function can accept host names or direct IP addresses
+		/// (in standard notation, i.e. <c>xxx.xxx.xxx.xxx</c> for IPv4 or <c>xxxx:xxxx:...:xxxx</c> for IPv6).
+		/// If an IP address is given, it is parsed and immediately returned.
+		/// </para>
+		/// </remarks>
+		/// <param name="ipOrHost">IP address or host name string to resolve.</param>
+		/// <param name="port">Port to use on the returned <see cref="NetEndPoint"/> instance.</param>
+		/// <exception cref="ArgumentException">Thrown if <paramref name="ipOrHost"/> is empty.</exception>
+		/// <exception cref="SocketException">Thrown if a network error occurs.</exception>
+		/// <returns><see langword="null"/> if the given host does not exist.</returns>
 		public static async Task<NetEndPoint?> ResolveAsync(string ipOrHost, int port)
 		{
 			return await ResolveAsync(ipOrHost, port, (AddressFamily?)null);
 		}
 
+		/// <summary>
+		/// Resolve an IP address or hostname into a <see cref="NetEndPoint"/>. (asynchronous task version)
+		/// </summary>
+		/// <remarks>
+		/// <para>
+		///	This function can accept host names or direct IP addresses
+		/// (in standard notation, i.e. <c>xxx.xxx.xxx.xxx</c> for IPv4 or <c>xxxx:xxxx:...:xxxx</c> for IPv6).
+		/// If an IP address is given, it is parsed and immediately returned.
+		/// </para>
+		/// </remarks>
+		/// <param name="ipOrHost">IP address or host name string to resolve.</param>
+		/// <param name="port">Port to use on the returned <see cref="NetEndPoint"/> instance.</param>
+		/// <param name="allowedFamily">
+		/// If not <see langword="null"/>, only allow the given address family to be returned.
+		/// Otherwise, both IPv4 and IPv6 addresses can be returned.
+		/// </param>
+		/// <exception cref="ArgumentException">
+		/// Thrown if <paramref name="ipOrHost"/> is empty
+		/// OR
+		/// <paramref name="allowedFamily"/> is not null and not one of <see cref="AddressFamily.InterNetwork"/>
+		/// or <see cref="AddressFamily.InterNetworkV6"/>.
+		/// </exception>
+		/// <exception cref="SocketException">Thrown if a network error occurs.</exception>
+		/// <returns><see langword="null"/> if the given host does not exist.</returns>
 		public static async Task<NetEndPoint?> ResolveAsync(string ipOrHost, int port, AddressFamily? allowedFamily)
 		{
 			var adr = await ResolveAsync(ipOrHost, allowedFamily);
 			return adr == null ? null : new NetEndPoint(adr, port);
 		}
 
+		/// <summary>
+		/// Resolve an IP address or hostname into a <see cref="NetAddress"/>. (asynchronous task version)
+		/// </summary>
+		/// <remarks>
+		/// <para>
+		///	This function can accept host names or direct IP addresses
+		/// (in standard notation, i.e. <c>xxx.xxx.xxx.xxx</c> for IPv4 or <c>xxxx:xxxx:...:xxxx</c> for IPv6).
+		/// If an IP address is given, it is parsed and immediately returned.
+		/// </para>
+		/// </remarks>
+		/// <param name="ipOrHost">IP address or host name string to resolve.</param>
+		/// <param name="allowedFamily">
+		/// If not <see langword="null"/>, only allow the given address family to be returned.
+		/// Otherwise, both IPv4 and IPv6 addresses can be returned.
+		/// </param>
+		/// <exception cref="ArgumentException">
+		/// Thrown if <paramref name="ipOrHost"/> is empty
+		/// OR
+		/// <paramref name="allowedFamily"/> is not null and not one of <see cref="AddressFamily.InterNetwork"/>
+		/// or <see cref="AddressFamily.InterNetworkV6"/>.
+		/// </exception>
+		/// <exception cref="SocketException">Thrown if a network error occurs.</exception>
+		/// <returns><see langword="null"/> if the given host does not exist.</returns>
 		public static async Task<NetAddress?> ResolveAsync(string ipOrHost, AddressFamily? allowedFamily = null)
 		{
 			if (ResolveHead(ref ipOrHost, allowedFamily, out var resolve))
@@ -169,13 +376,28 @@ namespace Lidgren.Network
 		}
 
 		/// <summary>
-		/// Get IPv4 or IPv6 address from notation (xxx.xxx.xxx.xxx or xxxx:xxxx:...:xxxx) or hostname
+		/// Resolve an IP address or hostname into a <see cref="NetAddress"/>.
 		/// </summary>
+		/// <remarks>
+		/// <para>
+		///	This function can accept host names or direct IP addresses
+		/// (in standard notation, i.e. <c>xxx.xxx.xxx.xxx</c> for IPv4 or <c>xxxx:xxxx:...:xxxx</c> for IPv6).
+		/// If an IP address is given, it is parsed and immediately returned.
+		/// </para>
+		/// <para>
+		/// This function is synchronous,
+		/// prefer using <see cref="M:Lidgren.Network.NetUtility.ResolveAsync(System.String,System.Int32)"/>
+		/// to avoid hanging the current thread if the network has to be accessed.
+		/// </para>
+		/// </remarks>
+		/// <param name="ipOrHost">IP address or host name string to resolve.</param>
+		/// <exception cref="ArgumentException">Thrown if <paramref name="ipOrHost"/> is empty.</exception>
+		/// <exception cref="SocketException">Thrown if a network error occurs.</exception>
+		/// <returns><see langword="null"/> if the given host does not exist.</returns>
 		public static NetAddress? Resolve(string ipOrHost)
 		{
 			return Resolve(ipOrHost, null);
 		}
-
 
 		/// <summary>
 		/// Get IPv4 or IPv6 address from notation (xxx.xxx.xxx.xxx or xxxx:xxxx:...:xxxx) or hostname,
