@@ -6,6 +6,7 @@
 - Removed .NET Core 3.1 and .NET 5 target frameworks
 - Updated dependencies
 - More and improved doc comments.
+- Fix callback-based `NetUtility.ResolveAsync` functions never running their callback. (bug introduced in 0.1.0)
 
 ## 0.2.7
 

@@ -92,17 +92,7 @@ namespace Lidgren.Network
 		public static void ResolveAsync(string ipOrHost, int port, AddressFamily? allowedFamily,
 			ResolveEndPointCallback callback)
 		{
-			ResolveAsync(ipOrHost, allowedFamily, adr =>
-			{
-				if (adr == null)
-				{
-					callback(null);
-				}
-				else
-				{
-					callback(new NetEndPoint(adr, port));
-				}
-			});
+			ResolveAsync(ipOrHost, port, allowedFamily).ContinueWith(t => callback(t.Result));
 		}
 
 		/// <summary>
@@ -219,58 +209,7 @@ namespace Lidgren.Network
 		[Obsolete("This function does not handle network errors properly, prefer task-based ResolveAsync instead.")]
 		public static void ResolveAsync(string ipOrHost, AddressFamily? allowedFamily, ResolveAddressCallback callback)
 		{
-			if (ResolveHead(ref ipOrHost, allowedFamily, out var resolve))
-			{
-				callback(resolve);
-				return;
-			}
-
-			// ok must be a host name
-			IPHostEntry entry;
-			try
-			{
-				Dns.BeginGetHostEntry(ipOrHost, delegate (IAsyncResult result)
-				{
-					try
-					{
-						entry = Dns.EndGetHostEntry(result);
-					}
-					catch (SocketException ex)
-					{
-						if (ex.SocketErrorCode == SocketError.HostNotFound)
-						{
-							//LogWrite(string.Format(CultureInfo.InvariantCulture, "Failed to resolve host '{0}'.", ipOrHost));
-							callback(null);
-							return;
-						}
-						else
-						{
-							throw;
-						}
-					}
-
-					if (entry == null)
-					{
-						callback(null);
-						return;
-					}
-
-					// check each entry for a valid IP address
-					ResolveFilter(allowedFamily, entry.AddressList);
-				}, null);
-			}
-			catch (SocketException ex)
-			{
-				if (ex.SocketErrorCode == SocketError.HostNotFound)
-				{
-					//LogWrite(string.Format(CultureInfo.InvariantCulture, "Failed to resolve host '{0}'.", ipOrHost));
-					callback(null);
-				}
-				else
-				{
-					throw;
-				}
-			}
+			ResolveAsync(ipOrHost, allowedFamily).ContinueWith(t => callback(t.Result));
 		}
 
 		/// <summary>
