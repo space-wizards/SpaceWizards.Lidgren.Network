@@ -43,7 +43,8 @@ namespace Lidgren.Network
 #endif
 			SendLogBase(NetIncomingMessageType.DebugMessage, message);
 		}
-
+		
+		[Conditional("DEBUG")]
 		internal void LogWarning(string message)
 		{
 #if __ANDROID__
@@ -51,7 +52,8 @@ namespace Lidgren.Network
 #endif
 			SendLogBase(NetIncomingMessageType.WarningMessage, message);
 		}
-
+		
+		[Conditional("DEBUG")]
 		internal void LogError(string message)
 		{
 #if __ANDROID__
