@@ -97,7 +97,7 @@ namespace Lidgren.Network
 			m_queuedIncomingAcks = new NetQueue<NetTuple<NetMessageType, int>>(4);
 			m_statistics = new NetConnectionStatistics(this);
 			m_averageRoundtripTime = -1.0f;
-			m_currentMTU = m_peerConfiguration.MaximumTransmissionUnit;
+			m_currentMTU = m_peerConfiguration.MTUForEndPoint(m_remoteEndPoint);
 		}
 
 		/// <summary>

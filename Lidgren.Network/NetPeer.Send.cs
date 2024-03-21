@@ -159,15 +159,17 @@ namespace Lidgren.Network
 				throw new ArgumentNullException("host");
 			if (msg.m_isSent)
 				throw new NetException("This message has already been sent! Use NetPeer.SendMessage() to send to multiple recipients efficiently");
-			if (msg.LengthBytes > m_configuration.MaximumTransmissionUnit)
-				throw new NetException("Unconnected messages too long! Must be shorter than NetConfiguration.MaximumTransmissionUnit (currently " + m_configuration.MaximumTransmissionUnit + ")");
-
-			msg.m_isSent = true;
-			msg.m_messageType = NetMessageType.Unconnected;
 
 			var adr = NetUtility.Resolve(host);
 			if (adr == null)
 				throw new NetException("Failed to resolve " + host);
+
+			var mtu = m_configuration.MTUForAddress(adr);
+			if (msg.LengthBytes > mtu)
+				throw new NetException("Unconnected messages too long! Must be shorter than NetConfiguration.MaximumTransmissionUnit (whichever is appropriate, currently " + mtu + ")");
+
+			msg.m_isSent = true;
+			msg.m_messageType = NetMessageType.Unconnected;
 
 			Interlocked.Increment(ref msg.m_recyclingCount);
 			m_unsentUnconnectedMessages.Enqueue(new NetTuple<NetEndPoint, NetOutgoingMessage>(new NetEndPoint(adr, port), msg));
@@ -184,8 +186,10 @@ namespace Lidgren.Network
 				throw new ArgumentNullException("recipient");
 			if (msg.m_isSent)
 				throw new NetException("This message has already been sent! Use NetPeer.SendMessage() to send to multiple recipients efficiently");
-			if (msg.LengthBytes > m_configuration.MaximumTransmissionUnit)
-				throw new NetException("Unconnected messages too long! Must be shorter than NetConfiguration.MaximumTransmissionUnit (currently " + m_configuration.MaximumTransmissionUnit + ")");
+
+			var mtu = m_configuration.MTUForEndPoint(recipient);
+			if (msg.LengthBytes > mtu)
+				throw new NetException("Unconnected messages too long! Must be shorter than NetConfiguration.MaximumTransmissionUnit (currently " + mtu + ")");
 
 			msg.m_messageType = NetMessageType.Unconnected;
 			msg.m_isSent = true;
@@ -207,8 +211,16 @@ namespace Lidgren.Network
 				throw new NetException("recipients must contain at least one item");
 			if (msg.m_isSent)
 				throw new NetException("This message has already been sent! Use NetPeer.SendMessage() to send to multiple recipients efficiently");
-			if (msg.LengthBytes > m_configuration.MaximumTransmissionUnit)
-				throw new NetException("Unconnected messages too long! Must be shorter than NetConfiguration.MaximumTransmissionUnit (currently " + m_configuration.MaximumTransmissionUnit + ")");
+
+			// TODO: Avoid this extra allocating loop in the case that this isn't a dual-stack socket.
+			var minimumMTU = int.MaxValue;
+			foreach (var ep in recipients)
+			{
+				minimumMTU = Math.Min(minimumMTU, m_configuration.MTUForEndPoint(ep));
+			}
+
+			if (msg.LengthBytes > minimumMTU)
+				throw new NetException("Unconnected messages too long! Must be shorter than NetConfiguration.MaximumTransmissionUnit (currently " + minimumMTU + ")");
 
 			msg.m_messageType = NetMessageType.Unconnected;
 			msg.m_isSent = true;

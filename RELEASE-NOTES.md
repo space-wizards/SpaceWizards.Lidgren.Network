@@ -7,6 +7,10 @@
 - Updated dependencies
 - More and improved doc comments.
 - Fix callback-based `NetUtility.ResolveAsync` functions never running their callback. (bug introduced in 0.1.0)
+- Default MTU for IPv4 has been dropped to 508 to avoid issues for certain people.
+- A separate MTU value is now used for IPv6, as it permits a higher default. You can set it with `NetPeerConfiguration.MaximumTransmissionUnitV6`
+- Fixed MTU expansion not setting internal state correctly and spamming network packets.
+- Fixed `NetPeerConfiguration.ExpandMTUFailAttempts` not being respected completely.
 
 ## 0.2.7
 
