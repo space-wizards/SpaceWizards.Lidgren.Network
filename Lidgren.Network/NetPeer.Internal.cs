@@ -23,7 +23,7 @@ namespace Lidgren.Network
 		internal readonly byte[] m_receiveBuffer;
 		internal readonly NetIncomingMessage m_readHelperMessage;
 		private EndPoint m_senderRemote;
-		private readonly object m_initializeLock = new object();
+		internal readonly object m_initializeLock = new object();
 		private uint m_frameCounter;
 		private double m_lastHeartbeat;
 		private double m_lastSocketBind = float.MinValue;
@@ -42,6 +42,8 @@ namespace Lidgren.Network
 
 		private AutoResetEvent? m_messageReceivedEvent;
 		private List<NetTuple<SynchronizationContext, SendOrPostCallback>>? m_receiveCallbacks;
+
+		internal Action? m_onShutdown;
 
 		/// <summary>
 		/// Gets the socket, if Start() has been called
@@ -303,6 +305,8 @@ namespace Lidgren.Network
 				m_connections.Clear();
 				m_connectionLookup.Clear();
 				m_handshakes.Clear();
+
+				m_onShutdown?.Invoke();
 			}
 
 			return;

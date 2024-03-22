@@ -11,6 +11,7 @@
 - A separate MTU value is now used for IPv6, as it permits a higher default. You can set it with `NetPeerConfiguration.MaximumTransmissionUnitV6`
 - Fixed MTU expansion not setting internal state correctly and spamming network packets.
 - Fixed `NetPeerConfiguration.ExpandMTUFailAttempts` not being respected completely.
+- The new `NetPeerMetrics` allows exporting metrics about the library to `System.Diagnostics.Metrics`.
 
 ## 0.2.7
 
