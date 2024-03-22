@@ -23,7 +23,7 @@ namespace Lidgren.Network
 			if (broadcastAddress == null)
 				throw new NetException("Unable to determine broadcast address.");
 
-			m_unsentUnconnectedMessages.Enqueue(new NetTuple<NetEndPoint, NetOutgoingMessage>(new NetEndPoint(broadcastAddress, serverPort), um));
+			m_unsentUnconnectedMessages.Enqueue((new NetEndPoint(broadcastAddress, serverPort), um));
 		}
 
 		/// <summary>
@@ -46,7 +46,7 @@ namespace Lidgren.Network
 			NetOutgoingMessage om = CreateMessage(0);
 			om.m_messageType = NetMessageType.Discovery;
 			om.m_recyclingCount = 1;
-			m_unsentUnconnectedMessages.Enqueue(new NetTuple<NetEndPoint, NetOutgoingMessage>(endPoint, om));
+			m_unsentUnconnectedMessages.Enqueue((endPoint, om));
 		}
 
 		/// <summary>
@@ -68,7 +68,7 @@ namespace Lidgren.Network
 
 			msg.m_messageType = NetMessageType.DiscoveryResponse;
 			Interlocked.Increment(ref msg.m_recyclingCount);
-			m_unsentUnconnectedMessages.Enqueue(new NetTuple<NetEndPoint, NetOutgoingMessage>(recipient, msg));
+			m_unsentUnconnectedMessages.Enqueue((recipient, msg));
 		}
 	}
 }

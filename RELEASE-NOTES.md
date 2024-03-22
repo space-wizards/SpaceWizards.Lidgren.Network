@@ -12,6 +12,7 @@
 - Fixed MTU expansion not setting internal state correctly and spamming network packets.
 - Fixed `NetPeerConfiguration.ExpandMTUFailAttempts` not being respected completely.
 - The new `NetPeerMetrics` allows exporting metrics about the library to `System.Diagnostics.Metrics`.
+- Internal code cleanup.
 
 ## 0.2.7
 

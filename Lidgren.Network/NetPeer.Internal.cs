@@ -32,7 +32,7 @@ namespace Lidgren.Network
 
 		internal readonly NetPeerConfiguration m_configuration;
 		private readonly NetQueue<NetIncomingMessage> m_releasedIncomingMessages;
-		internal readonly NetQueue<NetTuple<NetEndPoint, NetOutgoingMessage>> m_unsentUnconnectedMessages;
+		internal readonly NetQueue<(NetEndPoint, NetOutgoingMessage)> m_unsentUnconnectedMessages;
 
 		internal Dictionary<NetEndPoint, NetConnection> m_handshakes;
 
@@ -41,7 +41,7 @@ namespace Lidgren.Network
 		internal bool m_executeFlushSendQueue;
 
 		private AutoResetEvent? m_messageReceivedEvent;
-		private List<NetTuple<SynchronizationContext, SendOrPostCallback>>? m_receiveCallbacks;
+		private List<(SynchronizationContext, SendOrPostCallback)>? m_receiveCallbacks;
 
 		internal Action? m_onShutdown;
 
@@ -60,8 +60,8 @@ namespace Lidgren.Network
 			if (syncContext == null)
 				throw new NetException("Need a SynchronizationContext to register callback on correct thread!");
 			if (m_receiveCallbacks == null)
-				m_receiveCallbacks = new List<NetTuple<SynchronizationContext, SendOrPostCallback>>();
-			m_receiveCallbacks.Add(new NetTuple<SynchronizationContext, SendOrPostCallback>(syncContext, callback));
+				m_receiveCallbacks = new List<(SynchronizationContext, SendOrPostCallback)>();
+			m_receiveCallbacks.Add((syncContext, callback));
 		}
 
 		/// <summary>
@@ -383,7 +383,7 @@ namespace Lidgren.Network
 				m_executeFlushSendQueue = false;
 
 				// send unsent unconnected messages
-				while (m_unsentUnconnectedMessages.TryDequeue(out NetTuple<NetEndPoint, NetOutgoingMessage> unsent))
+				while (m_unsentUnconnectedMessages.TryDequeue(out (NetEndPoint, NetOutgoingMessage) unsent))
 				{
 					NetOutgoingMessage om = unsent.Item2;
 
