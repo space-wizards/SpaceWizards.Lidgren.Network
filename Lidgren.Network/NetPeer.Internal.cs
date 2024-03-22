@@ -189,7 +189,7 @@ namespace Lidgren.Network
 				// bind to socket
 				BindSocket(false);
 
-				byte[] macBytes = NetUtility.GetMacAddressBytes() ?? new byte[0];
+				byte[] macBytes = NetUtility.GetMacAddressBytes() ?? [];
 
 				Debug.Assert(m_socket?.LocalEndPoint != null);
 				NetEndPoint boundEp = (NetEndPoint) m_socket.LocalEndPoint;

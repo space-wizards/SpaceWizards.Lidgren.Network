@@ -14,8 +14,8 @@ namespace Lidgren.Network
 		private const long IMASK = 0xffffffffL;
 		private const ulong UIMASK = (ulong)IMASK;
 
-		private static readonly int[] ZeroMagnitude = new int[0];
-		private static readonly byte[] ZeroEncoding = new byte[0];
+		private static readonly int[] ZeroMagnitude = [];
+		private static readonly byte[] ZeroEncoding = [];
 
 		public static readonly NetBigInteger Zero = new NetBigInteger(0, ZeroMagnitude, false);
 		public static readonly NetBigInteger One = createUValueOf(1);
