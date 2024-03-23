@@ -2,6 +2,8 @@
 
 ## Master
 
+## 0.3.0
+
 - Add explicit .NET 8 target framework
 - Removed .NET Core 3.1 and .NET 5 target frameworks
 - Updated dependencies
