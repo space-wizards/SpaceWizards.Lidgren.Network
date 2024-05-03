@@ -25,7 +25,7 @@
             <TextBox Name="MessageBox" Text="{Binding TextBox,Mode=TwoWay}" IsEnabled="{Binding Connected}" Watermark="Message" />
         </DockPanel>
         <ScrollViewer Margin="0 4" VerticalScrollBarVisibility="Auto">
-            <ItemsControl Items="{Binding Messages}">
+            <ItemsControl ItemsSource="{Binding Messages}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <TextBlock Text="{Binding}" TextWrapping="Wrap"

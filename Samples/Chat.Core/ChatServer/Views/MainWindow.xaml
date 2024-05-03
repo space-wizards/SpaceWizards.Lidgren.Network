@@ -21,7 +21,7 @@
         </DockPanel>
         <Grid RowDefinitions="*,Auto,*">
             <ScrollViewer Grid.Row="0">
-                <ItemsControl Items="{Binding Clients}">
+                <ItemsControl ItemsSource="{Binding Clients}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="vm:ConnectedClient">
                             <Panel
@@ -36,7 +36,7 @@
             <GridSplitter Grid.Row="1" />
 
             <ScrollViewer Grid.Row="2">
-                <ItemsControl Items="{Binding Messages}">
+                <ItemsControl ItemsSource="{Binding Messages}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="sys:String">
                             <Panel

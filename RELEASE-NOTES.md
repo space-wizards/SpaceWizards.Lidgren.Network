@@ -2,6 +2,8 @@
 
 ## Master
 
+- Revert change to `NetPeer.Connections` so it returns a `List<>` instead of `IReadOnlyList<>` again. Change was introduced in 0.2.7.
+
 ## 0.3.0
 
 - Add explicit .NET 8 target framework
