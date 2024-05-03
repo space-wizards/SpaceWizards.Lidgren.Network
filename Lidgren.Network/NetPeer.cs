@@ -80,7 +80,7 @@ namespace Lidgren.Network
 		/// <summary>
 		/// Gets a copy of the list of connections
 		/// </summary>
-		public IReadOnlyList<NetConnection> Connections
+		public List<NetConnection> Connections
 		{
 			get
 			{
