@@ -63,9 +63,7 @@ namespace Lidgren.Network
 			{
 				// drop message
 				this.m_connection.m_peer.LogError(
-					string.Format("Unreliable message max size exceeded: {0} bits (max {1})",
-								  message.LengthBits,
-								  ushort.MaxValue));
+					$"Unreliable message max size exceeded: {message.LengthBits} bits (max {ushort.MaxValue})");
 				return NetSendResult.Dropped;
 			}
 

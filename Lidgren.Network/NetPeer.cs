@@ -347,7 +347,8 @@ namespace Lidgren.Network
 							break;
 						default:
 							// weird
-							LogWarning("Weird situation; Connect() already in progress to remote endpoint; but hs status is " + hs.m_status);
+							LogWarning(
+								$"Weird situation; Connect() already in progress to remote endpoint; but hs status is {hs.m_status}");
 							break;
 					}
 					return hs;

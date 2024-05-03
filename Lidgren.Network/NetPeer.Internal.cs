@@ -104,7 +104,7 @@ namespace Lidgren.Network
 					}
 					catch (Exception ex)
 					{
-						LogWarning("Receive callback exception:" + ex);
+						LogWarning($"Receive callback exception:{ex}");
 					}
 				}
 			}
@@ -439,7 +439,7 @@ namespace Lidgren.Network
 						return;
 
 					default:
-						LogWarning("Socket exception: " + sx.ToString());
+						LogWarning($"Socket exception: {sx}");
 						return;
 				}
 			}
@@ -527,14 +527,14 @@ namespace Lidgren.Network
 
 				if (bytesReceived - ptr < payloadByteLength)
 				{
-					LogWarning("Malformed packet from " + (NetEndPoint)senderRemote + "; stated payload length " + payloadByteLength
-							+ ", remaining bytes " + (bytesReceived - ptr));
+					LogWarning(
+						$"Malformed packet from {(NetEndPoint)senderRemote}; stated payload length {payloadByteLength}, remaining bytes {(bytesReceived - ptr)}");
 					return;
 				}
 
 				if (tp >= NetMessageType.Unused1 && tp <= NetMessageType.Unused29)
 				{
-					ThrowOrLog("Unexpected NetMessageType: " + tp);
+					LogWarning($"Unexpected NetMessageType: {tp}");
 					return;
 				}
 
@@ -587,7 +587,7 @@ namespace Lidgren.Network
 				}
 				catch (Exception ex)
 				{
-					LogError("Packet parsing error: " + ex.Message + " from " + (NetEndPoint)senderRemote);
+					LogError($"Packet parsing error: {ex.Message} from {(NetEndPoint)senderRemote}");
 				}
 				ptr += payloadByteLength;
 			}
@@ -725,7 +725,7 @@ namespace Lidgren.Network
 						}
 					}
 
-					LogWarning("Received unhandled library message " + tp + " from " + senderEndPoint);
+					LogWarning($"Received unhandled library message {tp} from {senderEndPoint}");
 					return;
 				case NetMessageType.Connect:
 					if (m_configuration.AcceptIncomingConnections == false)
@@ -758,7 +758,7 @@ namespace Lidgren.Network
 					LogVerbose("Received Disconnect from unconnected source: " + senderEndPoint);
 					return;
 				default:
-					LogWarning("Received unhandled library message " + tp + " from " + senderEndPoint);
+					LogWarning($"Received unhandled library message {tp} from {senderEndPoint}");
 					return;
 			}
 		}

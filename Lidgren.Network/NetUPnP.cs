@@ -261,7 +261,7 @@ namespace Lidgren.Network
 			}
 			catch (Exception ex)
 			{
-				m_peer.LogWarning("UPnP port forward failed: " + ex.Message);
+				m_peer.LogWarning($"UPnP port forward failed: {ex.Message}");
 				return false;
 			}
 			return true;
@@ -292,7 +292,7 @@ namespace Lidgren.Network
 			}
 			catch (Exception ex)
 			{
-				m_peer.LogWarning("UPnP delete forwarding rule failed: " + ex.Message);
+				m_peer.LogWarning($"UPnP delete forwarding rule failed: {ex.Message}");
 				return false;
 			}
 		}
@@ -330,7 +330,7 @@ namespace Lidgren.Network
 			}
 			catch (Exception ex)
 			{
-				m_peer.LogWarning("Failed to get external IP: " + ex.Message);
+				m_peer.LogWarning($"Failed to get external IP: {ex.Message}");
 				return null;
 			}
 		}
@@ -357,7 +357,7 @@ namespace Lidgren.Network
 			}
 			catch (Exception ex)
 			{
-				m_peer.LogWarning("Failed to get connection status: " + ex.Message);
+				m_peer.LogWarning($"Failed to get connection status: {ex.Message}");
 				return null;
 			}
 		}

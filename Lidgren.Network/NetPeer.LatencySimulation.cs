@@ -183,7 +183,7 @@ namespace Lidgren.Network
 
 				int bytesSent = NetFastSocket.SendTo(m_socket, data, 0, numBytes, SocketFlags.None, realTarget);
 				if (numBytes != bytesSent)
-					LogWarning("Failed to send the full " + numBytes + "; only " + bytesSent + " bytes sent in packet!");
+					LogWarning($"Failed to send the full {numBytes}; only {bytesSent} bytes sent in packet!");
 
 				// LogDebug("Sent " + numBytes + " bytes");
 			}
@@ -201,11 +201,11 @@ namespace Lidgren.Network
 					connectionReset = true;
 					return false;
 				}
-				LogError("Failed to send packet: " + sx);
+				LogError($"Failed to send packet: {sx}");
 			}
 			catch (Exception ex)
 			{
-				LogError("Failed to send packet: " + ex);
+				LogError($"Failed to send packet: {ex}");
 			}
 			finally
 			{
@@ -232,7 +232,7 @@ namespace Lidgren.Network
 
 				int bytesSent = NetFastSocket.SendTo(m_socket, m_sendBuffer, 0, numBytes, SocketFlags.None, target);
 				if (numBytes != bytesSent)
-					LogWarning("Failed to send the full " + numBytes + "; only " + bytesSent + " bytes sent in packet!");
+					LogWarning($"Failed to send the full {numBytes}; only {bytesSent} bytes sent in packet!");
 
 				m_statistics.PacketSent(numBytes, 1);
 			}
@@ -248,11 +248,11 @@ namespace Lidgren.Network
 				}
 				if (sx.SocketErrorCode == SocketError.ConnectionReset)
 					return true;
-				LogError("Failed to send packet: (" + sx.SocketErrorCode + ") " + sx);
+				LogError($"Failed to send packet: ({sx.SocketErrorCode}) {sx}");
 			}
 			catch (Exception ex)
 			{
-				LogError("Failed to send packet: " + ex);
+				LogError($"Failed to send packet: {ex}");
 			}
 			finally
 			{
