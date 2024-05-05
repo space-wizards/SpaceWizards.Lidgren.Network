@@ -2,6 +2,8 @@
 
 ## Master
 
+## 0.3.1
+
 - Revert change to `NetPeer.Connections` so it returns a `List<>` instead of `IReadOnlyList<>` again. Change was introduced in 0.2.7.
 - Overhead introduced by warning/error logs is now almost completely gone when they are disabled. 
 
