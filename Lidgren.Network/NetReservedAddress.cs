@@ -45,7 +45,7 @@ namespace Lidgren.Network
 
 			foreach (var (reservedIp, maskBits) in ReservedRanges)
 			{
-				var mask = uint.MaxValue << maskBits;
+				var mask = uint.MaxValue << (32 - maskBits);
 				if ((ipBits & mask) == (reservedIp & mask))
 					return true;
 			}
