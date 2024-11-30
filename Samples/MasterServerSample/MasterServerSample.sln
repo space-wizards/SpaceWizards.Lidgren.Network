@@ -1,13 +1,13 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MasterServer", "MasterServer\MasterServer.csproj", "{47E2AC9A-F375-47A7-A4E6-9814D3A2954B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MasterServer", "MasterServer\MasterServer.csproj", "{47E2AC9A-F375-47A7-A4E6-9814D3A2954B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MSClient", "MSClient\MSClient.csproj", "{E4FBEFAB-0D5F-4108-BAA9-E796E14AD6B2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MSClient", "MSClient\MSClient.csproj", "{E4FBEFAB-0D5F-4108-BAA9-E796E14AD6B2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MSCommon", "MSCommon\MSCommon.csproj", "{DCD2BE10-1B14-4C80-8BD6-77A8B1F43346}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MSCommon", "MSCommon\MSCommon.csproj", "{DCD2BE10-1B14-4C80-8BD6-77A8B1F43346}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MSServer", "MSServer\MSServer.csproj", "{BBE12F3E-098F-4C13-842F-A52B86E2611A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MSServer", "MSServer\MSServer.csproj", "{BBE12F3E-098F-4C13-842F-A52B86E2611A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lidgren.Network", "..\..\Lidgren.Network\Lidgren.Network.csproj", "{49BA1C69-6104-41AC-A5D8-B54FA9F696E8}"
 EndProject

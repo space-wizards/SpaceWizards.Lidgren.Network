@@ -1,0 +1,8 @@
+<Project>
+    <PropertyGroup>
+        <ManagePackageVersionsCentrally />
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageVersion Include="System.Data.DataSetExtensions" Version="4.5.0" />
+    </ItemGroup>
+</Project>

@@ -11,7 +11,7 @@ namespace MSServer
 	{
 		static void Main(string[] args)
 		{
-			IPEndPoint masterServerEndpoint = NetUtility.Resolve("localhost", CommonConstants.MasterServerPort);
+			IPEndPoint masterServerEndpoint = NetUtility.Resolve("195.201.146.231", CommonConstants.MasterServerPort);
 
 			NetPeerConfiguration config = new NetPeerConfiguration("game");
 			config.SetMessageTypeEnabled(NetIncomingMessageType.NatIntroductionSuccess, true);
@@ -20,8 +20,8 @@ namespace MSServer
 			NetServer server = new NetServer(config);
 			server.Start();
 
-			Console.WriteLine("Server started; waiting 5 seconds...");
-			System.Threading.Thread.Sleep(5000);
+			Console.WriteLine("Server started; waiting 2 seconds...");
+			System.Threading.Thread.Sleep(2000);
 
 			var lastRegistered = -60.0f;
 

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Net;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 using Lidgren.Network;
@@ -15,7 +16,10 @@ namespace MSClient
 		private static NetClient m_client;
 		private static IPEndPoint m_masterServer;
 		private static Dictionary<long, IPEndPoint[]> m_hostList;
-
+		public static extern int SendMessage(IntPtr hWnd, int wMsg, IntPtr wParam, IntPtr lParam);
+		public const int WM_VSCROLL = 277; // Vertical scroll
+		public const int SB_BOTTOM = 7; // Scroll to bottom 
+		
 		[STAThread]
 		static void Main()
 		{
@@ -37,7 +41,7 @@ namespace MSClient
 
 		static void AppIdle(object sender, EventArgs e)
 		{
-			while (NativeMethods.AppStillIdle)
+			while (AppStillIdle)
 			{
 				NetIncomingMessage inc;
 				while ((inc = m_client.ReadMessage()) != null)
@@ -48,7 +52,7 @@ namespace MSClient
 						case NetIncomingMessageType.DebugMessage:
 						case NetIncomingMessageType.WarningMessage:
 						case NetIncomingMessageType.ErrorMessage:
-							NativeMethods.AppendText(m_mainForm.richTextBox1, inc.ReadString());
+							AppendText(m_mainForm.richTextBox1, inc.ReadString());
 							break;
 						case NetIncomingMessageType.UnconnectedData:
 							if (inc.SenderEndPoint.Equals(m_masterServer))
@@ -112,6 +116,48 @@ namespace MSClient
 			om.Write("mytoken");
 
 			m_client.SendUnconnectedMessage(om, m_masterServer);
+		}
+		public static void AppendText(RichTextBox box, string line)
+		{
+			try
+			{
+				box.AppendText(line + Environment.NewLine);
+				ScrollRichTextBox(box);
+			}
+			catch
+			{
+			}
+		}
+
+		public static void ScrollRichTextBox(RichTextBox box)
+		{
+			if (box == null || box.IsDisposed || box.Disposing)
+				return;
+			SendMessage(box.Handle, WM_VSCROLL, (IntPtr)SB_BOTTOM, IntPtr.Zero);
+		}
+		
+		[StructLayout(LayoutKind.Sequential)]
+		public partial struct PeekMsg
+		{
+			public IntPtr hWnd;
+			public Message msg;
+			public IntPtr wParam;
+			public IntPtr lParam;
+			public uint time;
+			public System.Drawing.Point p;
+		}
+
+		[System.Security.SuppressUnmanagedCodeSecurity] // We won't use this maliciously
+		[DllImport("User32.dll", CharSet = CharSet.Auto)]
+		public static extern bool PeekMessage(out PeekMsg msg, IntPtr hWnd, uint messageFilterMin, uint messageFilterMax, uint flags);
+
+		public static bool AppStillIdle
+		{
+			get
+			{
+				PeekMsg msg;
+				return !PeekMessage(out msg, IntPtr.Zero, 0, 0, 0);
+			}
 		}
 	}
 }
