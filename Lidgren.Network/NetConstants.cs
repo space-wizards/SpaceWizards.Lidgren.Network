@@ -43,6 +43,18 @@ namespace Lidgren.Network
 		internal const int UnfragmentedMessageHeaderSize = 5;
 
 		/// <summary>
+		/// Maximum allowed size for a fragmented message in bytes (16MB)
+		/// This prevents DoS attacks via OutOfMemoryException
+		/// </summary>
+		internal const int MaxFragmentedMessageSize = 16 * 1024 * 1024;
+
+		/// <summary>
+		/// Maximum allowed number of chunks per fragmented message
+		/// This prevents DoS attacks via excessive memory allocation
+		/// </summary>
+		internal const int MaxFragmentChunks = 8192;
+
+		/// <summary>
 		/// Number of channels which needs a sequence number to work
 		/// </summary>
 		internal const int NumSequencedChannels = ((int)NetMessageType.UserReliableOrdered1 + NetConstants.NetChannelsPerDeliveryMethod) - (int)NetMessageType.UserSequenced1;
