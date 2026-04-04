@@ -16,6 +16,21 @@ namespace Lidgren.Network
 {
 	public partial class NetPeer
 	{
+		private sealed class PacketAbuseState
+		{
+			public int InvalidPacketCount;
+			public double InvalidPacketWindowStart;
+			public double BannedUntil;
+			public double LastMalformedLog;
+			public double LastUnhandledLog;
+			public double LastBanLog;
+		}
+
+		private const double InvalidPacketWindowSeconds = 1.0;
+		private const int InvalidPacketBanThreshold = 8;
+		private const double InvalidPacketBanSeconds = 30.0;
+		private const double AbuseLogIntervalSeconds = 2.0;
+
 		private NetPeerStatus m_status;
 		private Thread? m_networkThread;
 		private Socket? m_socket;
@@ -39,11 +54,91 @@ namespace Lidgren.Network
 		internal readonly NetPeerStatistics m_statistics;
 		internal long m_uniqueIdentifier;
 		internal bool m_executeFlushSendQueue;
+		private readonly Dictionary<IPAddress, PacketAbuseState> m_packetAbuse = new Dictionary<IPAddress, PacketAbuseState>();
 
 		private AutoResetEvent? m_messageReceivedEvent;
 		private List<(SynchronizationContext, SendOrPostCallback)>? m_receiveCallbacks;
 
 		internal Action? m_onShutdown;
+
+		private bool IsTemporarilyBanned(NetEndPoint senderEndPoint, double now)
+		{
+			if (!m_packetAbuse.TryGetValue(senderEndPoint.Address, out var state))
+				return false;
+
+			return state.BannedUntil > now;
+		}
+
+		private PacketAbuseState GetPacketAbuseState(IPAddress address, double now)
+		{
+			if (!m_packetAbuse.TryGetValue(address, out var state))
+			{
+				state = new PacketAbuseState
+				{
+					InvalidPacketWindowStart = now,
+					LastMalformedLog = double.MinValue,
+					LastUnhandledLog = double.MinValue,
+					LastBanLog = double.MinValue
+				};
+
+				m_packetAbuse[address] = state;
+				return state;
+			}
+
+			if (now - state.InvalidPacketWindowStart > InvalidPacketWindowSeconds)
+			{
+				state.InvalidPacketWindowStart = now;
+				state.InvalidPacketCount = 0;
+			}
+
+			return state;
+		}
+
+		private void RegisterInvalidPacket(NetEndPoint senderEndPoint, double now, string reason, ref double lastLogTime)
+		{
+			var state = GetPacketAbuseState(senderEndPoint.Address, now);
+			state.InvalidPacketCount++;
+
+			if (now - lastLogTime >= AbuseLogIntervalSeconds)
+			{
+				lastLogTime = now;
+				LogWarning($"{reason} from {senderEndPoint}");
+			}
+
+			if (state.InvalidPacketCount < InvalidPacketBanThreshold || state.BannedUntil > now)
+				return;
+
+			state.BannedUntil = now + InvalidPacketBanSeconds;
+			if (now - state.LastBanLog >= AbuseLogIntervalSeconds)
+			{
+				state.LastBanLog = now;
+				LogWarning($"Temporarily dropping UDP packets from {senderEndPoint.Address} for {InvalidPacketBanSeconds:0} seconds after repeated malformed traffic");
+			}
+		}
+
+		private void RegisterMalformedPacket(NetEndPoint senderEndPoint, int payloadByteLength, int remainingBytes, double now)
+		{
+			var state = GetPacketAbuseState(senderEndPoint.Address, now);
+			var lastLogTime = state.LastMalformedLog;
+			RegisterInvalidPacket(
+				senderEndPoint,
+				now,
+				$"Malformed packet; stated payload length {payloadByteLength}, remaining bytes {remainingBytes}",
+				ref lastLogTime);
+			state.LastMalformedLog = lastLogTime;
+		}
+
+		private void RegisterUnhandledLibraryMessage(NetEndPoint senderEndPoint, NetMessageType tp, double now)
+		{
+			var state = GetPacketAbuseState(senderEndPoint.Address, now);
+			var lastLogTime = state.LastUnhandledLog;
+			RegisterInvalidPacket(
+				senderEndPoint,
+				now,
+				$"Received unhandled library message {tp}",
+				ref lastLogTime);
+			state.LastUnhandledLog = lastLogTime;
+		}
 
 		/// <summary>
 		/// Gets the socket, if Start() has been called
@@ -305,6 +400,7 @@ namespace Lidgren.Network
 				m_connections.Clear();
 				m_connectionLookup.Clear();
 				m_handshakes.Clear();
+				m_packetAbuse.Clear();
 
 				m_onShutdown?.Invoke();
 			}
@@ -494,6 +590,8 @@ namespace Lidgren.Network
 			}
 
 			m_connectionLookup.TryGetValue(senderRemote, out NetConnection? sender);
+			if (sender == null && IsTemporarilyBanned((NetEndPoint)senderRemote, now))
+				return;
 
 			//
 			// parse packet into messages
@@ -527,8 +625,7 @@ namespace Lidgren.Network
 
 				if (bytesReceived - ptr < payloadByteLength)
 				{
-					LogWarning(
-						$"Malformed packet from {(NetEndPoint)senderRemote}; stated payload length {payloadByteLength}, remaining bytes {(bytesReceived - ptr)}");
+					RegisterMalformedPacket((NetEndPoint)senderRemote, payloadByteLength, bytesReceived - ptr, now);
 					return;
 				}
 
@@ -725,7 +822,7 @@ namespace Lidgren.Network
 						}
 					}
 
-					LogWarning($"Received unhandled library message {tp} from {senderEndPoint}");
+					RegisterUnhandledLibraryMessage(senderEndPoint, tp, now);
 					return;
 				case NetMessageType.Connect:
 					if (m_configuration.AcceptIncomingConnections == false)
@@ -758,7 +855,7 @@ namespace Lidgren.Network
 					LogVerbose("Received Disconnect from unconnected source: " + senderEndPoint);
 					return;
 				default:
-					LogWarning($"Received unhandled library message {tp} from {senderEndPoint}");
+					RegisterUnhandledLibraryMessage(senderEndPoint, tp, now);
 					return;
 			}
 		}
