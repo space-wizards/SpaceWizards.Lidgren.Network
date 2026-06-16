@@ -40,6 +40,12 @@ namespace Lidgren.Network
 
 		internal const int MaxFragmentationGroups = ushort.MaxValue - 1;
 
+		// Starlight start limits to harden fragment reassembly against malformed/forged packets
+		internal const int MaximumFragmentChunkSize = ((ushort.MaxValue + 1) / 8) - 1; // 8191
+		internal const int MaximumFragmentGroupSize = 16 * 1024 * 1024;                // 16 MiB
+		internal const int MaximumConcurrentFragmentGroups = 64;                       // concurrent reassembly groups per connection
+		// Starlight end
+
 		internal const int UnfragmentedMessageHeaderSize = 5;
 
 		/// <summary>
@@ -51,7 +57,7 @@ namespace Lidgren.Network
 		/// Number of reliable channels
 		/// </summary>
 		internal const int NumReliableChannels = ((int)NetMessageType.UserReliableOrdered1 + NetConstants.NetChannelsPerDeliveryMethod) - (int)NetMessageType.UserReliableUnordered;
-		
+
 		internal const string ConnResetMessage = "Connection was reset by remote host";
 	}
 }
