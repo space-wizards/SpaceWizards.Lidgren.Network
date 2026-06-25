@@ -87,6 +87,12 @@ namespace Lidgren.Network
 				out int chunkNumber
 			);
 
+			NetException.Assert(im.LengthBytes > ptr);
+
+			NetException.Assert(group > 0);
+			NetException.Assert(totalBits > 0);
+			NetException.Assert(chunkByteSize > 0);
+
 			int totalBytes = NetUtility.BytesToHoldBits(totalBits);
 			int payloadLength = im.LengthBytes - ptr;
 
@@ -107,6 +113,8 @@ namespace Lidgren.Network
 
 			int totalNumChunks = (totalBytes + chunkByteSize - 1) / chunkByteSize;
 
+			NetException.Assert(chunkNumber < totalNumChunks);
+
 			if (chunkNumber < 0
 				|| chunkNumber >= totalNumChunks
 				|| (long)chunkNumber * chunkByteSize + payloadLength > totalBytes)
@@ -115,6 +123,8 @@ namespace Lidgren.Network
 				Recycle(im);
 				return;
 			}
+
+			NetException.Assert(im.SenderConnection != null);
 
 			if (!m_receivedFragmentGroups.TryGetValue(im.SenderConnection, out Dictionary<int, ReceivedFragmentGroup>? groups))
 			{
