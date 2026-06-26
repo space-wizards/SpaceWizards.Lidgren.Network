@@ -5,7 +5,12 @@ namespace Lidgren.Network
 	internal abstract class NetSenderChannelBase
 	{
 		// access this directly to queue things in this channel
-		protected NetQueue<NetOutgoingMessage> m_queuedSends;
+		protected readonly NetQueue<NetOutgoingMessage> m_queuedSends;
+
+		protected NetSenderChannelBase(NetQueue<NetOutgoingMessage> queuedSends)
+		{
+			m_queuedSends = queuedSends;
+		}
 
 		internal abstract int WindowSize { get; }
 

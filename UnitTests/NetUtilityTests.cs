@@ -1,4 +1,5 @@
 using System;
+using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using Lidgren.Network;
@@ -63,7 +64,7 @@ namespace UnitTests
 	        
             var addr = NetUtility.Resolve("example.com", family);
 
-            Assert.That(addr.AddressFamily, Is.EqualTo(family));
+            Assert.That(addr?.AddressFamily, Is.EqualTo(family));
         }
 
         [Test]
@@ -100,7 +101,7 @@ namespace UnitTests
          
 	        var addr = await NetUtility.ResolveAsync("example.com", family);
 
-            Assert.That(addr.AddressFamily, Is.EqualTo(family));
+            Assert.That(addr?.AddressFamily, Is.EqualTo(family));
         }
 
         [Test]
@@ -110,6 +111,19 @@ namespace UnitTests
 
             Assert.That(addr, Is.Null);
         }
+
+#pragma warning disable CS0618 // Type or member is obsolete
+        [Test]
+        public async Task TestResolveAsyncCallback()
+        {
+	        var tcs = new TaskCompletionSource<IPAddress?>();
+	        NetUtility.ResolveAsync("example.com", result => tcs.SetResult(result));
+
+	        var result = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(30));
+
+	        Assert.That(result, Is.Not.Null);
+        }
+#pragma warning restore CS0618 // Type or member is obsolete
 
         private static void IgnoreIfActions()
         {

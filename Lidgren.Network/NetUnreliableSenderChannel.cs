@@ -8,24 +8,23 @@ namespace Lidgren.Network
 	/// </summary>
 	internal sealed class NetUnreliableSenderChannel : NetSenderChannelBase
 	{
-		private NetConnection m_connection;
+		private readonly NetConnection m_connection;
 		private int m_windowStart;
-		private int m_windowSize;
+		private readonly int m_windowSize;
 		private int m_sendStart;
-		private bool m_doFlowControl;
+		private readonly bool m_doFlowControl;
 
-		private NetBitVector m_receivedAcks;
+		private readonly NetBitVector m_receivedAcks;
 
 		internal override int WindowSize { get { return m_windowSize; } }
 
-		internal NetUnreliableSenderChannel(NetConnection connection, int windowSize, NetDeliveryMethod method)
+		internal NetUnreliableSenderChannel(NetConnection connection, int windowSize, NetDeliveryMethod method) : base(new NetQueue<NetOutgoingMessage>(8))
 		{
 			m_connection = connection;
 			m_windowSize = windowSize;
 			m_windowStart = 0;
 			m_sendStart = 0;
 			m_receivedAcks = new NetBitVector(NetConstants.NumSequenceNumbers);
-			m_queuedSends = new NetQueue<NetOutgoingMessage>(8);
 
 			m_doFlowControl = true;
 			if (method == NetDeliveryMethod.Unreliable && connection.Peer.Configuration.SuppressUnreliableUnorderedAcks == true)
@@ -60,14 +59,12 @@ namespace Lidgren.Network
 			}
 
 			if (message.LengthBits >= ushort.MaxValue
-			    && m_connection.m_peerConfiguration.UnreliableSizeBehaviour == NetUnreliableSizeBehaviour.IgnoreMTU)
+				&& m_connection.m_peerConfiguration.UnreliableSizeBehaviour == NetUnreliableSizeBehaviour.IgnoreMTU)
 			{
-			    // drop message
-			    this.m_connection.m_peer.LogError(
-			        string.Format("Unreliable message max size exceeded: {0} bits (max {1})",
-			                      message.LengthBits,
-			                      ushort.MaxValue));
-			    return NetSendResult.Dropped;
+				// drop message
+				this.m_connection.m_peer.LogError(
+					$"Unreliable message max size exceeded: {message.LengthBits} bits (max {ushort.MaxValue})");
+				return NetSendResult.Dropped;
 			}
 
 			m_queuedSends.Enqueue(message);
@@ -85,8 +82,7 @@ namespace Lidgren.Network
 			// queued sends
 			while (num > 0 && m_queuedSends.Count > 0)
 			{
-				NetOutgoingMessage om;
-				if (m_queuedSends.TryDequeue(out om))
+				if (m_queuedSends.TryDequeue(out NetOutgoingMessage? om))
 					ExecuteSend(om);
 				num--;
 			}
@@ -106,7 +102,7 @@ namespace Lidgren.Network
 
 			return;
 		}
-		
+
 		// remoteWindowStart is remote expected sequence number; everything below this has arrived properly
 		// seqNr is the actual nr received
 		internal override void ReceiveAcknowledge(double now, int seqNr)

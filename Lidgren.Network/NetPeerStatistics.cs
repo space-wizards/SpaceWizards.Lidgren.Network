@@ -113,7 +113,14 @@ namespace Lidgren.Network
 		{
 			get
 			{
-				lock (m_peer.m_storagePool)
+				var pool = m_peer.m_storagePool;
+
+				if (pool == null)
+				{
+					return 0;
+				}
+
+				lock (pool)
 					return m_peer.m_storagePoolBytes;
 			}
 		}

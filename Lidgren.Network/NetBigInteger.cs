@@ -1,8 +1,8 @@
 ﻿using System;
-using System.Text;
-using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.Text;
 
 namespace Lidgren.Network
 {
@@ -14,8 +14,8 @@ namespace Lidgren.Network
 		private const long IMASK = 0xffffffffL;
 		private const ulong UIMASK = (ulong)IMASK;
 
-		private static readonly int[] ZeroMagnitude = new int[0];
-		private static readonly byte[] ZeroEncoding = new byte[0];
+		private static readonly int[] ZeroMagnitude = [];
+		private static readonly byte[] ZeroEncoding = [];
 
 		public static readonly NetBigInteger Zero = new NetBigInteger(0, ZeroMagnitude, false);
 		public static readonly NetBigInteger One = createUValueOf(1);
@@ -53,6 +53,7 @@ namespace Lidgren.Network
 
 		private NetBigInteger()
 		{
+			m_magnitude = null!;
 		}
 
 		private NetBigInteger(
@@ -155,7 +156,7 @@ namespace Lidgren.Network
 			}
 
 			// strip leading zeros from the string str
-			while (index < str.Length && Int32.Parse(str[index].ToString(), style) == 0)
+			while (index < str.Length && int.Parse(str[index].ToString(), style) == 0)
 			{
 				index++;
 			}
@@ -555,7 +556,7 @@ namespace Lidgren.Network
 
 			return result;
 		}
-	
+
 		private int calcBitLength(
 			int indx,
 			int[] mag)
@@ -643,7 +644,7 @@ namespace Lidgren.Network
 			return CompareTo((NetBigInteger)obj);
 		}
 
-		
+
 		// unsigned comparison on two arrays - note the arrays may
 		// start with leading zeros.
 		private static int CompareTo(
@@ -889,12 +890,12 @@ namespace Lidgren.Network
 		}
 
 		public override bool Equals(
-			object obj)
+			object? obj)
 		{
 			if (obj == this)
 				return true;
 
-			NetBigInteger biggie = obj as NetBigInteger;
+			NetBigInteger? biggie = obj as NetBigInteger;
 			if (biggie == null)
 				return false;
 
@@ -971,7 +972,7 @@ namespace Lidgren.Network
 					: -m_magnitude[m_magnitude.Length - 1];
 			}
 		}
-	
+
 		public NetBigInteger Max(
 			NetBigInteger value)
 		{
@@ -1001,8 +1002,7 @@ namespace Lidgren.Network
 			if (m.m_sign < 1)
 				throw new ArithmeticException("Modulus must be positive");
 
-			NetBigInteger x = new NetBigInteger();
-			NetBigInteger gcd = ExtEuclid(this, m, x, null);
+			NetBigInteger gcd = ExtEuclid(this, m, out NetBigInteger x, null);
 
 			if (!gcd.Equals(One))
 				throw new ArithmeticException("Numbers not relatively prime.");
@@ -1020,8 +1020,8 @@ namespace Lidgren.Network
 		private static NetBigInteger ExtEuclid(
 			NetBigInteger a,
 			NetBigInteger b,
-			NetBigInteger u1Out,
-			NetBigInteger u2Out)
+			out NetBigInteger u1Out,
+			NetBigInteger? u2Out)
 		{
 			NetBigInteger u1 = One;
 			NetBigInteger u3 = a;
@@ -1041,11 +1041,7 @@ namespace Lidgren.Network
 				v3 = q[1];
 			}
 
-			if (u1Out != null)
-			{
-				u1Out.m_sign = u1.m_sign;
-				u1Out.m_magnitude = u1.m_magnitude;
-			}
+			u1Out = new NetBigInteger(u1.m_sign, u1.m_magnitude, false);
 
 			if (u2Out != null)
 			{
@@ -1081,8 +1077,8 @@ namespace Lidgren.Network
 			if (m_sign == 0)
 				return Zero;
 
-			int[] zVal = null;
-			int[] yAccum = null;
+			int[]? zVal = null;
+			int[]? yAccum = null;
 			int[] yVal;
 
 			// Montgomery exponentiation is only possible if the modulus is odd,
@@ -1135,6 +1131,9 @@ namespace Lidgren.Network
 			}
 
 			yVal = new int[m.m_magnitude.Length];
+
+			NetException.Assert(yAccum != null);
+			NetException.Assert(zVal != null);
 
 			//
 			// from LSW to MSW
@@ -1189,8 +1188,7 @@ namespace Lidgren.Network
 						{
 							Multiply(yAccum, yVal, zVal);
 							Remainder(yAccum, m.m_magnitude);
-							Array.Copy(yAccum, yAccum.Length - yVal.Length, yVal, 0,
-								yVal.Length);
+							Array.Copy(yAccum, yAccum.Length - yVal.Length, yVal, 0, yVal.Length);
 							ZeroOut(yAccum);
 						}
 					}
@@ -1588,7 +1586,7 @@ namespace Lidgren.Network
 
 			return y;
 		}
-		
+
 		private int Remainder(
 			int m)
 		{
@@ -2186,7 +2184,7 @@ namespace Lidgren.Network
 			else
 			{
 				// This is algorithm 1a from chapter 4.4 in Seminumerical Algorithms, slow but it works
-				Stack S = new Stack();
+				Stack<string> S = new Stack<string>();
 				NetBigInteger bs = ValueOf(radix);
 
 				NetBigInteger u = Abs();
@@ -2210,7 +2208,7 @@ namespace Lidgren.Network
 				// Then pop the stack
 				while (S.Count != 0)
 				{
-					sb.Append((string)S.Pop());
+					sb.Append(S.Pop());
 				}
 			}
 
@@ -2344,7 +2342,7 @@ namespace Lidgren.Network
 			return ((word >> (n % 32)) & 1) > 0;
 		}
 	}
-	
+
 #if WINDOWS_RUNTIME
 	internal sealed class Stack
 	{

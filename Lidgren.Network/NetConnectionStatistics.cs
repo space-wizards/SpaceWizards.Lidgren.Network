@@ -131,7 +131,7 @@ namespace Lidgren.Network
 		private int GetWithheldMessages()
 		{
 			int numWithheld = 0;
-			foreach (NetReceiverChannelBase recChan in m_connection.m_receiveChannels)
+			foreach (NetReceiverChannelBase? recChan in m_connection.m_receiveChannels)
 			{
 				var relRecChan = recChan as NetReliableOrderedReceiver;
 				if (relRecChan == null)
@@ -154,7 +154,7 @@ namespace Lidgren.Network
 		{
 			numUnsent = 0;
 			numStored = 0;
-			foreach (NetSenderChannelBase sendChan in m_connection.m_sendChannels)
+			foreach (NetSenderChannelBase? sendChan in m_connection.m_sendChannels)
 			{
 				if (sendChan == null)
 					continue;

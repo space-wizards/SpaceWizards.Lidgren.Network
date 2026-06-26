@@ -4,18 +4,11 @@ using System.Collections.Generic;
 
 namespace Lidgren.Network
 {
-	internal class ReceivedFragmentGroup
-	{
-		//public float LastReceived;
-		public byte[] Data;
-		public NetBitVector ReceivedChunks;
-	}
-
 	public partial class NetPeer
 	{
 		private int m_lastUsedFragmentGroup;
 
-		private Dictionary<NetConnection, Dictionary<int, ReceivedFragmentGroup>> m_receivedFragmentGroups;
+		private readonly Dictionary<NetConnection, Dictionary<int, ReceivedFragmentGroup>> m_receivedFragmentGroups;
 
 		// on user thread
 		private NetSendResult SendFragmentedMessage(NetOutgoingMessage msg, IList<NetConnection> recipients, NetDeliveryMethod method, int sequenceChannel)
@@ -86,16 +79,12 @@ namespace Lidgren.Network
 			//
 			// read fragmentation header and combine fragments
 			//
-			int group;
-			int totalBits;
-			int chunkByteSize;
-			int chunkNumber;
 			int ptr = NetFragmentationHelper.ReadHeader(
-				im.m_data, 0,
-				out group,
-				out totalBits,
-				out chunkByteSize,
-				out chunkNumber
+				im.Data, 0,
+				out int group,
+				out int totalBits,
+				out int chunkByteSize,
+				out int chunkNumber
 			);
 
 			NetException.Assert(im.LengthBytes > ptr);
@@ -103,34 +92,65 @@ namespace Lidgren.Network
 			NetException.Assert(group > 0);
 			NetException.Assert(totalBits > 0);
 			NetException.Assert(chunkByteSize > 0);
-			
-			int totalBytes = NetUtility.BytesToHoldBits((int)totalBits);
-			int totalNumChunks = totalBytes / chunkByteSize;
-			if (totalNumChunks * chunkByteSize < totalBytes)
-				totalNumChunks++;
 
-			NetException.Assert(chunkNumber < totalNumChunks);
+			int totalBytes = NetUtility.BytesToHoldBits(totalBits);
+			int payloadLength = im.LengthBytes - ptr;
 
-			if (chunkNumber >= totalNumChunks)
+			if (im.SenderConnection == null
+				|| group <= 0
+				|| totalBits <= 0
+				|| chunkByteSize <= 0
+				|| chunkByteSize > NetConstants.MaximumFragmentChunkSize
+				|| totalBytes <= 0
+				|| totalBytes > NetConstants.MaximumFragmentGroupSize
+				|| payloadLength <= 0
+				|| payloadLength > chunkByteSize)
 			{
-				LogWarning("Index out of bounds for chunk " + chunkNumber + " (total chunks " + totalNumChunks + ")");
+				LogWarning($"Dropping malformed fragment from {im.SenderEndPoint} (group={group}, totalBits={totalBits}, chunkByteSize={chunkByteSize}, payload={payloadLength})");
+				Recycle(im);
 				return;
 			}
 
-			Dictionary<int, ReceivedFragmentGroup> groups;
-			if (!m_receivedFragmentGroups.TryGetValue(im.SenderConnection, out groups))
+			int totalNumChunks = (totalBytes + chunkByteSize - 1) / chunkByteSize;
+
+			NetException.Assert(chunkNumber < totalNumChunks);
+
+			if (chunkNumber < 0
+				|| chunkNumber >= totalNumChunks
+				|| (long)chunkNumber * chunkByteSize + payloadLength > totalBytes)
+			{
+				LogWarning($"Dropping out-of-range fragment {chunkNumber}/{totalNumChunks} from {im.SenderEndPoint}");
+				Recycle(im);
+				return;
+			}
+
+			NetException.Assert(im.SenderConnection != null);
+
+			if (!m_receivedFragmentGroups.TryGetValue(im.SenderConnection, out Dictionary<int, ReceivedFragmentGroup>? groups))
 			{
 				groups = new Dictionary<int, ReceivedFragmentGroup>();
 				m_receivedFragmentGroups[im.SenderConnection] = groups;
 			}
 
-			ReceivedFragmentGroup info;
-			if (!groups.TryGetValue(group, out info))
+			if (!groups.TryGetValue(group, out ReceivedFragmentGroup? info))
 			{
-				info = new ReceivedFragmentGroup();
-				info.Data = new byte[totalBytes];
-				info.ReceivedChunks = new NetBitVector(totalNumChunks);
+				// single fragment groups can't accumulate unbounded buffers
+				if (groups.Count >= NetConstants.MaximumConcurrentFragmentGroups)
+				{
+					LogWarning($"Too many concurrent fragment groups from {im.SenderEndPoint}; dropping fragment");
+					Recycle(im);
+					return;
+				}
+
+				info = new ReceivedFragmentGroup(new byte[totalBytes], new NetBitVector(totalNumChunks));
 				groups[group] = info;
+			}
+			// the computed offset/copy could run out of bounds.
+			else if (info.Data.Length != totalBytes)
+			{
+				LogWarning($"Dropping inconsistent fragment for group {group} from {im.SenderEndPoint}");
+				Recycle(im);
+				return;
 			}
 
 			info.ReceivedChunks[chunkNumber] = true;
@@ -138,21 +158,21 @@ namespace Lidgren.Network
 
 			// copy to data
 			int offset = (chunkNumber * chunkByteSize);
-			Buffer.BlockCopy(im.m_data, ptr, info.Data, offset, im.LengthBytes - ptr);
+			Buffer.BlockCopy(im.Data, ptr, info.Data, offset, payloadLength);
 
 			int cnt = info.ReceivedChunks.Count();
-			//LogVerbose("Found fragment #" + chunkNumber + " in group " + group + " offset " + offset + " of total bits " + totalBits + " (total chunks done " + cnt + ")");
+			//LogVerbose($"Found fragment #{chunkNumber} in group {group} offset {offset} of total bits {totalBits} (total chunks done {cnt})");
 
-			LogVerbose("Received fragment " + chunkNumber + " of " + totalNumChunks + " (" + cnt + " chunks received)");
+			LogVerbose($"Received fragment {chunkNumber} of {totalNumChunks} ({cnt} chunks received)");
 
 			if (info.ReceivedChunks.Count() == totalNumChunks)
 			{
 				// Done! Transform this incoming message
 				im.m_data = info.Data;
-				im.m_bitLength = (int)totalBits;
+				im.m_bitLength = totalBits;
 				im.m_isFragment = false;
 
-				LogVerbose("Fragment group #" + group + " fully received in " + totalNumChunks + " chunks (" + totalBits + " bits)");
+				LogVerbose($"Fragment group #{group} fully received in {totalNumChunks} chunks ({totalBits} bits)");
 				groups.Remove(group);
 
 				ReleaseMessage(im);

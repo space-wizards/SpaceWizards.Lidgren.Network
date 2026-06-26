@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
@@ -15,16 +16,15 @@ namespace Lidgren.Network
 		private static readonly long s_timeInitialized = Stopwatch.GetTimestamp();
 		private static readonly double s_dInvFreq = 1.0 / (double)Stopwatch.Frequency;
 		
-		[CLSCompliant(false)]
-		public static ulong GetPlatformSeed(int seedInc)
+		internal static ulong GetPlatformSeedCore(int seedInc)
 		{
 			ulong seed = (ulong)System.Diagnostics.Stopwatch.GetTimestamp();
 			return seed ^ ((ulong)Environment.WorkingSet + (ulong)seedInc);
 		}
 
-		public static double Now { get { return (double)(Stopwatch.GetTimestamp() - s_timeInitialized) * s_dInvFreq; } }
+		private static double NowCore { get { return (double)(Stopwatch.GetTimestamp() - s_timeInitialized) * s_dInvFreq; } }
 
-		private static NetworkInterface GetNetworkInterface()
+		private static NetworkInterface? GetNetworkInterface()
 		{
 			var defaultAddress = ProbeDefaultRouteAddress();
 			
@@ -60,7 +60,7 @@ namespace Lidgren.Network
 				.FirstOrDefault();
 		}
 
-		private static IPAddress ProbeDefaultRouteAddress()
+		private static IPAddress? ProbeDefaultRouteAddress()
 		{
 			try
 			{
@@ -71,7 +71,7 @@ namespace Lidgren.Network
 				// This basically gets us the network interface address "that goes to the router".
 				using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
 				socket.Connect(new IPAddress(new byte[] { 1, 1, 1, 1 }), 12345);
-				return ((IPEndPoint)socket.LocalEndPoint).Address;
+				return ((IPEndPoint)socket.LocalEndPoint!).Address;
 			}
 			catch
 			{
@@ -79,11 +79,8 @@ namespace Lidgren.Network
 				return null;
 			}
 		}
-		
-		/// <summary>
-		/// If available, returns the bytes of the physical (MAC) address for the first usable network interface
-		/// </summary>
-		public static byte[] GetMacAddressBytes()
+
+		private static byte[]? GetMacAddressBytesCore()
 		{
 			var ni = GetNetworkInterface();
 			if (ni == null)
@@ -91,7 +88,7 @@ namespace Lidgren.Network
 			return ni.GetPhysicalAddress().GetAddressBytes();
 		}
 
-		public static IPAddress GetBroadcastAddress()
+		private static IPAddress? GetBroadcastAddressCore()
 		{
 			var ni = GetNetworkInterface();
 			if (ni == null)
@@ -120,10 +117,7 @@ namespace Lidgren.Network
 			return IPAddress.Broadcast;
 		}
 
-		/// <summary>
-		/// Gets my local IPv4 address (not necessarily external) and subnet mask
-		/// </summary>
-		public static IPAddress GetMyAddress(out IPAddress mask)
+		private static IPAddress? GetMyAddressCore(out IPAddress? mask)
 		{
 			var ni = GetNetworkInterface();
 			if (ni == null)
@@ -146,17 +140,17 @@ namespace Lidgren.Network
 			return null;
 		}
 
-		public static void Sleep(int milliseconds)
+		private static void SleepCore(int milliseconds)
 		{
 			System.Threading.Thread.Sleep(milliseconds);
 		}
 
-		public static IPAddress CreateAddressFromBytes(byte[] bytes)
+		private static IPAddress CreateAddressFromBytesCore(byte[] bytes)
 		{
 			return new IPAddress(bytes);
 		}
 		
-		public static byte[] ComputeSHAHash(byte[] bytes, int offset, int count)
+		private static byte[] ComputeSHAHashCore(byte[] bytes, int offset, int count)
 		{
 			using var sha = SHA256.Create();
 			return sha.ComputeHash(bytes, offset, count);

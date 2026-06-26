@@ -6,9 +6,9 @@ namespace Lidgren.Network
 {
 	public partial class NetPeer
 	{
-		internal List<byte[]> m_storagePool;
-		private NetQueue<NetOutgoingMessage> m_outgoingMessagesPool;
-		private NetQueue<NetIncomingMessage> m_incomingMessagesPool;
+		internal List<byte[]?>? m_storagePool;
+		private NetQueue<NetOutgoingMessage>? m_outgoingMessagesPool;
+		private NetQueue<NetIncomingMessage>? m_incomingMessagesPool;
 
 		internal int m_storagePoolBytes;
 		internal int m_storageSlotsUsedCount;
@@ -20,7 +20,7 @@ namespace Lidgren.Network
 
 			if (m_configuration.UseMessageRecycling)
 			{
-				m_storagePool = new List<byte[]>(16);
+				m_storagePool = new List<byte[]?>(16);
 				m_outgoingMessagesPool = new NetQueue<NetOutgoingMessage>(4);
 				m_incomingMessagesPool = new NetQueue<NetIncomingMessage>(4);
 			}
@@ -43,7 +43,7 @@ namespace Lidgren.Network
 			{
 				for (int i = 0; i < m_storagePool.Count; i++)
 				{
-					byte[] retval = m_storagePool[i];
+					byte[]? retval = m_storagePool[i];
 					if (retval != null && retval.Length >= minimumCapacityInBytes)
 					{
 						m_storagePool[i] = null;
@@ -59,7 +59,7 @@ namespace Lidgren.Network
 
 		internal void Recycle(byte[] storage)
 		{
-			if (m_storagePool == null || storage == null)
+			if (m_storagePool == null)
 				return;
 
 			lock (m_storagePool)
@@ -81,9 +81,9 @@ namespace Lidgren.Network
 					// pool is full; replace randomly chosen entry to keep size distribution
 					var idx = NetRandom.Instance.Next(m_storagePool.Count);
 
-					m_storagePoolBytes -= m_storagePool[idx].Length;
+					m_storagePoolBytes -= m_storagePool[idx]!.Length;
 					m_storagePoolBytes += storage.Length;
-					
+
 					m_storagePool[idx] = storage; // replace
 				}
 				else
@@ -106,23 +106,23 @@ namespace Lidgren.Network
 		/// <summary>
 		/// Creates a new message for sending and writes the provided string to it
 		/// </summary>
-	        public NetOutgoingMessage CreateMessage(string content)
-	        {
-	            NetOutgoingMessage om;
-	
-	            // Since this could be null.
-	            if (string.IsNullOrEmpty(content))
-	            {
-	                om = CreateMessage(1); // One byte for the internal variable-length zero byte.
-	            }
-	            else
-	            {
-	                om = CreateMessage(2 + content.Length); // Fair guess.
-	            }
-	
-	            om.Write(content);
-	            return om;
-	        }
+		public NetOutgoingMessage CreateMessage(string? content)
+		{
+			NetOutgoingMessage om;
+
+			// Since this could be null.
+			if (string.IsNullOrEmpty(content))
+			{
+				om = CreateMessage(1); // One byte for the internal variable-length zero byte.
+			}
+			else
+			{
+				om = CreateMessage(2 + content.Length); // Fair guess.
+			}
+
+			om.Write(content);
+			return om;
+		}
 
 		/// <summary>
 		/// Creates a new message for sending
@@ -130,8 +130,7 @@ namespace Lidgren.Network
 		/// <param name="initialCapacity">initial capacity in bytes</param>
 		public NetOutgoingMessage CreateMessage(int initialCapacity)
 		{
-			NetOutgoingMessage retval;
-			if (m_outgoingMessagesPool == null || !m_outgoingMessagesPool.TryDequeue(out retval))
+			if (m_outgoingMessagesPool == null || !m_outgoingMessagesPool.TryDequeue(out NetOutgoingMessage? retval))
 				retval = new NetOutgoingMessage();
 
 			NetException.Assert(retval.m_recyclingCount == 0, "Wrong recycling count! Should be zero" + retval.m_recyclingCount);
@@ -144,8 +143,7 @@ namespace Lidgren.Network
 
 		internal NetIncomingMessage CreateIncomingMessage(NetIncomingMessageType tp, byte[] useStorageData)
 		{
-			NetIncomingMessage retval;
-			if (m_incomingMessagesPool == null || !m_incomingMessagesPool.TryDequeue(out retval))
+			if (m_incomingMessagesPool == null || !m_incomingMessagesPool.TryDequeue(out NetIncomingMessage? retval))
 				retval = new NetIncomingMessage(tp);
 			else
 				retval.m_incomingMessageType = tp;
@@ -155,8 +153,7 @@ namespace Lidgren.Network
 
 		internal NetIncomingMessage CreateIncomingMessage(NetIncomingMessageType tp, int minimumByteSize)
 		{
-			NetIncomingMessage retval;
-			if (m_incomingMessagesPool == null || !m_incomingMessagesPool.TryDequeue(out retval))
+			if (m_incomingMessagesPool == null || !m_incomingMessagesPool.TryDequeue(out NetIncomingMessage? retval))
 				retval = new NetIncomingMessage(tp);
 			else
 				retval.m_incomingMessageType = tp;
@@ -174,9 +171,10 @@ namespace Lidgren.Network
 
 			NetException.Assert(m_incomingMessagesPool.Contains(msg) == false, "Recyling already recycled incoming message! Thread race?");
 
-			byte[] storage = msg.m_data;
+			byte[] storage = msg.Data;
 			msg.m_data = null;
 			Recycle(storage);
+
 			msg.Reset();
 
 			if (m_incomingMessagesPool.Count < m_maxCacheCount)
@@ -201,13 +199,13 @@ namespace Lidgren.Network
 #if DEBUG
 			NetException.Assert(m_outgoingMessagesPool.Contains(msg) == false, "Recyling already recycled outgoing message! Thread race?");
 			if (msg.m_recyclingCount != 0)
-				LogWarning("Wrong recycling count! should be zero; found " + msg.m_recyclingCount);
+				LogWarning($"Wrong recycling count! should be zero; found {msg.m_recyclingCount}");
 #endif
 			// setting m_recyclingCount to zero SHOULD be an unnecessary maneuver, if it's not zero something is wrong
 			// however, in RELEASE, we'll just have to accept this and move on with life
 			msg.m_recyclingCount = 0;
 
-			byte[] storage = msg.m_data;
+			byte[] storage = msg.Data;
 			msg.m_data = null;
 
 			// message fragments cannot be recycled

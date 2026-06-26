@@ -43,8 +43,17 @@ namespace Lidgren.Network
 	{
 		private static readonly bool IsMono = Type.GetType("Mono.Runtime") != null;
 
-		private static IPAddress s_broadcastAddress;
-		public static IPAddress GetCachedBroadcastAddress()
+		private static IPAddress? s_broadcastAddress;
+
+		/// <summary>
+		/// Get a cached copy of <see cref="GetBroadcastAddress"/>.
+		/// </summary>
+		/// <remarks>
+		/// This value is cached when this function is first called.
+		/// </remarks>
+		/// <seealso cref="GetBroadcastAddress"/>
+		/// <seealso cref="GetMyAddress"/>
+		public static IPAddress? GetCachedBroadcastAddress()
 		{
 			if (s_broadcastAddress == null)
 				s_broadcastAddress = GetBroadcastAddress();
@@ -67,11 +76,19 @@ namespace Lidgren.Network
 			return ToHexString(data.AsSpan());
 		}
 
+		/// <summary>
+		/// Create a hex string from an array of bytes
+		/// </summary>
+		/// <param name="data">Array containing the bytes to turn into hex.</param>
+		/// <param name="offset">Position in <paramref name="data"/> that the data to convert starts at.</param>
+		/// <param name="length">Amount of bytes of data to convert from <paramref name="offset"/>.</param>
+		/// <remarks>
+		/// </remarks>
 		public static string ToHexString(byte[] data, int offset, int length)
 		{
 			return ToHexString(data.AsSpan(offset, length));
 		}
-		
+
 		/// <summary>
 		/// Create a hex string from an array of bytes
 		/// </summary>
@@ -104,11 +121,12 @@ namespace Lidgren.Network
 		/// </summary>
 		public static bool IsLocal(NetAddress remote)
 		{
-			NetAddress mask;
-			var local = GetMyAddress(out mask);
+			var local = GetMyAddress(out NetAddress? mask);
 
-			if (mask == null)
-				return false;
+			if (local == null)
+				throw new InvalidOperationException("Unable to determine local address");
+
+			NetException.Assert(mask != null);
 
 			uint maskBits = BitConverter.ToUInt32(mask.GetAddressBytes(), 0);
 			uint remoteBits = BitConverter.ToUInt32(remote.GetAddressBytes(), 0);
@@ -171,7 +189,7 @@ namespace Lidgren.Network
 		/// <summary>
 		/// Convert a hexadecimal string to a byte array
 		/// </summary>
-		public static byte[] ToByteArray(String hexString)
+		public static byte[] ToByteArray(string hexString)
 		{
 			byte[] retval = new byte[hexString.Length / 2];
 			for (int i = 0; i < hexString.Length; i += 2)
@@ -267,25 +285,24 @@ namespace Lidgren.Network
 
 		internal static NetDeliveryMethod GetDeliveryMethod(NetMessageType mtp)
 		{
-			if (mtp >= NetMessageType.UserReliableOrdered1)
-				return NetDeliveryMethod.ReliableOrdered;
-			else if (mtp >= NetMessageType.UserReliableSequenced1)
-				return NetDeliveryMethod.ReliableSequenced;
-			else if (mtp >= NetMessageType.UserReliableUnordered)
-				return NetDeliveryMethod.ReliableUnordered;
-			else if (mtp >= NetMessageType.UserSequenced1)
-				return NetDeliveryMethod.UnreliableSequenced;
-			return NetDeliveryMethod.Unreliable;
+			return mtp switch
+			{
+				>= NetMessageType.UserReliableOrdered1 => NetDeliveryMethod.ReliableOrdered,
+				>= NetMessageType.UserReliableSequenced1 => NetDeliveryMethod.ReliableSequenced,
+				>= NetMessageType.UserReliableUnordered => NetDeliveryMethod.ReliableUnordered,
+				>= NetMessageType.UserSequenced1 => NetDeliveryMethod.UnreliableSequenced,
+				_ => NetDeliveryMethod.Unreliable,
+			};
 		}
 
 		/// <summary>
 		/// Creates a comma delimited string from a lite of items
 		/// </summary>
-		public static string MakeCommaDelimitedList<T>(IList<T> list)
+		public static string MakeCommaDelimitedList<T>(IReadOnlyList<T> list) where T : notnull
 		{
 			var cnt = list.Count;
 			StringBuilder bdr = new StringBuilder(cnt * 5); // educated guess
-			for(int i=0;i<cnt;i++)
+			for (int i = 0; i < cnt; i++)
 			{
 				bdr.Append(list[i].ToString());
 				if (i != cnt - 1)
@@ -294,59 +311,64 @@ namespace Lidgren.Network
 			return bdr.ToString();
 		}
 
+		/// <summary>
+		/// Compute the SHA-256 hash of an array of data.
+		/// </summary>
+		/// <param name="bytes">An array containing the data to hash.</param>
+		/// <returns>The hash result.</returns>
 		public static byte[] ComputeSHAHash(byte[] bytes)
 		{
 			// this is defined in the platform specific files
 			return ComputeSHAHash(bytes, 0, bytes.Length);
 		}
 
-        /// <summary>
-        /// Copies from <paramref name="src"/> to <paramref name="dst"/>. Maps to an IPv6 address
-        /// </summary>
-        /// <param name="src">Source.</param>
-        /// <param name="dst">Destination.</param>
-        internal static void CopyEndpoint(IPEndPoint src, IPEndPoint dst)
-        {
-            dst.Port = src.Port;
-            if (src.AddressFamily == AddressFamily.InterNetwork)
-                dst.Address = src.Address.MapToIPv6();
-            else
-                dst.Address = src.Address;
-        }
+		/// <summary>
+		/// Copies from <paramref name="src"/> to <paramref name="dst"/>. Maps to an IPv6 address
+		/// </summary>
+		/// <param name="src">Source.</param>
+		/// <param name="dst">Destination.</param>
+		internal static void CopyEndpoint(IPEndPoint src, IPEndPoint dst)
+		{
+			dst.Port = src.Port;
+			if (src.AddressFamily == AddressFamily.InterNetwork)
+				dst.Address = src.Address.MapToIPv6();
+			else
+				dst.Address = src.Address;
+		}
 
-        /// <summary>
-        /// Maps the IPEndPoint object to an IPv6 address. Has allocation
-        /// </summary>
-        internal static IPEndPoint MapToIPv6(IPEndPoint endPoint)
-        {
-            if (endPoint.AddressFamily == AddressFamily.InterNetwork)
-                return new IPEndPoint(endPoint.Address.MapToIPv6(), endPoint.Port);
-            return endPoint;
-        }
+		/// <summary>
+		/// Maps the IPEndPoint object to an IPv6 address. Has allocation
+		/// </summary>
+		internal static IPEndPoint MapToIPv6(IPEndPoint endPoint)
+		{
+			if (endPoint.AddressFamily == AddressFamily.InterNetwork)
+				return new IPEndPoint(endPoint.Address.MapToIPv6(), endPoint.Port);
+			return endPoint;
+		}
 
-        // MemoryMarshal.Read and MemoryMarshal.Write are not GUARANTEED to allow unaligned reads/writes.
-        // The current CoreCLR implementation does but that's an implementation detail.
-        // These are basically MemoryMarshal.Read/Write but well, guaranteed to allow unaligned access.
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static T ReadUnaligned<T>(ReadOnlySpan<byte> source) where T : unmanaged
-        {
-            if (Unsafe.SizeOf<T>() > source.Length)
-            {
-	            throw new ArgumentOutOfRangeException();
-            }
+		// MemoryMarshal.Read and MemoryMarshal.Write are not GUARANTEED to allow unaligned reads/writes.
+		// The current CoreCLR implementation does but that's an implementation detail.
+		// These are basically MemoryMarshal.Read/Write but well, guaranteed to allow unaligned access.
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal static T ReadUnaligned<T>(ReadOnlySpan<byte> source) where T : unmanaged
+		{
+			if (Unsafe.SizeOf<T>() > source.Length)
+			{
+				throw new ArgumentOutOfRangeException();
+			}
 
-            return Unsafe.ReadUnaligned<T>(ref MemoryMarshal.GetReference(source));
-        }
+			return Unsafe.ReadUnaligned<T>(ref MemoryMarshal.GetReference(source));
+		}
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void WriteUnaligned<T>(Span<byte> destination, ref T value) where T : unmanaged
-        {
-            if ((uint)Unsafe.SizeOf<T>() > (uint)destination.Length)
-            {
-                throw new ArgumentOutOfRangeException();
-            }
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal static void WriteUnaligned<T>(Span<byte> destination, ref T value) where T : unmanaged
+		{
+			if ((uint)Unsafe.SizeOf<T>() > (uint)destination.Length)
+			{
+				throw new ArgumentOutOfRangeException();
+			}
 
-            Unsafe.WriteUnaligned(ref MemoryMarshal.GetReference(destination), value);
-        }
-    }
+			Unsafe.WriteUnaligned(ref MemoryMarshal.GetReference(destination), value);
+		}
+	}
 }

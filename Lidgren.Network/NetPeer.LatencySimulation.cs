@@ -35,7 +35,7 @@ namespace Lidgren.Network
 	public partial class NetPeer
 	{
 		private readonly List<DelayedPacket> m_delayedPackets = new List<DelayedPacket>();
-		private MWCRandom m_latencyRandom = new MWCRandom();
+		private readonly MWCRandom m_latencyRandom = new MWCRandom();
 
 		private record struct DelayedPacket
 		{
@@ -43,6 +43,13 @@ namespace Lidgren.Network
 			public int Length;
 			public double DelayedUntil;
 			public NetEndPoint Target;
+
+			public DelayedPacket(byte[] data, double delayedUntil, NetEndPoint target)
+			{
+				Data = data;
+				DelayedUntil = delayedUntil;
+				Target = target;
+			}
 		}
 
 		internal void SendPacket(int numBytes, NetEndPoint target, int numMessages, out bool connectionReset)
@@ -82,22 +89,14 @@ namespace Lidgren.Network
 			if (m_configuration.m_duplicates > 0.0f && m_latencyRandom.NextSingle() < m_configuration.m_duplicates)
 				num++;
 
-			float delay = 0;
 			for (int i = 0; i < num; i++)
 			{
-				delay = m + (m_latencyRandom.NextSingle() * r);
-				var data = GetStorage(numBytes);
-
-				Buffer.BlockCopy(m_sendBuffer, 0, data, 0, numBytes);
+				float delay = m + (m_latencyRandom.NextSingle() * r);
 
 				// Enqueue delayed packet
-				var p = new DelayedPacket
-				{
-					Target = target,
-					Data = data,
-					Length = numBytes,
-					DelayedUntil = NetTime.Now + delay
-				};
+				DelayedPacket p = new DelayedPacket(new byte[numBytes], NetTime.Now + delay, target);
+
+				Buffer.BlockCopy(m_sendBuffer, 0, p.Data, 0, numBytes);
 
 				m_delayedPackets.Add(p);
 			}
@@ -112,15 +111,13 @@ namespace Lidgren.Network
 
 			double now = NetTime.Now;
 
-			bool connectionReset;
 
 			for (var i = 0; i < m_delayedPackets.Count; i++)
 			{
 				var p = m_delayedPackets[i];
 				if (now < p.DelayedUntil)
 					continue;
-
-				ActuallySendPacket(p.Data, p.Length, p.Target, out connectionReset);
+				ActuallySendPacket(p.Data, p.Data.Length, p.Target, out _);
 
 				// Swap packet with last entry in list.
 				// This does not preserve order (we don't care) but is O(1).
@@ -140,10 +137,9 @@ namespace Lidgren.Network
 		{
 			try
 			{
-				bool connectionReset;
 				foreach (DelayedPacket p in m_delayedPackets)
 				{
-					ActuallySendPacket(p.Data, p.Length, p.Target, out connectionReset);
+					ActuallySendPacket(p.Data, p.Data.Length, p.Target, out bool connectionReset);
 					Recycle(p.Data);
 				}
 
@@ -152,47 +148,50 @@ namespace Lidgren.Network
 			catch { }
 		}
 
-        //Avoids allocation on mapping to IPv6
-        private IPEndPoint targetCopy = new IPEndPoint(IPAddress.Any, 0);
-        private IPEndPoint targetCopy2 = new IPEndPoint(IPAddress.Any, 0);
+		//Avoids allocation on mapping to IPv6
+		private readonly IPEndPoint targetCopy = new IPEndPoint(IPAddress.Any, 0);
+		private readonly IPEndPoint targetCopy2 = new IPEndPoint(IPAddress.Any, 0);
 
 		internal bool ActuallySendPacket(byte[] data, int numBytes, NetEndPoint target, out bool connectionReset)
 		{
 			var dualStack = m_configuration.DualStack && m_configuration.LocalAddress.AddressFamily == AddressFamily.InterNetworkV6;
 			connectionReset = false;
-			IPAddress ba = default(IPAddress);
+			IPAddress? ba = default(IPAddress);
+
+			NetException.Assert(m_socket != null);
+
 			try
 			{
 				var realTarget = target;
 				ba = NetUtility.GetCachedBroadcastAddress();
 
-                // TODO: refactor this check outta here
-                if (target.Address.Equals(ba))
-                {
-                    // Some networks do not allow
-                    // a global broadcast so we use the BroadcastAddress from the configuration
-                    // this can be resolved to a local broadcast addresss e.g 192.168.x.255
-                    targetCopy.Address = m_configuration.BroadcastAddress;
-                    targetCopy.Port = target.Port;
-                    realTarget = targetCopy;
-                    m_socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Broadcast, true);
+				// TODO: refactor this check outta here
+				if (target.Address.Equals(ba))
+				{
+					// Some networks do not allow 
+					// a global broadcast so we use the BroadcastAddress from the configuration
+					// this can be resolved to a local broadcast addresss e.g 192.168.x.255                    
+					targetCopy.Address = m_configuration.BroadcastAddress;
+					targetCopy.Port = target.Port;
+					realTarget = targetCopy;
+					m_socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Broadcast, true);
 
-                    if (dualStack)
-                    {
-	                    NetUtility.CopyEndpoint(realTarget, targetCopy2); //Maps to IPv6 for Dual Mode
-	                    realTarget = targetCopy2;
-                    }
+					if (dualStack)
+					{
+						NetUtility.CopyEndpoint(realTarget, targetCopy2); //Maps to IPv6 for Dual Mode
+						realTarget = targetCopy2;
+					}
 
-                }
-                else if (dualStack)
-                {
-	                NetUtility.CopyEndpoint(target, targetCopy); //Maps to IPv6 for Dual Mode
-	                realTarget = targetCopy;
-                }
+				}
+				else if (dualStack)
+				{
+					NetUtility.CopyEndpoint(target, targetCopy); //Maps to IPv6 for Dual Mode
+					realTarget = targetCopy;
+				}
 
-                int bytesSent = NetFastSocket.SendTo(m_socket, data, 0, numBytes, SocketFlags.None, realTarget);
+				int bytesSent = NetFastSocket.SendTo(m_socket, data, 0, numBytes, SocketFlags.None, realTarget);
 				if (numBytes != bytesSent)
-					LogWarning("Failed to send the full " + numBytes + "; only " + bytesSent + " bytes sent in packet!");
+					LogWarning($"Failed to send the full {numBytes}; only {bytesSent} bytes sent in packet!");
 
 				// LogDebug("Sent " + numBytes + " bytes");
 			}
@@ -210,11 +209,11 @@ namespace Lidgren.Network
 					connectionReset = true;
 					return false;
 				}
-				LogError("Failed to send packet: " + sx);
+				LogError($"Failed to send packet: {sx}");
 			}
 			catch (Exception ex)
 			{
-				LogError("Failed to send packet: " + ex);
+				LogError($"Failed to send packet: {ex}");
 			}
 			finally
 			{
@@ -229,6 +228,8 @@ namespace Lidgren.Network
 			if (!CanAutoExpandMTU)
 				throw new NotSupportedException("MTU expansion not currently supported on this operating system");
 
+			NetException.Assert(m_socket != null);
+
 			try
 			{
 				// NOTE: Socket.DontFragment doesn't work on dual-stack sockets.
@@ -239,7 +240,7 @@ namespace Lidgren.Network
 
 				int bytesSent = NetFastSocket.SendTo(m_socket, m_sendBuffer, 0, numBytes, SocketFlags.None, target);
 				if (numBytes != bytesSent)
-					LogWarning("Failed to send the full " + numBytes + "; only " + bytesSent + " bytes sent in packet!");
+					LogWarning($"Failed to send the full {numBytes}; only {bytesSent} bytes sent in packet!");
 
 				m_statistics.PacketSent(numBytes, 1);
 			}
@@ -255,11 +256,11 @@ namespace Lidgren.Network
 				}
 				if (sx.SocketErrorCode == SocketError.ConnectionReset)
 					return true;
-				LogError("Failed to send packet: (" + sx.SocketErrorCode + ") " + sx);
+				LogError($"Failed to send packet: ({sx.SocketErrorCode}) {sx}");
 			}
 			catch (Exception ex)
 			{
-				LogError("Failed to send packet: " + ex);
+				LogError($"Failed to send packet: {ex}");
 			}
 			finally
 			{

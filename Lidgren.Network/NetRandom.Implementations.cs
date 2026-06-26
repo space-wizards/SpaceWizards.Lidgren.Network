@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 
 namespace Lidgren.Network
@@ -147,9 +148,9 @@ namespace Lidgren.Network
 		private const int TEMPER5 = 15;
 		private const int TEMPER6 = 18;
 
-		private UInt32[] mt;
+		private uint[] mt;
 		private int mti;
-		private UInt32[] mag01;
+		private uint[] mag01;
 
 		private const double c_realUnitInt = 1.0 / ((double)int.MaxValue + 1.0);
 
@@ -174,14 +175,17 @@ namespace Lidgren.Network
 		/// (Re)initialize this instance with provided 32 bit seed
 		/// </summary>
 		[CLSCompliant(false)]
+		[MemberNotNull(nameof(mt))]
+		[MemberNotNull(nameof(mti))]
+		[MemberNotNull(nameof(mag01))]
 		public override void Initialize(uint seed)
 		{
-			mt = new UInt32[N];
+			mt = new uint[N];
 			mti = N + 1;
-			mag01 = new UInt32[] { 0x0U, MATRIX_A };
+			mag01 = new uint[] { 0x0U, MATRIX_A };
 			mt[0] = seed;
 			for (int i = 1; i < N; i++)
-				mt[i] = (UInt32)(1812433253 * (mt[i - 1] ^ (mt[i - 1] >> 30)) + i);
+				mt[i] = (uint)(1812433253 * (mt[i - 1] ^ (mt[i - 1] >> 30)) + i);
 		}
 
 		/// <summary>
@@ -190,7 +194,7 @@ namespace Lidgren.Network
 		[CLSCompliant(false)]
 		public override uint NextUInt32()
 		{
-			UInt32 y;
+			uint y;
 			if (mti >= N)
 			{
 				GenRandAll();
@@ -207,8 +211,8 @@ namespace Lidgren.Network
 		private void GenRandAll()
 		{
 			int kk = 1;
-			UInt32 y;
-			UInt32 p;
+			uint y;
+			uint p;
 			y = mt[0] & UPPER_MASK;
 			do
 			{

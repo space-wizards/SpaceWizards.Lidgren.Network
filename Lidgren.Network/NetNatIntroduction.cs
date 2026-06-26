@@ -31,7 +31,7 @@ namespace Lidgren.Network
 			um.Write(hostExternal);
 			um.Write(token);
 			Interlocked.Increment(ref um.m_recyclingCount);
-			m_unsentUnconnectedMessages.Enqueue(new NetTuple<NetEndPoint, NetOutgoingMessage>(clientExternal, um));
+			m_unsentUnconnectedMessages.Enqueue((clientExternal, um));
 
 			// send message to host
 			um = CreateMessage(10 + token.Length + 1);
@@ -41,7 +41,7 @@ namespace Lidgren.Network
 			um.Write(clientExternal);
 			um.Write(token);
 			Interlocked.Increment(ref um.m_recyclingCount);
-			m_unsentUnconnectedMessages.Enqueue(new NetTuple<NetEndPoint, NetOutgoingMessage>(hostExternal, um));
+			m_unsentUnconnectedMessages.Enqueue((hostExternal, um));
 		}
 
 		/// <summary>
@@ -73,7 +73,7 @@ namespace Lidgren.Network
 			punch.Write(hostByte);
 			punch.Write(token);
 			Interlocked.Increment(ref punch.m_recyclingCount);
-			m_unsentUnconnectedMessages.Enqueue(new NetTuple<NetEndPoint, NetOutgoingMessage>(remoteInternal, punch));
+			m_unsentUnconnectedMessages.Enqueue((remoteInternal, punch));
 			LogDebug("NAT punch sent to " + remoteInternal);
 
 			// send external punch
@@ -82,7 +82,7 @@ namespace Lidgren.Network
 			punch.Write(hostByte);
 			punch.Write(token);
 			Interlocked.Increment(ref punch.m_recyclingCount);
-			m_unsentUnconnectedMessages.Enqueue(new NetTuple<NetEndPoint, NetOutgoingMessage>(remoteExternal, punch));
+			m_unsentUnconnectedMessages.Enqueue((remoteExternal, punch));
 			LogDebug("NAT punch sent to " + remoteExternal);
 
 		}
@@ -105,7 +105,7 @@ namespace Lidgren.Network
 				confirmResponse.Write(HostByte);
 				confirmResponse.Write(token);
 				Interlocked.Increment(ref confirmResponse.m_recyclingCount);
-				m_unsentUnconnectedMessages.Enqueue(new NetTuple<NetEndPoint, NetOutgoingMessage>(senderEndPoint, confirmResponse));
+				m_unsentUnconnectedMessages.Enqueue((senderEndPoint, confirmResponse));
 			}
 			else
 			{
@@ -116,7 +116,7 @@ namespace Lidgren.Network
 				confirmRequest.Write(ClientByte);
 				confirmRequest.Write(token);
 				Interlocked.Increment(ref confirmRequest.m_recyclingCount);
-				m_unsentUnconnectedMessages.Enqueue(new NetTuple<NetEndPoint, NetOutgoingMessage>(senderEndPoint, confirmRequest));
+				m_unsentUnconnectedMessages.Enqueue((senderEndPoint, confirmRequest));
 			}
 		}
 
@@ -133,7 +133,7 @@ namespace Lidgren.Network
 			confirmResponse.Write(isFromClient ? HostByte : ClientByte);
 			confirmResponse.Write(token);
 			Interlocked.Increment(ref confirmResponse.m_recyclingCount);
-			m_unsentUnconnectedMessages.Enqueue(new NetTuple<NetEndPoint, NetOutgoingMessage>(senderEndPoint, confirmResponse));
+			m_unsentUnconnectedMessages.Enqueue((senderEndPoint, confirmResponse));
 		}
 
 		private void HandleNatPunchConfirmed(int ptr, NetEndPoint senderEndPoint)

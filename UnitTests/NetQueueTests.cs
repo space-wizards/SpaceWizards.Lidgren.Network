@@ -56,11 +56,11 @@ namespace UnitTests
 			if (ok == false || a != 3)
 				throw new Exception("NetQueue failed");
 
-			ok = queue.TryDequeue(out a);
+			ok = queue.TryDequeue(out _);
 			if (ok == true)
 				throw new Exception("NetQueue failed");
 
-			ok = queue.TryDequeue(out a);
+			ok = queue.TryDequeue(out _);
 			if (ok == true)
 				throw new Exception("NetQueue failed");
 

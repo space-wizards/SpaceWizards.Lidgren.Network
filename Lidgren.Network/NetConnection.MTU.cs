@@ -2,7 +2,7 @@
 
 namespace Lidgren.Network
 {
-	public partial class NetConnection  
+	public partial class NetConnection
 	{
 		private enum ExpandMTUStatus
 		{
@@ -25,7 +25,8 @@ namespace Lidgren.Network
 		internal int m_currentMTU;
 
 		/// <summary>
-		/// Gets the current MTU in bytes. If PeerConfiguration.AutoExpandMTU is false, this will be PeerConfiguration.MaximumTransmissionUnit.
+		/// Gets the current MTU in bytes. If <see cref="NetPeerConfiguration.AutoExpandMTU"/> is false,
+		/// this will be <see cref="NetPeerConfiguration.MaximumTransmissionUnit"/> or <see cref="NetPeerConfiguration.MaximumTransmissionUnitV6"/>.
 		/// </summary>
 		public int CurrentMTU { get { return m_currentMTU; } }
 
@@ -34,7 +35,7 @@ namespace Lidgren.Network
 			m_lastSentMTUAttemptTime = now + m_peerConfiguration.m_expandMTUFrequency + 1.5f + m_averageRoundtripTime; // wait a tiny bit before starting to expand mtu
 			m_largestSuccessfulMTU = 512;
 			m_smallestFailedMTU = -1;
-			m_currentMTU = m_peerConfiguration.MaximumTransmissionUnit;
+			m_currentMTU = m_peerConfiguration.MTUForEndPoint(m_remoteEndPoint);
 		}
 
 		private void MTUExpansionHeartbeat(double now)
@@ -51,14 +52,17 @@ namespace Lidgren.Network
 				}
 
 				// begin expansion
+				m_expandMTUStatus = ExpandMTUStatus.InProgress;
+				// m_peer.LogDebug("Doing initial MTU expand");
 				ExpandMTU(now);
 				return;
 			}
 
 			if (now > m_lastSentMTUAttemptTime + m_peerConfiguration.ExpandMTUFrequency)
 			{
+				// m_peer.LogDebug("MTU attempt failed");
 				m_mtuAttemptFails++;
-				if (m_mtuAttemptFails == 3)
+				if (m_mtuAttemptFails >= m_peerConfiguration.ExpandMTUFailAttempts)
 				{
 					FinalizeMTU(m_currentMTU);
 					return;
@@ -152,8 +156,7 @@ namespace Lidgren.Network
 			om.Write(size);
 			om.m_messageType = NetMessageType.ExpandMTUSuccess;
 			int len = om.Encode(m_peer.m_sendBuffer, 0, 0);
-			bool connectionReset;
-			m_peer.SendPacket(len, m_remoteEndPoint, 1, out connectionReset);
+			m_peer.SendPacket(len, m_remoteEndPoint, 1, out _);
 			m_peer.Recycle(om);
 
 			//m_peer.LogDebug("Received MTU expand request for " + size + " bytes");

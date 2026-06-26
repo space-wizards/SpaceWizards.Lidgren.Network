@@ -1,7 +1,6 @@
 ﻿using System;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Logging.Serilog;
 using Avalonia.ReactiveUI;
 
 namespace ChatServer
@@ -18,7 +17,7 @@ namespace ChatServer
         public static AppBuilder BuildAvaloniaApp()
             => AppBuilder.Configure<App>()
                 .UsePlatformDetect()
-                .LogToDebug()
+                .LogToTrace()
                 .UseReactiveUI();
     }
 }

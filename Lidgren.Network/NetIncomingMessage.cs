@@ -33,8 +33,8 @@ namespace Lidgren.Network
 	public sealed class NetIncomingMessage : NetBuffer
 	{
 		internal NetIncomingMessageType m_incomingMessageType;
-		internal NetEndPoint m_senderEndPoint;
-		internal NetConnection m_senderConnection;
+		internal NetEndPoint? m_senderEndPoint;
+		internal NetConnection? m_senderConnection;
 		internal int m_sequenceNumber;
 		internal NetMessageType m_receivedMessageType;
 		internal bool m_isFragment;
@@ -58,12 +58,12 @@ namespace Lidgren.Network
 		/// <summary>
 		/// endpoint of sender, if any
 		/// </summary>
-		public NetEndPoint SenderEndPoint { get { return m_senderEndPoint; } }
+		public NetEndPoint? SenderEndPoint { get { return m_senderEndPoint; } }
 
 		/// <summary>
 		/// NetConnection of sender, if any
 		/// </summary>
-		public NetConnection SenderConnection { get { return m_senderConnection; } }
+		public NetConnection? SenderConnection { get { return m_senderConnection; } }
 
 		/// <summary>
 		/// What local time the message was received from the network

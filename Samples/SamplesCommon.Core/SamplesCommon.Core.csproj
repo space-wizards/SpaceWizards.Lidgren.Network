@@ -1,12 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Avalonia" Version="0.9.11" />
-    <PackageReference Include="ReactiveUI" Version="11.4.17" />
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="ReactiveUI" />
   </ItemGroup>
 
   <ItemGroup>
@@ -17,6 +17,7 @@
       <SubType>Designer</SubType>
     </AvaloniaResource>
     <AvaloniaResource Include="Assets\**" />
+    <AdditionalFiles Include="**\*.xaml" SourceItemGroup="AvaloniaXaml" />
   </ItemGroup>
 
   <ItemGroup>

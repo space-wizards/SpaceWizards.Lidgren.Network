@@ -7,6 +7,8 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
 using System.Threading;
+using System.Linq;
+
 
 #if !__NOIPENDPOINT__
 using NetEndPoint = System.Net.IPEndPoint;
@@ -42,16 +44,16 @@ namespace Lidgren.Network
 	{
 		private const int c_discoveryTimeOutMillis = 1000;
 
-		private string m_serviceUrl;
+		private string? m_serviceUrl;
 		private string m_serviceName = "";
-		private NetPeer m_peer;
-		private ManualResetEvent m_discoveryComplete = new ManualResetEvent(false);
+		private readonly NetPeer m_peer;
+		private readonly ManualResetEvent m_discoveryComplete = new ManualResetEvent(false);
 
 		internal double m_discoveryResponseDeadline;
 
 		private UPnPStatus m_status;
 
-		private List<UpnpCandidate> m_candidates = new List<UpnpCandidate>();
+		private readonly List<UpnpCandidate> m_candidates = new List<UpnpCandidate>();
 
 		/// <summary>
 		/// Status of the UPnP capabilities of this NetPeer
@@ -82,18 +84,24 @@ namespace Lidgren.Network
 			byte[] arr = System.Text.Encoding.UTF8.GetBytes(str);
 
 			m_peer.LogDebug("Attempting UPnP discovery");
+
+			NetException.Assert(peer.Socket != null);
+			IPAddress? broadcastAddress = NetUtility.GetBroadcastAddress();
+			if (broadcastAddress == null)
+				throw new InvalidOperationException("Unable to determine broadcast address");
+
 			peer.Socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Broadcast, true);
-			peer.RawSend(arr, 0, arr.Length, new NetEndPoint(NetUtility.GetBroadcastAddress(), 1900));
+			peer.RawSend(arr, 0, arr.Length, new NetEndPoint(broadcastAddress, 1900));
 			peer.Socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Broadcast, false);
 		}
 
-	    internal void CheckForDiscoveryTimeout()
-	    {
-	        if ((m_status != UPnPStatus.Discovering) || (NetTime.Now < m_discoveryResponseDeadline))
-                return;
+		internal void CheckForDiscoveryTimeout()
+		{
+			if ((m_status != UPnPStatus.Discovering) || (NetTime.Now < m_discoveryResponseDeadline))
+				return;
 
-	        if (m_candidates.Count > 0)
-	        {
+			if (m_candidates.Count > 0)
+			{
 				var candidate = SelectUpnpCandidate();
 				m_serviceUrl = candidate.Url;
 				m_serviceName = candidate.ServiceName;
@@ -101,49 +109,38 @@ namespace Lidgren.Network
 				m_peer.LogDebug($"UPnP discovery complete, using {m_serviceUrl}");
 				m_peer.LogVerbose($"UPnP service name: {m_serviceName}");
 				m_discoveryComplete.Set();
-	        }
-	        else
-	        {
-		        m_peer.LogDebug("UPnP discovery timed out");
-		        m_status = UPnPStatus.NotAvailable;
-	        }
-	    }
+			}
+			else
+			{
+				m_peer.LogDebug("UPnP discovery timed out");
+				m_status = UPnPStatus.NotAvailable;
+			}
+		}
 
-	    private UpnpCandidate SelectUpnpCandidate()
-	    {
-		    Debug.Assert(m_candidates.Count > 0);
-		    
-		    m_peer.LogVerbose("Selecting UPnP IGD...");
-		    
-		    var bestScore = 0;
-		    UpnpCandidate? bestCandidate = null;
-		    foreach (var candidate in m_candidates)
-		    {
-			    var score = CandidateScore(candidate);
-			    m_peer.LogVerbose($"Candidate {candidate.Url} has score {score}");
-			    if (score > bestScore)
-			    {
-				    bestScore = score;
-				    bestCandidate = candidate;
-			    }
-		    }
+		private UpnpCandidate SelectUpnpCandidate()
+		{
+			m_peer.LogVerbose("Selecting UPnP IGD...");
 
-		    // ReSharper disable once PossibleInvalidOperationException
-		    return bestCandidate.Value;
+			return m_candidates.OrderByDescending(c =>
+			{
+				var score = CandidateScore(c);
+				m_peer.LogVerbose($"Candidate {c.Url} has score {score}");
+				return score;
+			}).First();
 
-		    int CandidateScore(in UpnpCandidate candidate)
-		    {
-			    var status = GetConnectionStatus(candidate.Url, candidate.ServiceName);
-			    if (status != "Connected" && status != "Up")
-				    return 1;
+			int CandidateScore(in UpnpCandidate candidate)
+			{
+				var status = GetConnectionStatus(candidate.Url, candidate.ServiceName);
+				if (status != "Connected" && status != "Up")
+					return 1;
 
-			    var externalIp = GetExternalIP(candidate.Url, candidate.ServiceName);
-			    if (externalIp == null || NetReservedAddress.IsAddressReserved(externalIp))
-				    return 2;
+				var externalIp = GetExternalIP(candidate.Url, candidate.ServiceName);
+				if (externalIp == null || NetReservedAddress.IsAddressReserved(externalIp))
+					return 2;
 
-			    return 3;
-		    }
-	    }
+				return 3;
+			}
+		}
 
 		internal void ExtractServiceUrl(string resp)
 		{
@@ -157,19 +154,27 @@ namespace Lidgren.Network
 
 			XmlNamespaceManager nsMgr = new XmlNamespaceManager(desc.NameTable);
 			nsMgr.AddNamespace("tns", "urn:schemas-upnp-org:device-1-0");
-			XmlNode typen = desc.SelectSingleNode("//tns:device/tns:deviceType/text()", nsMgr);
-			if (!typen.Value.Contains("InternetGatewayDevice"))
+			XmlNode? typen = desc.SelectSingleNode("//tns:device/tns:deviceType/text()", nsMgr);
+
+			if (typen?.Value?.Contains("InternetGatewayDevice") != true)
+			{
+				m_peer.LogWarning("Failed to resolve UPnP: couldn't find InternetGatewayDevice deviceType in the response");
 				return;
+			}
 
 			var serviceName = "WANIPConnection";
-			XmlNode node = desc.SelectSingleNode("//tns:service[tns:serviceType=\"urn:schemas-upnp-org:service:" + serviceName + ":1\"]/tns:controlURL/text()", nsMgr);
+			XmlNode? node = desc.SelectSingleNode("//tns:service[tns:serviceType=\"urn:schemas-upnp-org:service:" + serviceName + ":1\"]/tns:controlURL/text()", nsMgr);
 			if (node == null)
 			{
 				//try another service name
 				serviceName = "WANPPPConnection";
 				node = desc.SelectSingleNode("//tns:service[tns:serviceType=\"urn:schemas-upnp-org:service:" + serviceName + ":1\"]/tns:controlURL/text()", nsMgr);
-				if (node == null)
-					return;
+			}
+
+			if (node?.Value == null)
+			{
+				m_peer.LogWarning("Failed to resolve UPnP: there aren't any supported services (WANIPConnection or WANPPPConnection) in the response");
+				return;
 			}
 
 			var serviceUrl = CombineUrls(resp, node.Value);
@@ -214,129 +219,148 @@ namespace Lidgren.Network
 					return false;
 			}
 			return false;
-        }
+		}
 
-        /// <summary>
-        /// Add a forwarding rule to the router using UPnP
-        /// </summary>
-        /// <param name="externalPort">The external, WAN facing, port</param>
-        /// <param name="description">A description for the port forwarding rule</param>
-        /// <param name="internalPort">The port on the client machine to send traffic to (defaults to externalPort)</param>
-        /// <param name="proto">The protocol (defaults to UDP, but can be TCP)</param>
-        public bool ForwardPort(int externalPort, string description, int internalPort = 0, string proto = "UDP")
-        {
-            if (!CheckAvailability())
-                return false;
+		/// <summary>
+		/// Add a forwarding rule to the router using UPnP
+		/// </summary>
+		/// <param name="externalPort">The external, WAN facing, port</param>
+		/// <param name="description">A description for the port forwarding rule</param>
+		/// <param name="internalPort">The port on the client machine to send traffic to (defaults to externalPort)</param>
+		/// <param name="proto">The protocol (defaults to UDP, but can be TCP)</param>
+		public bool ForwardPort(int externalPort, string description, int internalPort = 0, string proto = "UDP")
+		{
+			if (!CheckAvailability())
+				return false;
+			var client = NetUtility.GetMyAddress(out _);
+			if (client == null)
+				return false;
 
-            IPAddress mask;
-            var client = NetUtility.GetMyAddress(out mask);
-            if (client == null)
-                return false;
+			if (internalPort == 0)
+				internalPort = externalPort;
 
-            if (internalPort == 0)
-                internalPort = externalPort;
+			NetException.Assert(m_serviceUrl != null);
 
-            try
-            {
-                SOAPRequest(m_serviceUrl, m_serviceName,
-                    "<u:AddPortMapping xmlns:u=\"urn:schemas-upnp-org:service:" + m_serviceName + ":1\">" +
-                    "<NewRemoteHost></NewRemoteHost>" +
-                    "<NewExternalPort>" + externalPort.ToString() + "</NewExternalPort>" +
-                    "<NewProtocol>" + proto + "</NewProtocol>" +
-                    "<NewInternalPort>" + internalPort.ToString() + "</NewInternalPort>" +
-                    "<NewInternalClient>" + client.ToString() + "</NewInternalClient>" +
-                    "<NewEnabled>1</NewEnabled>" +
-                    "<NewPortMappingDescription>" + description + "</NewPortMappingDescription>" +
-                    "<NewLeaseDuration>0</NewLeaseDuration>" +
-                    "</u:AddPortMapping>",
-                    "AddPortMapping");
+			try
+			{
+				SOAPRequest(m_serviceUrl, m_serviceName,
+					"<u:AddPortMapping xmlns:u=\"urn:schemas-upnp-org:service:" + m_serviceName + ":1\">" +
+					"<NewRemoteHost></NewRemoteHost>" +
+					"<NewExternalPort>" + externalPort.ToString() + "</NewExternalPort>" +
+					"<NewProtocol>" + proto + "</NewProtocol>" +
+					"<NewInternalPort>" + internalPort.ToString() + "</NewInternalPort>" +
+					"<NewInternalClient>" + client.ToString() + "</NewInternalClient>" +
+					"<NewEnabled>1</NewEnabled>" +
+					"<NewPortMappingDescription>" + description + "</NewPortMappingDescription>" +
+					"<NewLeaseDuration>0</NewLeaseDuration>" +
+					"</u:AddPortMapping>",
+					"AddPortMapping");
 
-                m_peer.LogDebug($"Sent UPnP port forward request. Ext port: {externalPort} int port: {internalPort} desc: {description} proto: {proto}");
-                NetUtility.Sleep(50);
-            }
-            catch (Exception ex)
-            {
-                m_peer.LogWarning("UPnP port forward failed: " + ex.Message);
-                return false;
-            }
-            return true;
-        }
+				m_peer.LogDebug($"Sent UPnP port forward request. Ext port: {externalPort} int port: {internalPort} desc: {description} proto: {proto}");
+				NetUtility.Sleep(50);
+			}
+			catch (Exception ex)
+			{
+				m_peer.LogWarning($"UPnP port forward failed: {ex.Message}");
+				return false;
+			}
+			return true;
+		}
 
-        /// <summary>
-        /// Delete a forwarding rule from the router using UPnP
-        /// </summary>
-        /// <param name="externalPort">The external, 'internet facing', port</param>
-        /// <param name="proto">The protocol (defaults to UDP, but can be TCP)</param>
-        public bool DeleteForwardingRule(int externalPort, string proto = "UDP")
-        {
-            if (!CheckAvailability())
-                return false;
+		/// <summary>
+		/// Delete a forwarding rule from the router using UPnP
+		/// </summary>
+		/// <param name="externalPort">The external, 'internet facing', port</param>
+		/// <param name="proto">The protocol (defaults to UDP, but can be TCP)</param>
+		public bool DeleteForwardingRule(int externalPort, string proto = "UDP")
+		{
+			if (!CheckAvailability())
+				return false;
 
-            try
-            {
-                SOAPRequest(m_serviceUrl, m_serviceName,
-                "<u:DeletePortMapping xmlns:u=\"urn:schemas-upnp-org:service:" + m_serviceName + ":1\">" +
-                "<NewRemoteHost>" +
-                "</NewRemoteHost>" +
-                "<NewExternalPort>" + externalPort + "</NewExternalPort>" +
-                "<NewProtocol>" + proto + "</NewProtocol>" +
-                "</u:DeletePortMapping>", "DeletePortMapping");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                m_peer.LogWarning("UPnP delete forwarding rule failed: " + ex.Message);
-                return false;
-            }
-        }
+			NetException.Assert(m_serviceUrl != null);
 
-        /// <summary>
-        /// Retrieve the extern ip using UPnP
-        /// </summary>
-        public IPAddress GetExternalIP()
+			try
+			{
+				SOAPRequest(m_serviceUrl, m_serviceName,
+				"<u:DeletePortMapping xmlns:u=\"urn:schemas-upnp-org:service:" + m_serviceName + ":1\">" +
+				"<NewRemoteHost>" +
+				"</NewRemoteHost>" +
+				"<NewExternalPort>" + externalPort + "</NewExternalPort>" +
+				"<NewProtocol>" + proto + "</NewProtocol>" +
+				"</u:DeletePortMapping>", "DeletePortMapping");
+				return true;
+			}
+			catch (Exception ex)
+			{
+				m_peer.LogWarning($"UPnP delete forwarding rule failed: {ex.Message}");
+				return false;
+			}
+		}
+
+		/// <summary>
+		/// Retrieve the extern ip using UPnP
+		/// </summary>
+		public IPAddress? GetExternalIP()
 		{
 			if (!CheckAvailability())
 				return null;
 
+			NetException.Assert(m_serviceUrl != null);
+
 			return GetExternalIP(m_serviceUrl, m_serviceName);
 		}
 
-        private IPAddress GetExternalIP(string url, string name)
-        {
-	        try
-	        {
-		        XmlDocument xdoc = SOAPRequest(url, name, "<u:GetExternalIPAddress xmlns:u=\"urn:schemas-upnp-org:service:" + name + ":1\">" +
-		                                                  "</u:GetExternalIPAddress>", "GetExternalIPAddress");
-		        XmlNamespaceManager nsMgr = new XmlNamespaceManager(xdoc.NameTable);
-		        nsMgr.AddNamespace("tns", "urn:schemas-upnp-org:device-1-0");
-		        string IP = xdoc.SelectSingleNode("//NewExternalIPAddress/text()", nsMgr).Value;
-		        return IPAddress.Parse(IP);
-	        }
-	        catch (Exception ex)
-	        {
-		        m_peer.LogWarning("Failed to get external IP: " + ex.Message);
-		        return null;
-	        }
-        }
+		private IPAddress? GetExternalIP(string url, string name)
+		{
+			try
+			{
+				XmlDocument xdoc = SOAPRequest(url, name, "<u:GetExternalIPAddress xmlns:u=\"urn:schemas-upnp-org:service:" + name + ":1\">" +
+														  "</u:GetExternalIPAddress>", "GetExternalIPAddress");
+				XmlNamespaceManager nsMgr = new XmlNamespaceManager(xdoc.NameTable);
+				nsMgr.AddNamespace("tns", "urn:schemas-upnp-org:device-1-0");
+				string? IP = xdoc.SelectSingleNode("//NewExternalIPAddress/text()", nsMgr)?.Value;
 
-        private string GetConnectionStatus(string url, string name)
-        {
-	        try
-	        {
-		        XmlDocument xdoc = SOAPRequest(
-			        url, name,
-			        $"<u:GetStatusInfo xmlns:u=\"urn:schemas-upnp-org:service:{name}:1\" />",
-			        "GetStatusInfo");
-		        XmlNamespaceManager nsMgr = new XmlNamespaceManager(xdoc.NameTable);
-		        nsMgr.AddNamespace("tns", "urn:schemas-upnp-org:device-1-0");
-		        return xdoc.SelectSingleNode("//NewConnectionStatus/text()", nsMgr).Value;
-	        }
-	        catch (Exception ex)
-	        {
-		        m_peer.LogWarning("Failed to get connection status: " + ex.Message);
-		        return null;
-	        }
-        } 
+				if (IP == null)
+				{
+					m_peer.LogWarning("Failed to read external IP from the UPnP response");
+					return null;
+				}
+
+				return IPAddress.Parse(IP);
+			}
+			catch (Exception ex)
+			{
+				m_peer.LogWarning($"Failed to get external IP: {ex.Message}");
+				return null;
+			}
+		}
+
+		private string? GetConnectionStatus(string url, string name)
+		{
+			try
+			{
+				XmlDocument xdoc = SOAPRequest(
+					url, name,
+					$"<u:GetStatusInfo xmlns:u=\"urn:schemas-upnp-org:service:{name}:1\" />",
+					"GetStatusInfo");
+				XmlNamespaceManager nsMgr = new XmlNamespaceManager(xdoc.NameTable);
+				nsMgr.AddNamespace("tns", "urn:schemas-upnp-org:device-1-0");
+
+				string? status = xdoc.SelectSingleNode("//NewConnectionStatus/text()", nsMgr)?.Value;
+
+				if (status == null)
+				{
+					m_peer.LogWarning("Failed to read connection status from the UPnP response");
+				}
+
+				return status;
+			}
+			catch (Exception ex)
+			{
+				m_peer.LogWarning($"Failed to get connection status: {ex.Message}");
+				return null;
+			}
+		}
 
 		private XmlDocument SOAPRequest(string url, string serviceName, string soap, string function)
 		{
@@ -346,10 +370,11 @@ namespace Lidgren.Network
 			soap +
 			"</s:Body>" +
 			"</s:Envelope>";
-			
-			var request = new HttpRequestMessage(HttpMethod.Post, url);
+
+			using var request = new HttpRequestMessage(HttpMethod.Post, url);
 			request.Headers.Add("SOAPACTION", $"\"urn:schemas-upnp-org:service:{serviceName}:1#{function}\"");
-			request.Content = new StringContent(req, null, "text/xml");
+			using var content = new StringContent(req, null, "text/xml");
+			request.Content = content;
 
 			using var httpClient = new HttpClient();
 			return SyncSend(httpClient, request);
@@ -364,7 +389,7 @@ namespace Lidgren.Network
 		private static XmlDocument SyncSend(HttpClient httpClient, HttpRequestMessage request)
 		{
 			var xmlDoc = new XmlDocument();
-			
+
 #if NET5_0_OR_GREATER
 			using var response = httpClient.Send(request);
 			response.EnsureSuccessStatusCode();
@@ -377,7 +402,7 @@ namespace Lidgren.Network
 				xmlDoc.Load(await response.Content.ReadAsStreamAsync());
 			}).Wait();
 #endif
-			
+
 			return xmlDoc;
 		}
 	}

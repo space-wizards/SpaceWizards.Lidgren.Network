@@ -19,6 +19,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 using System;
 using System.Net;
+using System.Net.Sockets;
 
 namespace Lidgren.Network
 {
@@ -27,25 +28,29 @@ namespace Lidgren.Network
 	/// </summary>
 	public sealed class NetPeerConfiguration
 	{
-		// Default MTU value used to be a slightly conservative number based off 1500 IP-MTU: 1408 
-		// This was too aggressive and caused connection troubles for some people (CGNAT + VPN lowered MTU too much)
-		// I wasn't able to find good numbers on what "practical" MTU numbers are, but:
-		// * QUIC requires an UDP-payload MTU of 1200. https://datatracker.ietf.org/doc/html/rfc9000#section-14
-		// * I've read at least one forum post by somebody claiming IP-MTU does get as low as 1260
-		// As such, I've lowered this number to 1200.
-		// 
-		// I considered lowering it further to like 506 (extremely conservative, technically IP-spec-minimum)
-		// But decided against it, because in practice that never makes sense I think.
-		// Furthermore, MTU is not purely a performance thing.
-		// Some message types like hail and unreliable are locked to MTU: lowering it too much can cause trouble.
-		
+		// Default MTU value used to be pretty high. I've slowly had to reduce it over the years due to continuing
+		// reports of "yet another person with an even shittier network" having issues.
+		// The default values are now the spec-minimum values.
+		// IPv4: 576 (spec minimum) - 60 (max IPv4 header) - 8 (UDP header) = 508
+		// IPv6: 1280 (spec minimum) - 40 (IPv6 header) - 8 (UDP header) = 1232
+
 		/// <summary>
-		/// Default MTU value in bytes
+		/// Default MTU value for IPv4 connections, in bytes.
+		/// </summary>
+		/// <remarks>
+		/// <para>
+		/// Note that lidgren headers (5 bytes) are not included here; since it's part of the "mtu payload".
+		/// </para>
+		/// </remarks>
+		public const int kDefaultMTU = 508;
+
+		/// <summary>
+		/// Default MTU value for IPv6 connections, in bytes.
 		/// </summary>
 		/// <remarks>
 		/// Note that lidgren headers (5 bytes) are not included here; since it's part of the "mtu payload"
 		/// </remarks>
-		public const int kDefaultMTU = 1200;
+		public const int kDefaultMTUV6 = 1232;
 
 		private const string c_isLockedMessage = "You may not modify the NetPeerConfiguration after it has been used to initialize a NetPeer";
 
@@ -83,6 +88,7 @@ namespace Lidgren.Network
 
 		// MTU
 		internal int m_maximumTransmissionUnit;
+		internal int m_maximumTransmissionUnitV6;
 		internal bool m_autoExpandMTU;
 		internal float m_expandMTUFrequency;
 		internal int m_expandMTUFailAttempts;
@@ -124,6 +130,7 @@ namespace Lidgren.Network
 			m_suppressUnreliableUnorderedAcks = false;
 
 			m_maximumTransmissionUnit = kDefaultMTU;
+			m_maximumTransmissionUnitV6 = kDefaultMTUV6;
 			m_autoExpandMTU = false;
 			m_expandMTUFrequency = 2.0f;
 			m_expandMTUFailAttempts = 5;
@@ -223,8 +230,10 @@ namespace Lidgren.Network
 		}
 
 		/// <summary>
-		/// Gets or sets the maximum amount of bytes to send in a single packet, excluding ip, udp and lidgren headers. Cannot be changed once NetPeer is initialized.
+		/// Gets or sets the maximum amount of bytes to send in a single packet for IPv4 connections, excluding IPv4 and UDP headers.
+		/// Cannot be changed once NetPeer is initialized.
 		/// </summary>
+		/// <seealso cref="MaximumTransmissionUnitV6"/>
 		public int MaximumTransmissionUnit
 		{
 			get { return m_maximumTransmissionUnit; }
@@ -235,6 +244,24 @@ namespace Lidgren.Network
 				if (value < 1 || value >= ((ushort.MaxValue + 1) / 8))
 					throw new NetException("MaximumTransmissionUnit must be between 1 and " + (((ushort.MaxValue + 1) / 8) - 1) + " bytes");
 				m_maximumTransmissionUnit = value;
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the maximum amount of bytes to send in a single packet for IPv6 connections, excluding IPv6 and UDP headers.
+		/// Cannot be changed once NetPeer is initialized.
+		/// </summary>
+		/// <seealso cref="MaximumTransmissionUnit"/>
+		public int MaximumTransmissionUnitV6
+		{
+			get { return m_maximumTransmissionUnitV6; }
+			set
+			{
+				if (m_isLocked)
+					throw new NetException(c_isLockedMessage);
+				if (value < 1 || value >= ((ushort.MaxValue + 1) / 8))
+					throw new NetException("MaximumTransmissionUnitV6 must be between 1 and " + (((ushort.MaxValue + 1) / 8) - 1) + " bytes");
+				m_maximumTransmissionUnitV6 = value;
 			}
 		}
 
@@ -534,10 +561,20 @@ namespace Lidgren.Network
 		/// </summary>
 		public NetPeerConfiguration Clone()
 		{
-			NetPeerConfiguration retval = this.MemberwiseClone() as NetPeerConfiguration;
+			NetPeerConfiguration retval = (NetPeerConfiguration)this.MemberwiseClone();
 			retval.m_isLocked = false;
 			return retval;
 		}
+
+		internal int MTUForAddress(IPAddress address)
+		{
+			if (address.AddressFamily == AddressFamily.InterNetworkV6)
+				return address.IsIPv4MappedToIPv6 ? MaximumTransmissionUnit : MaximumTransmissionUnitV6;
+
+			return MaximumTransmissionUnit;
+		}
+
+		internal int MTUForEndPoint(IPEndPoint endPoint) => MTUForAddress(endPoint.Address);
 	}
 
 	/// <summary>

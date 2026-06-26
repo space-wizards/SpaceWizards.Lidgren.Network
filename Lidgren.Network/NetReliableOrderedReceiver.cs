@@ -5,9 +5,9 @@ namespace Lidgren.Network
 	internal sealed class NetReliableOrderedReceiver : NetReceiverChannelBase
 	{
 		private int m_windowStart;
-		private int m_windowSize;
-		private NetBitVector m_earlyReceived;
-		internal NetIncomingMessage[] m_withheldMessages;
+		private readonly int m_windowSize;
+		private readonly NetBitVector m_earlyReceived;
+		internal NetIncomingMessage?[] m_withheldMessages;
 
 		public NetReliableOrderedReceiver(NetConnection connection, int windowSize)
 			: base(connection)
@@ -47,8 +47,9 @@ namespace Lidgren.Network
 
 				while (m_earlyReceived[nextSeqNr % m_windowSize])
 				{
-					message = m_withheldMessages[nextSeqNr % m_windowSize];
-					NetException.Assert(message != null);
+					var popMessage = m_withheldMessages[nextSeqNr % m_windowSize];
+					NetException.Assert(popMessage != null);
+					message = popMessage;
 
 					// remove it from withheld messages
 					m_withheldMessages[nextSeqNr % m_windowSize] = null;

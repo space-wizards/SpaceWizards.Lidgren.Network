@@ -2,6 +2,31 @@
 
 ## Master
 
+## 0.3.1
+
+- Revert change to `NetPeer.Connections` so it returns a `List<>` instead of `IReadOnlyList<>` again. Change was introduced in 0.2.7.
+- Overhead introduced by warning/error logs is now almost completely gone when they are disabled. 
+
+## 0.3.0
+
+- Add explicit .NET 8 target framework
+- Removed .NET Core 3.1 and .NET 5 target frameworks
+- Updated dependencies
+- More and improved doc comments.
+- Fix callback-based `NetUtility.ResolveAsync` functions never running their callback. (bug introduced in 0.1.0)
+- Default MTU for IPv4 has been dropped to 508 to avoid issues for certain people.
+- A separate MTU value is now used for IPv6, as it permits a higher default. You can set it with `NetPeerConfiguration.MaximumTransmissionUnitV6`
+- Fixed MTU expansion not setting internal state correctly and spamming network packets.
+- Fixed `NetPeerConfiguration.ExpandMTUFailAttempts` not being respected completely.
+- The new `NetPeerMetrics` allows exporting metrics about the library to `System.Diagnostics.Metrics`.
+- Internal code cleanup.
+
+## 0.2.7
+
+- All APIs now use Nullable Reference Types.
+- `NetQueue<T>.Contains(T)` now uses `EqualityComparer<T>.Default` instead of direct `object.Equals()`.
+- `NetException.Assert()` now specifies `[DoesNotReturnIf(false)]`.
+
 ## 0.2.6
 
 - Fixed a possible `NullReferenceException` in `NetReliableSenderChannel`.

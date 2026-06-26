@@ -33,6 +33,8 @@
         <Border BorderThickness="1" Grid.Column="0" Grid.Row="0">
             <StackPanel Margin="2">
                 <TextBlock FontSize="16" Text="Settings" />
+                <CheckBox Name="ErrorCheckBox" Content="Display Error messages" />
+                <CheckBox Name="WarningCheckBox" Content="Display Warning messages" />
                 <CheckBox Name="DebugCheckBox" Content="Display Debug messages" />
                 <CheckBox Name="VerboseCheckBox" Content="Display Verbose messages" />
                 <StackPanel Orientation="Horizontal">

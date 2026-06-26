@@ -8,7 +8,7 @@ namespace Lidgren.Network
 	/// </summary>
 	public static class NetRandomSeed
 	{
-		private static int m_seedIncrement = -1640531527;
+		private static readonly int m_seedIncrement = -1640531527;
 
 		/// <summary>
 		/// Generates a 32 bit random seed
@@ -39,7 +39,7 @@ namespace Lidgren.Network
 				((ulong)guidBytes[6] << (8 * 6)) |
 				((ulong)guidBytes[7] << (8 * 7));
 
-			return seed ^ NetUtility.GetPlatformSeed(m_seedIncrement);
+			return seed ^ NetUtility.GetPlatformSeedCore(m_seedIncrement);
 		}
 	}
 }

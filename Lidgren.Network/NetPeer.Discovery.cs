@@ -19,7 +19,11 @@ namespace Lidgren.Network
 			um.m_messageType = NetMessageType.Discovery;
 			Interlocked.Increment(ref um.m_recyclingCount);
 
-			m_unsentUnconnectedMessages.Enqueue(new NetTuple<NetEndPoint, NetOutgoingMessage>(new NetEndPoint(NetUtility.GetBroadcastAddress(), serverPort), um));
+			var broadcastAddress = NetUtility.GetBroadcastAddress();
+			if (broadcastAddress == null)
+				throw new NetException("Unable to determine broadcast address.");
+
+			m_unsentUnconnectedMessages.Enqueue((new NetEndPoint(broadcastAddress, serverPort), um));
 		}
 
 		/// <summary>
@@ -42,7 +46,7 @@ namespace Lidgren.Network
 			NetOutgoingMessage om = CreateMessage(0);
 			om.m_messageType = NetMessageType.Discovery;
 			om.m_recyclingCount = 1;
-			m_unsentUnconnectedMessages.Enqueue(new NetTuple<NetEndPoint, NetOutgoingMessage>(endPoint, om));
+			m_unsentUnconnectedMessages.Enqueue((endPoint, om));
 		}
 
 		/// <summary>
@@ -58,12 +62,13 @@ namespace Lidgren.Network
 			else if (msg.m_isSent)
 				throw new NetException("Message has already been sent!");
 
-			if (msg.LengthBytes >= m_configuration.MaximumTransmissionUnit)
-				throw new NetException("Cannot send discovery message larger than MTU (currently " + m_configuration.MaximumTransmissionUnit + " bytes)");
+			var mtu = m_configuration.MTUForEndPoint(recipient);
+			if (msg.LengthBytes >= mtu)
+				throw new NetException("Cannot send discovery message larger than MTU (currently " + mtu + " bytes)");
 
 			msg.m_messageType = NetMessageType.DiscoveryResponse;
 			Interlocked.Increment(ref msg.m_recyclingCount);
-			m_unsentUnconnectedMessages.Enqueue(new NetTuple<NetEndPoint, NetOutgoingMessage>(recipient, msg));
+			m_unsentUnconnectedMessages.Enqueue((recipient, msg));
 		}
 	}
 }

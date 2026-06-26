@@ -4,6 +4,7 @@ using System.Text;
 using System.Reflection;
 using System.Net;
 using System.Threading;
+using System.Diagnostics.CodeAnalysis;
 
 #if !__NOIPENDPOINT__
 using NetEndPoint = System.Net.IPEndPoint;
@@ -28,7 +29,7 @@ namespace Lidgren.Network
 			m_readPosition += 1;
 			return retval;
 		}
-		
+
 		/// <summary>
 		/// Reads a byte
 		/// </summary>
@@ -77,15 +78,15 @@ namespace Lidgren.Network
 		}
 
 		/// <summary>
-	    /// Reads the specified number of bytes
-	    /// </summary>
+		/// Reads the specified number of bytes
+		/// </summary>
 		public Span<byte> ReadBytes(Span<byte> into)
 		{
 			NetException.Assert(m_bitLength - m_readPosition + 7 >= (into.Length * 8), c_readOverflowError);
 
-            NetBitWriter.ReadBytes(m_data, m_readPosition, into);
-            m_readPosition += (8 * into.Length);
-            return into;
+			NetBitWriter.ReadBytes(Data, m_readPosition, into);
+			m_readPosition += (8 * into.Length);
+			return into;
 		}
 
 		/// <summary>
@@ -101,7 +102,7 @@ namespace Lidgren.Network
 		/// <summary>
 		/// Reads the specified number of bytes and returns true for success
 		/// </summary>
-		public bool ReadBytes(int numberOfBytes, out byte[] result)
+		public bool ReadBytes(int numberOfBytes, [MaybeNullWhen(false)] out byte[] result)
 		{
 			if (m_bitLength - m_readPosition + 7 < (numberOfBytes * 8))
 			{
@@ -110,25 +111,25 @@ namespace Lidgren.Network
 			}
 
 			result = new byte[numberOfBytes];
-			NetBitWriter.ReadBytes(m_data, numberOfBytes, m_readPosition, result, 0);
+			NetBitWriter.ReadBytes(Data, numberOfBytes, m_readPosition, result, 0);
 			m_readPosition += (8 * numberOfBytes);
 			return true;
 		}
 
 		/// <summary>
-        /// Reads the specified number of bytes and returns true for success
-        /// </summary>
+		/// Reads the specified number of bytes and returns true for success
+		/// </summary>
 		public bool TryReadBytes(Span<byte> into)
-        {
-        	if (m_bitLength - m_readPosition + 7 < (into.Length * 8))
-        	{
-        		return false;
-        	}
+		{
+			if (m_bitLength - m_readPosition + 7 < (into.Length * 8))
+			{
+				return false;
+			}
 
-        	NetBitWriter.ReadBytes(m_data, m_readPosition, into);
-        	m_readPosition += (8 * into.Length);
-        	return true;
-        }
+			NetBitWriter.ReadBytes(Data, m_readPosition, into);
+			m_readPosition += (8 * into.Length);
+			return true;
+		}
 
 		/// <summary>
 		/// Reads the specified number of bytes into a preallocated array
@@ -141,32 +142,32 @@ namespace Lidgren.Network
 			NetException.Assert(m_bitLength - m_readPosition + 7 >= (numberOfBytes * 8), c_readOverflowError);
 			NetException.Assert(offset + numberOfBytes <= into.Length);
 
-			NetBitWriter.ReadBytes(m_data, numberOfBytes, m_readPosition, into, offset);
+			NetBitWriter.ReadBytes(Data, numberOfBytes, m_readPosition, into, offset);
 			m_readPosition += (8 * numberOfBytes);
 			return;
 		}
 
 		/// <summary>
-        /// Reads the specified number of bits into a preallocated span
-        /// </summary>
-        /// <param name="into">The destination array</param>
-        /// <param name="numberOfBits">The number of bits to read</param>
-        public void ReadBits(Span<byte> into, int numberOfBits)
-        {
-        	NetException.Assert(m_bitLength - m_readPosition >= numberOfBits, c_readOverflowError);
-        	NetException.Assert(NetUtility.BytesToHoldBits(numberOfBits) <= into.Length);
+		/// Reads the specified number of bits into a preallocated span
+		/// </summary>
+		/// <param name="into">The destination array</param>
+		/// <param name="numberOfBits">The number of bits to read</param>
+		public void ReadBits(Span<byte> into, int numberOfBits)
+		{
+			NetException.Assert(m_bitLength - m_readPosition >= numberOfBits, c_readOverflowError);
+			NetException.Assert(NetUtility.BytesToHoldBits(numberOfBits) <= into.Length);
 
-        	int numberOfWholeBytes = numberOfBits / 8;
-        	int extraBits = numberOfBits - (numberOfWholeBytes * 8);
+			int numberOfWholeBytes = numberOfBits / 8;
+			int extraBits = numberOfBits - (numberOfWholeBytes * 8);
 
-        	NetBitWriter.ReadBytes(m_data, m_readPosition, into.Slice(0, numberOfWholeBytes));
-        	m_readPosition += (8 * numberOfWholeBytes);
+			NetBitWriter.ReadBytes(Data, m_readPosition, into.Slice(0, numberOfWholeBytes));
+			m_readPosition += (8 * numberOfWholeBytes);
 
-        	if (extraBits > 0)
-        		into[numberOfWholeBytes] = ReadByte(extraBits);
+			if (extraBits > 0)
+				into[numberOfWholeBytes] = ReadByte(extraBits);
 
-        	return;
-        }
+			return;
+		}
 
 		/// <summary>
 		/// Reads the specified number of bits into a preallocated array
@@ -182,7 +183,7 @@ namespace Lidgren.Network
 		/// <summary>
 		/// Reads a 16 bit signed integer written using Write(Int16)
 		/// </summary>
-		public Int16 ReadInt16()
+		public short ReadInt16()
 		{
 			short retval = PeekInt16();
 			m_readPosition += 16;
@@ -193,7 +194,7 @@ namespace Lidgren.Network
 		/// Reads a 16 bit unsigned integer written using Write(UInt16)
 		/// </summary>
 		[CLSCompliant(false)]
-		public UInt16 ReadUInt16()
+		public ushort ReadUInt16()
 		{
 			ushort retval = PeekUInt16();
 			m_readPosition += 16;
@@ -203,7 +204,7 @@ namespace Lidgren.Network
 		/// <summary>
 		/// Reads a 32 bit signed integer written using Write(Int32)
 		/// </summary>
-		public Int32 ReadInt32()
+		public int ReadInt32()
 		{
 			NetException.Assert(m_bitLength - m_readPosition >= 32, c_readOverflowError);
 			int retval = PeekInt32();
@@ -215,7 +216,7 @@ namespace Lidgren.Network
 		/// Reads a 32 bit signed integer written using Write(Int32)
 		/// </summary>
 		[CLSCompliant(false)]
-		public bool ReadInt32(out Int32 result)
+		public bool ReadInt32(out int result)
 		{
 			if (m_bitLength - m_readPosition < 32)
 			{
@@ -231,7 +232,7 @@ namespace Lidgren.Network
 		/// <summary>
 		/// Reads a signed integer stored in 1 to 32 bits, written using Write(Int32, Int32)
 		/// </summary>
-		public Int32 ReadInt32(int numberOfBits)
+		public int ReadInt32(int numberOfBits)
 		{
 			int retval = PeekInt32(numberOfBits);
 			m_readPosition += numberOfBits;
@@ -243,7 +244,7 @@ namespace Lidgren.Network
 		/// Reads an 32 bit unsigned integer written using Write(UInt32)
 		/// </summary>
 		[CLSCompliant(false)]
-		public UInt32 ReadUInt32()
+		public uint ReadUInt32()
 		{
 			uint retval = PeekUInt32();
 			m_readPosition += 32;
@@ -254,7 +255,7 @@ namespace Lidgren.Network
 		/// Reads an 32 bit unsigned integer written using Write(UInt32) and returns true for success
 		/// </summary>
 		[CLSCompliant(false)]
-		public bool ReadUInt32(out UInt32 result)
+		public bool ReadUInt32(out uint result)
 		{
 			if (m_bitLength - m_readPosition < 32)
 			{
@@ -271,9 +272,9 @@ namespace Lidgren.Network
 		/// Reads an unsigned integer stored in 1 to 32 bits, written using Write(UInt32, Int32)
 		/// </summary>
 		[CLSCompliant(false)]
-		public UInt32 ReadUInt32(int numberOfBits)
+		public uint ReadUInt32(int numberOfBits)
 		{
-			UInt32 retval = PeekUInt32(numberOfBits);
+			uint retval = PeekUInt32(numberOfBits);
 			m_readPosition += numberOfBits;
 			return retval;
 		}
@@ -282,7 +283,7 @@ namespace Lidgren.Network
 		/// Reads a 64 bit unsigned integer written using Write(UInt64)
 		/// </summary>
 		[CLSCompliant(false)]
-		public UInt64 ReadUInt64()
+		public ulong ReadUInt64()
 		{
 			ulong retval = PeekUInt64();
 
@@ -293,7 +294,7 @@ namespace Lidgren.Network
 		/// <summary>
 		/// Reads a 64 bit signed integer written using Write(Int64)
 		/// </summary>
-		public Int64 ReadInt64()
+		public long ReadInt64()
 		{
 			NetException.Assert(m_bitLength - m_readPosition >= 64, c_readOverflowError);
 			unchecked
@@ -308,7 +309,7 @@ namespace Lidgren.Network
 		/// Reads an unsigned integer stored in 1 to 64 bits, written using Write(UInt64, Int32)
 		/// </summary>
 		[CLSCompliant(false)]
-		public UInt64 ReadUInt64(int numberOfBits)
+		public ulong ReadUInt64(int numberOfBits)
 		{
 			ulong retval = PeekUInt64(numberOfBits);
 			m_readPosition += numberOfBits;
@@ -318,7 +319,7 @@ namespace Lidgren.Network
 		/// <summary>
 		/// Reads a signed integer stored in 1 to 64 bits, written using Write(Int64, Int32)
 		/// </summary>
-		public Int64 ReadInt64(int numberOfBits)
+		public long ReadInt64(int numberOfBits)
 		{
 			NetException.Assert(((numberOfBits > 0) && (numberOfBits <= 64)), "ReadInt64(bits) can only read between 1 and 64 bits");
 			return (long)ReadUInt64(numberOfBits);
@@ -418,8 +419,7 @@ namespace Lidgren.Network
 			int num2 = 0;
 			while (m_bitLength - m_readPosition >= 8)
 			{
-				byte num3;
-				if (ReadByte(out num3) == false)
+				if (ReadByte(out byte num3) == false)
 				{
 					result = 0;
 					return false;
@@ -448,19 +448,19 @@ namespace Lidgren.Network
 		/// <summary>
 		/// Reads a variable sized Int64 written using WriteVariableInt64()
 		/// </summary>
-		public Int64 ReadVariableInt64()
+		public long ReadVariableInt64()
 		{
-			UInt64 n = ReadVariableUInt64();
-			return (Int64)(n >> 1) ^ -(long)(n & 1); // decode zigzag
+			ulong n = ReadVariableUInt64();
+			return (long)(n >> 1) ^ -(long)(n & 1); // decode zigzag
 		}
 
 		/// <summary>
 		/// Reads a variable sized UInt32 written using WriteVariableInt64()
 		/// </summary>
 		[CLSCompliant(false)]
-		public UInt64 ReadVariableUInt64()
+		public ulong ReadVariableUInt64()
 		{
-			UInt64 num1 = 0;
+			ulong num1 = 0;
 			int num2 = 0;
 			while (m_bitLength - m_readPosition >= 8)
 			{
@@ -468,7 +468,7 @@ namespace Lidgren.Network
 				//	throw new FormatException("Bad 7-bit encoded integer");
 
 				byte num3 = this.ReadByte();
-				num1 |= ((UInt64)num3 & 0x7f) << num2;
+				num1 |= ((ulong)num3 & 0x7f) << num2;
 				num2 += 7;
 				if ((num3 & 0x80) == 0)
 					return num1;
@@ -533,20 +533,20 @@ namespace Lidgren.Network
 			return (int)(min + rvalue);
 		}
 
-	        /// <summary>
-	        /// Reads a 64 bit integer value written using WriteRangedInteger() (64 version)
-	        /// </summary>
-	        /// <param name="min">The minimum value used when writing the value</param>
-	        /// <param name="max">The maximum value used when writing the value</param>
-	        /// <returns>A signed integer value larger or equal to MIN and smaller or equal to MAX</returns>
-	        public long ReadRangedInteger(long min, long max)
-	        {
-	            ulong range = (ulong)(max - min);
-	            int numBits = NetUtility.BitsToHoldUInt64(range);
-	
-	            ulong rvalue = ReadUInt64(numBits);
-	            return min + (long)rvalue;
-	        }
+		/// <summary>
+		/// Reads a 64 bit integer value written using WriteRangedInteger() (64 version)
+		/// </summary>
+		/// <param name="min">The minimum value used when writing the value</param>
+		/// <param name="max">The maximum value used when writing the value</param>
+		/// <returns>A signed integer value larger or equal to MIN and smaller or equal to MAX</returns>
+		public long ReadRangedInteger(long min, long max)
+		{
+			ulong range = (ulong)(max - min);
+			int numBits = NetUtility.BitsToHoldUInt64(range);
+
+			ulong rvalue = ReadUInt64(numBits);
+			return min + (long)rvalue;
+		}
 
 		/// <summary>
 		/// Reads a string written using Write(string)
@@ -556,22 +556,27 @@ namespace Lidgren.Network
 			int byteLen = (int)ReadVariableUInt32();
 
 			if (byteLen <= 0)
-				return String.Empty;
+				return string.Empty;
 
 			if ((ulong)(m_bitLength - m_readPosition) < ((ulong)byteLen * 8))
 			{
 				// not enough data
 #if DEBUG
-				
+
 				throw new NetException(c_readOverflowError);
 #else
 				m_readPosition = m_bitLength;
-				return null; // unfortunate; but we need to protect against DDOS
+				return ""; // unfortunate; but we need to protect against DDOS
 #endif
 			}
 
 			if ((m_readPosition & 7) == 0)
 			{
+				if (m_data == null)
+				{
+					throw new InvalidOperationException("m_data is null");
+				}
+
 				// read directly
 				string retval = System.Text.Encoding.UTF8.GetString(m_data, m_readPosition >> 3, byteLen);
 				m_readPosition += (8 * byteLen);
@@ -582,7 +587,9 @@ namespace Lidgren.Network
 			{
 				var buffer = ReadBytes(stackalloc byte[byteLen]);
 				return Encoding.UTF8.GetString(buffer);
-			} else {
+			}
+			else
+			{
 				byte[] bytes = ReadBytes(byteLen);
 				return Encoding.UTF8.GetString(bytes, 0, bytes.Length);
 			}
@@ -591,29 +598,33 @@ namespace Lidgren.Network
 		/// <summary>
 		/// Reads a string written using Write(string) and returns true for success
 		/// </summary>
-		public bool ReadString(out string result)
+		public bool ReadString([MaybeNullWhen(false)] out string result)
 		{
-			uint byteLen;
-			if (ReadVariableUInt32(out byteLen) == false)
+			if (ReadVariableUInt32(out uint byteLen) == false)
 			{
-				result = String.Empty;
+				result = string.Empty;
 				return false;
 			}
 
 			if (byteLen <= 0)
 			{
-				result = String.Empty;
+				result = string.Empty;
 				return true;
 			}
 
 			if (m_bitLength - m_readPosition < (byteLen * 8))
 			{
-				result = String.Empty;
+				result = string.Empty;
 				return false;
 			}
 
 			if ((m_readPosition & 7) == 0)
 			{
+				if (m_data == null)
+				{
+					throw new InvalidOperationException("m_data is null");
+				}
+
 				// read directly
 				result = System.Text.Encoding.UTF8.GetString(m_data, m_readPosition >> 3, (int)byteLen);
 				m_readPosition += (8 * (int)byteLen);
@@ -630,14 +641,13 @@ namespace Lidgren.Network
 					return true;
 				}
 
-				result = String.Empty;
+				result = string.Empty;
 				return false;
 			}
 
-			byte[] bytes;
-			if (ReadBytes((int)byteLen, out bytes) == false)
+			if (ReadBytes((int)byteLen, out byte[]? bytes) == false)
 			{
-				result = String.Empty;
+				result = string.Empty;
 				return false;
 			}
 
@@ -648,7 +658,7 @@ namespace Lidgren.Network
 		/// <summary>
 		/// Reads a value, in local time comparable to NetTime.Now, written using WriteTime() for the connection supplied
 		/// </summary>
-		public double ReadTime(NetConnection connection, bool highPrecision)
+		public double ReadTime(NetConnection? connection, bool highPrecision)
 		{
 			double remoteTime = (highPrecision ? ReadDouble() : (double)ReadSingle());
 
