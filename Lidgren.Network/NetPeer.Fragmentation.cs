@@ -99,6 +99,8 @@ namespace Lidgren.Network
 			NetException.Assert(totalBits > 0);
 			NetException.Assert(chunkByteSize > 0);
 
+			// Last-minute sanity check.
+			// Probably not needed?
 			if (group <= 0
 				|| totalBits <= 0
 				|| chunkByteSize <= 0
