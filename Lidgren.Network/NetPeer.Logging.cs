@@ -288,7 +288,7 @@ public enum NetLogRateLimitTarget
 	MalformedPacket = 1 << 0,
 
 	/// <summary>
-	/// Rate limit malformed fragmentation header and chunk range logs.
+	/// Rate limit malformed fragmentation header logs.
 	/// </summary>
 	MalformedFragment = 1 << 1,
 
