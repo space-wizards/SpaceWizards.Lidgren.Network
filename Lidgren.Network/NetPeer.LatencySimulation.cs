@@ -111,7 +111,6 @@ namespace Lidgren.Network
 
 			double now = NetTime.Now;
 
-
 			for (var i = 0; i < m_delayedPackets.Count; i++)
 			{
 				var p = m_delayedPackets[i];
@@ -168,9 +167,9 @@ namespace Lidgren.Network
 				// TODO: refactor this check outta here
 				if (target.Address.Equals(ba))
 				{
-					// Some networks do not allow 
+					// Some networks do not allow
 					// a global broadcast so we use the BroadcastAddress from the configuration
-					// this can be resolved to a local broadcast addresss e.g 192.168.x.255                    
+					// this can be resolved to a local broadcast addresss e.g 192.168.x.255
 					targetCopy.Address = m_configuration.BroadcastAddress;
 					targetCopy.Port = target.Port;
 					realTarget = targetCopy;
