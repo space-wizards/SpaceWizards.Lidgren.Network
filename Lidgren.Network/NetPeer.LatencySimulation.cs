@@ -140,7 +140,7 @@ namespace Lidgren.Network
 			{
 				foreach (DelayedPacket p in m_delayedPackets)
 				{
-					ActuallySendPacket(p.Data, p.Data.Length, p.Target, out bool connectionReset);
+					ActuallySendPacket(p.Data, p.Length, p.Target, out bool connectionReset);
 					Recycle(p.Data);
 				}
 
