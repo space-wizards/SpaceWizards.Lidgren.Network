@@ -8,8 +8,6 @@ namespace Lidgren.Network
 	{
 		private int m_lastUsedFragmentGroup;
 
-		private readonly Dictionary<NetConnection, Dictionary<int, ReceivedFragmentGroup>> m_receivedFragmentGroups;
-
 		// on user thread
 		private NetSendResult SendFragmentedMessage(NetOutgoingMessage msg, IList<NetConnection> recipients, NetDeliveryMethod method, int sequenceChannel)
 		{
@@ -106,7 +104,7 @@ namespace Lidgren.Network
 				|| payloadLength <= 0
 				|| payloadLength > chunkByteSize)
 			{
-				LogWarning($"Dropping malformed fragment from {im.SenderEndPoint} (group={group}, totalBits={totalBits}, chunkByteSize={chunkByteSize}, payload={payloadLength})");
+				LogWarning($"Dropping malformed fragment from {im.SenderEndPoint} (group={group}, totalBits={totalBits}, chunkByteSize={chunkByteSize}, payload={payloadLength}) Trace: {Environment.StackTrace}");
 				Recycle(im);
 				return;
 			}
@@ -126,13 +124,8 @@ namespace Lidgren.Network
 
 			NetException.Assert(im.SenderConnection != null);
 
-			if (!m_receivedFragmentGroups.TryGetValue(im.SenderConnection, out Dictionary<int, ReceivedFragmentGroup>? groups))
-			{
-				groups = new Dictionary<int, ReceivedFragmentGroup>();
-				m_receivedFragmentGroups[im.SenderConnection] = groups;
-			}
-
-			if (!groups.TryGetValue(group, out ReceivedFragmentGroup? info))
+			var groups = im.SenderConnection.m_receivedFragmentGroups;
+			if (!groups.TryGetValue(group, out var info))
 			{
 				// single fragment groups can't accumulate unbounded buffers
 				if (groups.Count >= NetConstants.MaximumConcurrentFragmentGroups)

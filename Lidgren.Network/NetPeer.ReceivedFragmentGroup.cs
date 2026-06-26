@@ -2,7 +2,7 @@
 
 public partial class NetPeer
 {
-	private sealed class ReceivedFragmentGroup
+	internal sealed class ReceivedFragmentGroup
 	{
 		//public float LastReceived;
 		public byte[] Data { get; }
