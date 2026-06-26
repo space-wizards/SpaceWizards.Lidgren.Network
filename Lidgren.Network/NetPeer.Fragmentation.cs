@@ -139,7 +139,7 @@ namespace Lidgren.Network
 				groups[group] = info;
 			}
 			// the computed offset/copy could run out of bounds.
-			else if (info.Data.Length != totalBytes)
+			else if (info.Data.Length < totalBytes)
 			{
 				LogWarning($"Dropping inconsistent fragment for group {group} from {im.SenderEndPoint}");
 				Recycle(im);
