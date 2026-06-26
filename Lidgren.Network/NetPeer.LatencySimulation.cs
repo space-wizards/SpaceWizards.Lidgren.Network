@@ -44,9 +44,10 @@ namespace Lidgren.Network
 			public double DelayedUntil;
 			public NetEndPoint Target;
 
-			public DelayedPacket(byte[] data, double delayedUntil, NetEndPoint target)
+			public DelayedPacket(byte[] data, int length, double delayedUntil, NetEndPoint target)
 			{
 				Data = data;
+				Length = length;
 				DelayedUntil = delayedUntil;
 				Target = target;
 			}
@@ -94,7 +95,8 @@ namespace Lidgren.Network
 				float delay = m + (m_latencyRandom.NextSingle() * r);
 
 				// Enqueue delayed packet
-				DelayedPacket p = new DelayedPacket(new byte[numBytes], NetTime.Now + delay, target);
+				var storage = GetStorage(numBytes);
+				DelayedPacket p = new DelayedPacket(storage, numBytes, NetTime.Now + delay, target);
 
 				Buffer.BlockCopy(m_sendBuffer, 0, p.Data, 0, numBytes);
 
@@ -116,7 +118,7 @@ namespace Lidgren.Network
 				var p = m_delayedPackets[i];
 				if (now < p.DelayedUntil)
 					continue;
-				ActuallySendPacket(p.Data, p.Data.Length, p.Target, out _);
+				ActuallySendPacket(p.Data, p.Length, p.Target, out _);
 
 				// Swap packet with last entry in list.
 				// This does not preserve order (we don't care) but is O(1).
