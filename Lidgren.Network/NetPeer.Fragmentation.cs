@@ -106,7 +106,7 @@ namespace Lidgren.Network
 				|| payloadLength <= 0
 				|| payloadLength > chunkByteSize)
 			{
-				LogWarning($"Dropping malformed fragment from {im.SenderEndPoint} (group={group}, totalBits={totalBits}, chunkByteSize={chunkByteSize}, payload={payloadLength})");
+				LogRateLimitedWarning(NetLogRateLimitTarget.MalformedFragment, im.SenderEndPoint, $"Dropping malformed fragment from {im.SenderEndPoint} (group={group}, totalBits={totalBits}, chunkByteSize={chunkByteSize}, payload={payloadLength})");
 				Recycle(im);
 				return;
 			}
@@ -119,7 +119,7 @@ namespace Lidgren.Network
 				|| chunkNumber >= totalNumChunks
 				|| (long)chunkNumber * chunkByteSize + payloadLength > totalBytes)
 			{
-				LogWarning($"Dropping out-of-range fragment {chunkNumber}/{totalNumChunks} from {im.SenderEndPoint}");
+				LogRateLimitedWarning(NetLogRateLimitTarget.MalformedFragment, im.SenderEndPoint, $"Dropping out-of-range fragment {chunkNumber}/{totalNumChunks} from {im.SenderEndPoint}");
 				Recycle(im);
 				return;
 			}
@@ -137,7 +137,7 @@ namespace Lidgren.Network
 				// single fragment groups can't accumulate unbounded buffers
 				if (groups.Count >= NetConstants.MaximumConcurrentFragmentGroups)
 				{
-					LogWarning($"Too many concurrent fragment groups from {im.SenderEndPoint}; dropping fragment");
+					LogRateLimitedWarning(NetLogRateLimitTarget.MalformedFragment, im.SenderEndPoint, $"Too many concurrent fragment groups from {im.SenderEndPoint}; dropping fragment");
 					Recycle(im);
 					return;
 				}
@@ -148,7 +148,7 @@ namespace Lidgren.Network
 			// the computed offset/copy could run out of bounds.
 			else if (info.Data.Length != totalBytes)
 			{
-				LogWarning($"Dropping inconsistent fragment for group {group} from {im.SenderEndPoint}");
+				LogRateLimitedWarning(NetLogRateLimitTarget.MalformedFragment, im.SenderEndPoint, $"Dropping inconsistent fragment for group {group} from {im.SenderEndPoint}");
 				Recycle(im);
 				return;
 			}

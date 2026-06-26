@@ -527,14 +527,16 @@ namespace Lidgren.Network
 
 				if (bytesReceived - ptr < payloadByteLength)
 				{
-					LogWarning(
+					LogRateLimitedWarning(
+						NetLogRateLimitTarget.MalformedPacket,
+						(NetEndPoint)senderRemote,
 						$"Malformed packet from {(NetEndPoint)senderRemote}; stated payload length {payloadByteLength}, remaining bytes {(bytesReceived - ptr)}");
 					return;
 				}
 
 				if (tp >= NetMessageType.Unused1 && tp <= NetMessageType.Unused29)
 				{
-					LogWarning($"Unexpected NetMessageType: {tp}");
+					LogRateLimitedWarning(NetLogRateLimitTarget.MalformedPacket, (NetEndPoint)senderRemote, $"Unexpected NetMessageType: {tp}");
 					return;
 				}
 
@@ -587,7 +589,7 @@ namespace Lidgren.Network
 				}
 				catch (Exception ex)
 				{
-					LogError($"Packet parsing error: {ex.Message} from {(NetEndPoint)senderRemote}");
+					LogRateLimitedError(NetLogRateLimitTarget.PacketParsingError, (NetEndPoint)senderRemote, $"Packet parsing error: {ex.Message} from {(NetEndPoint)senderRemote}");
 				}
 				ptr += payloadByteLength;
 			}
