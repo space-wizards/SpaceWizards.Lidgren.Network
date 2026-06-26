@@ -135,7 +135,7 @@ namespace Lidgren.Network
 					return;
 				}
 
-				info = new ReceivedFragmentGroup(new byte[totalBytes], new NetBitVector(totalNumChunks));
+				info = new ReceivedFragmentGroup(GetStorage(totalBytes), new NetBitVector(totalNumChunks));
 				groups[group] = info;
 			}
 			// the computed offset/copy could run out of bounds.

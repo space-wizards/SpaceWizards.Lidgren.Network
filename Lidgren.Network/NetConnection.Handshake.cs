@@ -124,6 +124,13 @@ namespace Lidgren.Network
 			lock (m_peer.m_handshakes)
 				m_peer.m_handshakes.Remove(m_remoteEndPoint);
 
+            // free all the buffers that are no longer needed
+			foreach (var group in m_receivedFragmentGroups.Values)
+			{
+			    m_peer.Recycle(group.Data);
+			}
+			m_receivedFragmentGroups.Clear();
+
 			m_disconnectRequested = false;
 			m_connectRequested = false;
 			m_handshakeAttempts = 0;
