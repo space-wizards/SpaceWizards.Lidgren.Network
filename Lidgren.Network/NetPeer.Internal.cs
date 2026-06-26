@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net;
 using System.Threading;
 using System.Diagnostics;
@@ -10,6 +10,7 @@ using System.Diagnostics.CodeAnalysis;
 
 #if !__NOIPENDPOINT__
 using NetEndPoint = System.Net.IPEndPoint;
+using NetAddress = System.Net.IPAddress;
 #endif
 
 namespace Lidgren.Network
@@ -27,6 +28,7 @@ namespace Lidgren.Network
 		private uint m_frameCounter;
 		private double m_lastHeartbeat;
 		private double m_lastSocketBind = float.MinValue;
+		private double m_nextLimitDecay;
 		private NetUPnP? m_upnp;
 		internal bool m_needFlushSendQueue;
 
@@ -35,6 +37,11 @@ namespace Lidgren.Network
 		internal readonly NetQueue<(NetEndPoint, NetOutgoingMessage)> m_unsentUnconnectedMessages;
 
 		internal Dictionary<NetEndPoint, NetConnection> m_handshakes;
+		// map of every ip address to number of handshake/connected connections.
+		internal Dictionary<NetAddress, uint> m_ipConnectionCounts = new();
+		// how many times every ip address has tried to connect within the configured window
+		// regularly cleared to allow for genuine relogging
+		internal Dictionary<NetAddress, uint> m_ipConnectionTimes = new();
 
 		internal readonly NetPeerStatistics m_statistics;
 		internal long m_uniqueIdentifier;
@@ -395,6 +402,19 @@ namespace Lidgren.Network
 
 					SendPacket(len, unsent.Item1, 1, out bool connReset);
 				}
+
+				// decay rapid connection times so you can rejoin reasonably
+				// leaving at 0 instead of removing since even if you had a botnet with 100k ips, it would only be a few hundred KB of ram.
+				if (now > m_nextLimitDecay)
+				{
+					m_nextLimitDecay = now + m_configuration.RapidConnectionWindow;
+					var decay = (uint) m_configuration.RapidConnectionDecay;
+					foreach (var (ip, times) in m_ipConnectionTimes)
+					{
+						if (times > 0)
+							m_ipConnectionTimes[ip] = times - decay;
+					}
+				}
 			}
 
 			if (m_upnp != null)
@@ -746,10 +766,40 @@ namespace Lidgren.Network
 						return;
 					}
 
+					// limit concurrent connections, probably bad actors
+					var ip = senderEndPoint.Address;
+					var conCount = m_ipConnectionCounts.GetValueOrDefault(ip);
+					if (conCount >= m_configuration.MaximumIpConnections)
+					{
+						var msg = CreateMessage("Too many connections from your network");
+						msg.m_messageType = NetMessageType.Disconnect;
+						SendLibrary(msg, senderEndPoint);
+						return;
+					}
+
+					// limit rapid connections, definitely bad actors
+					// this isnt a perfect sliding window but if you are trying to test it, go to hell
+					// note that it increments even if your packet is dropped, so you have to wait off your "debt" if you are spamming the server
+					var times = m_ipConnectionTimes.GetValueOrDefault(ip);
+					m_ipConnectionTimes[ip] = times + 1;
+					if (times >= m_configuration.MaximumRapidConnections)
+					{
+						// only warn once. you as a living, breathing, human being should read the message and stop trying to connect
+						// just drop the packets for bots or darwin award winners
+						if (times == m_configuration.MaximumRapidConnections)
+						{
+							var msg = CreateMessage("You are connecting too fast!");
+							msg.m_messageType = NetMessageType.Disconnect;
+							SendLibrary(msg, senderEndPoint);
+						}
+						return;
+					}
+
 					// Ok, start handshake!
 					NetConnection conn = new NetConnection(this, senderEndPoint);
 					conn.m_status = NetConnectionStatus.ReceivedInitiation;
 					m_handshakes.Add(senderEndPoint, conn);
+					m_ipConnectionCounts[ip] = conCount + 1; // these stay until you disconnect
 					conn.ReceivedHandshake(now, tp, ptr, payloadByteLength);
 					return;
 

@@ -124,12 +124,18 @@ namespace Lidgren.Network
 			lock (m_peer.m_handshakes)
 				m_peer.m_handshakes.Remove(m_remoteEndPoint);
 
-            // free all the buffers that are no longer needed
+			// free all the buffers that are no longer needed
 			foreach (var group in m_receivedFragmentGroups.Values)
 			{
-			    m_peer.Recycle(group.Data);
+				m_peer.Recycle(group.Data);
 			}
 			m_receivedFragmentGroups.Clear();
+
+			// decrement concurrent connections count (but not rapid connection times, it will decay)
+			// don't need to remove from it as even gigantic botnets would only be a few hundred KB of ram
+			// this also assumes m_ipConnectionCounts was set when connecting, the library is massively broken otherwise.
+			lock (m_peer.m_ipConnectionCounts)
+				m_peer.m_ipConnectionCounts[m_remoteEndPoint.Address]--;
 
 			m_disconnectRequested = false;
 			m_connectRequested = false;
