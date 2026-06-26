@@ -79,6 +79,7 @@ namespace Lidgren.Network
 
 			for (int shift = 0; shift <= 28; shift += 7)
 			{
+				// Header out of the expected range so dump it.
 				if (ptr >= endPtr)
 					return false;
 
@@ -95,6 +96,7 @@ namespace Lidgren.Network
 				}
 			}
 
+			// If the header bytes are still going then dump it.
 			return false;
 		}
 
