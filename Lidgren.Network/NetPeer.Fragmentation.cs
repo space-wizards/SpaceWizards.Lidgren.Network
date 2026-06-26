@@ -79,21 +79,37 @@ namespace Lidgren.Network
 			//
 			// read fragmentation header and combine fragments
 			//
-			int ptr = NetFragmentationHelper.ReadHeader(
-				im.Data, 0,
+			if (!NetFragmentationHelper.TryReadHeader(
+				im.Data, 0, im.LengthBytes,
+				out int ptr,
 				out int group,
 				out int totalBits,
 				out int chunkByteSize,
 				out int chunkNumber
-			);
+			))
+			{
+				LogWarning($"Dropping malformed fragment header from {im.SenderEndPoint}");
+				Recycle(im);
+				return;
+			}
 
 			NetException.Assert(im.LengthBytes > ptr);
 
 			NetException.Assert(group > 0);
 			NetException.Assert(totalBits > 0);
 			NetException.Assert(chunkByteSize > 0);
-			
-			int totalBytes = NetUtility.BytesToHoldBits((int)totalBits);
+
+			if (group <= 0
+				|| totalBits <= 0
+				|| chunkByteSize <= 0
+				|| ptr >= im.LengthBytes)
+			{
+				LogWarning($"Dropping malformed fragment from {im.SenderEndPoint} (group={group}, totalBits={totalBits}, chunkByteSize={chunkByteSize})");
+				Recycle(im);
+				return;
+			}
+
+			int totalBytes = NetUtility.BytesToHoldBits(totalBits);
 			int totalNumChunks = totalBytes / chunkByteSize;
 			if (totalNumChunks * chunkByteSize < totalBytes)
 				totalNumChunks++;
@@ -103,6 +119,7 @@ namespace Lidgren.Network
 			if (chunkNumber >= totalNumChunks)
 			{
 				LogWarning($"Index out of bounds for chunk {chunkNumber} (total chunks {totalNumChunks})");
+				Recycle(im);
 				return;
 			}
 
