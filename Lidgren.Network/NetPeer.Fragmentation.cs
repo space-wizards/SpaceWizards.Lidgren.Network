@@ -10,6 +10,16 @@ namespace Lidgren.Network
 
 		private readonly Dictionary<NetConnection, Dictionary<int, ReceivedFragmentGroup>> m_receivedFragmentGroups;
 
+		private void ClearReceivedFragments(NetConnection connection)
+		{
+			m_receivedFragmentGroups.Remove(connection);
+		}
+
+		private void ClearReceivedFragments()
+		{
+			m_receivedFragmentGroups.Clear();
+		}
+
 		// on user thread
 		private NetSendResult SendFragmentedMessage(NetOutgoingMessage msg, IList<NetConnection> recipients, NetDeliveryMethod method, int sequenceChannel)
 		{

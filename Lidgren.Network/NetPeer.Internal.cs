@@ -305,6 +305,7 @@ namespace Lidgren.Network
 				m_connections.Clear();
 				m_connectionLookup.Clear();
 				m_handshakes.Clear();
+				ClearReceivedFragments();
 
 				m_onShutdown?.Invoke();
 			}
@@ -377,6 +378,7 @@ namespace Lidgren.Network
 							//
 							m_connections.RemoveAt(i);
 							m_connectionLookup.Remove((NetSocketAddress)conn.RemoteEndPoint);
+							ClearReceivedFragments(conn);
 						}
 					}
 				}
