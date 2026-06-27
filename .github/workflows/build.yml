@@ -16,11 +16,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Test .NET 6
-      # macOS images don't have .NET 6.
-      if: matrix.os != 'macos-latest'
-      run: dotnet test --configuration Release --framework net6.0 -v n
-    - name: Test .NET 7
-      run: dotnet test --configuration Release --framework net7.0 -v n
     - name: Test .NET 8
       run: dotnet test --configuration Release --framework net8.0 -v n
+    - name: Test .NET 9
+      run: dotnet test --configuration Release --framework net9.0 -v n
+    - name: Test .NET 10
+      run: dotnet test --configuration Release --framework net10.0 -v n

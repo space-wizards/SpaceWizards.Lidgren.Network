@@ -56,13 +56,11 @@ namespace UnitTests
         }
 
         [Test]
-        [TestCase(AddressFamily.InterNetwork)]
-        [TestCase(AddressFamily.InterNetworkV6)]
-        public void TestResolveAllowed(AddressFamily family)
+        [TestCase(AddressFamily.InterNetwork, "127.0.0.1")]
+        [TestCase(AddressFamily.InterNetworkV6, "::1")]
+        public void TestResolveAllowed(AddressFamily family, string address)
         {
-	        IgnoreIfActions();
-	        
-            var addr = NetUtility.Resolve("example.com", family);
+            var addr = NetUtility.Resolve(address, family);
 
             Assert.That(addr?.AddressFamily, Is.EqualTo(family));
         }
@@ -93,13 +91,11 @@ namespace UnitTests
         }
 
         [Test]
-        [TestCase(AddressFamily.InterNetwork)]
-        [TestCase(AddressFamily.InterNetworkV6)]
-        public async Task TestResolveAsyncAllowed(AddressFamily family)
+        [TestCase(AddressFamily.InterNetwork, "127.0.0.1")]
+        [TestCase(AddressFamily.InterNetworkV6, "::1")]
+        public async Task TestResolveAsyncAllowed(AddressFamily family, string address)
         {
-	        IgnoreIfActions();
-         
-	        var addr = await NetUtility.ResolveAsync("example.com", family);
+	        var addr = await NetUtility.ResolveAsync(address, family);
 
             Assert.That(addr?.AddressFamily, Is.EqualTo(family));
         }
@@ -125,11 +121,5 @@ namespace UnitTests
         }
 #pragma warning restore CS0618 // Type or member is obsolete
 
-        private static void IgnoreIfActions()
-        {
-	        // https://github.com/actions/virtual-environments/issues/668
-	        if (Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true")
-		        Assert.Ignore("GitHub Actions Runners do not support IPv6 and as such this test is disabled.");
-        }
     }
 }
