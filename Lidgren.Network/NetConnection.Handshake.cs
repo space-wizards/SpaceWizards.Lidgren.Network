@@ -133,9 +133,13 @@ namespace Lidgren.Network
 
 			// decrement concurrent connections count (but not rapid connection times, it will decay)
 			// don't need to remove from it as even gigantic botnets would only be a few hundred KB of ram
-			// this also assumes m_ipConnectionCounts was set when connecting, the library is massively broken otherwise.
 			lock (m_peer.m_ipConnectionCounts)
-				m_peer.m_ipConnectionCounts[m_remoteEndPoint.Address]--;
+			{
+			    var counts = m_peer.m_ipConnectionCounts;
+			    var ip = m_remoteEndPoint.Address;
+			    if (counts.TryGetValue(ip, out var count))
+			        counts[ip] = count;
+	        }
 
 			m_disconnectRequested = false;
 			m_connectRequested = false;
