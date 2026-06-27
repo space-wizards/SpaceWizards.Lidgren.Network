@@ -299,17 +299,10 @@ namespace Lidgren.Network
 
 				return ResolveFilter(allowedFamily, addresses);
 			}
-			catch (SocketException ex)
+			catch (SocketException ex) when (IsNameResolutionFailure(ex))
 			{
-				if (ex.SocketErrorCode == SocketError.HostNotFound)
-				{
-					//LogWrite(string.Format(CultureInfo.InvariantCulture, "Failed to resolve host '{0}'.", ipOrHost));
-					return null;
-				}
-				else
-				{
-					throw;
-				}
+				//LogWrite(string.Format(CultureInfo.InvariantCulture, "Failed to resolve host '{0}'.", ipOrHost));
+				return null;
 			}
 
 		}
@@ -370,11 +363,16 @@ namespace Lidgren.Network
 
 				return ResolveFilter(allowedFamily, addresses);
 			}
-			catch (SocketException ex) when (ex.SocketErrorCode == SocketError.HostNotFound)
+			catch (SocketException ex) when (IsNameResolutionFailure(ex))
 			{
 				//LogWrite(string.Format(CultureInfo.InvariantCulture, "Failed to resolve host '{0}'.", ipOrHost));
 				return null;
 			}
+		}
+
+		private static bool IsNameResolutionFailure(SocketException ex)
+		{
+			return ex.SocketErrorCode == SocketError.HostNotFound || ex.SocketErrorCode == SocketError.NoData;
 		}
 
 		private static IPAddress? ResolveFilter(AddressFamily? allowedFamily, IPAddress[] addresses)
