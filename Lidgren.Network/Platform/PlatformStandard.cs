@@ -15,7 +15,7 @@ namespace Lidgren.Network
 	{
 		private static readonly long s_timeInitialized = Stopwatch.GetTimestamp();
 		private static readonly double s_dInvFreq = 1.0 / (double)Stopwatch.Frequency;
-		
+
 		internal static ulong GetPlatformSeedCore(int seedInc)
 		{
 			ulong seed = (ulong)System.Diagnostics.Stopwatch.GetTimestamp();
@@ -27,7 +27,7 @@ namespace Lidgren.Network
 		private static NetworkInterface? GetNetworkInterface()
 		{
 			var defaultAddress = ProbeDefaultRouteAddress();
-			
+
 			// Forgive me father for I have LINQ'd.
 			return NetworkInterface.GetAllNetworkInterfaces()
 				.Where(nic => nic.NetworkInterfaceType != NetworkInterfaceType.Loopback &&
@@ -46,10 +46,10 @@ namespace Lidgren.Network
 
 					foreach (var address in nic.GetIPProperties().UnicastAddresses)
 					{
-						// If this is the adapter for the default address, it wins hands down. 
+						// If this is the adapter for the default address, it wins hands down.
 						if (defaultAddress != null && address.Address.Equals(defaultAddress))
 							return 4;
-						
+
 						// make sure this adapter has any ipv4 addresses
 						if (address is { Address: { AddressFamily: AddressFamily.InterNetwork } })
 							return 3;
@@ -149,7 +149,7 @@ namespace Lidgren.Network
 		{
 			return new IPAddress(bytes);
 		}
-		
+
 		private static byte[] ComputeSHAHashCore(byte[] bytes, int offset, int count)
 		{
 			using var sha = SHA256.Create();
@@ -172,7 +172,7 @@ namespace Lidgren.Network
 		{
 			s_timeInitialized = -(long) (value / s_dInvFreq - Stopwatch.GetTimestamp());
 		}
-		
+
 		/// <summary>
 		/// Get number of seconds since the application started
 		/// </summary>

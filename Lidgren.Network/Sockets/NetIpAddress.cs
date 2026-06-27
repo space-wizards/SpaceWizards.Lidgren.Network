@@ -15,15 +15,15 @@ namespace Lidgren.Network
 		{
 			V6 = default;
 			V4 = v4;
-			
+
 			Family = NetIpAddressFamily.V4;
 		}
-		
+
 		public NetIpAddress(in NetIpv6Address v6)
 		{
 			V4 = default;
 			V6 = v6;
-			
+
 			Family = NetIpAddressFamily.V6;
 		}
 
@@ -64,7 +64,7 @@ namespace Lidgren.Network
 			v6.Address[15] = Address[3];
 			return v6;
 		}
-		
+
 		public unsafe bool Equals(NetIpv4Address other)
 		{
 			var spanA = MemoryMarshal.CreateReadOnlySpan(ref Address[0], 4);
@@ -77,7 +77,7 @@ namespace Lidgren.Network
 	internal struct NetIpv6Address : IEquatable<NetIpv6Address>
 	{
 		public unsafe fixed byte Address[16];
-		
+
 		public unsafe bool Equals(NetIpv6Address other)
 		{
 			var spanA = MemoryMarshal.CreateReadOnlySpan(ref Address[0], 16);

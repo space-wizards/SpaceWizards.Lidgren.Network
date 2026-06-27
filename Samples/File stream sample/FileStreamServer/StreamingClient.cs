@@ -11,7 +11,7 @@ namespace FileStreamServer
 		private int m_chunkLen;
 		private byte[] m_tmpBuffer;
 		private NetConnection m_connection;
-		
+
 		public StreamingClient(NetConnection conn, string fileName)
 		{
 			m_connection = conn;

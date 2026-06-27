@@ -1,1 +1,14 @@
-* text=auto
+###############################################################################
+# Normalize all text files to LF line endings on commit and checkout.
+###############################################################################
+* text=auto eol=lf
+
+# Proper C# diffs from the command line.
+*.cs     diff=csharp
+
+# Treat common binary assets as binary (never touch their bytes).
+*.ico    binary
+*.png    binary
+*.gif    binary
+*.jpg    binary
+*.snk    binary

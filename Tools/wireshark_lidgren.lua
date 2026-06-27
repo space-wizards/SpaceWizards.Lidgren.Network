@@ -1,11 +1,11 @@
 -- This is a Wireshark Lua plugin to add a Dissector for the Lidgren protocol.
 -- In case you ever decide you need to open Lidgren's traffic in Wireshark.
--- 
+--
 -- To install this plugin, install it in your Wireshark plugin folder:
 -- https://www.wireshark.org/docs/wsug_html_chunked/ChPluginFolders.html
 -- You can reload plugins in the UI by going Analyze -> Reload Lua Plugins
--- 
--- Because Lidgren doesn't have fixed port numbers, 
+--
+-- Because Lidgren doesn't have fixed port numbers,
 -- you may want to switch the port number at the bottom to whatever your program uses.
 
 lidgren_message_types = {
@@ -193,7 +193,7 @@ function lidgren_parsemessage(buffer, tree, index, msgtypes)
     local message_type = buffer(0,1):uint()
     local message_type_name = lidgren_message_types[message_type]
     table.insert(msgtypes, message_type_name)
- 
+
     tree:add_le(lidgren_proto.fields.msgtype, buffer(0, 1))
     tree:add_le(lidgren_proto.fields.fragmented, buffer(1, 2))
     tree:add_le(lidgren_proto.fields.sequence, buffer(1, 2))
@@ -259,7 +259,7 @@ function lidgren_proto.dissector(buffer, pinfo, tree)
     while buffer:len() > LIDGREN_HEADER_BYTE_SIZE do
         local msgtree = subtree:add(buffer(), "")
         local remaining = lidgren_parsemessage(buffer, msgtree, countmsg, msgtypes)
-        if remaining == nil then 
+        if remaining == nil then
             break
         end
         buffer = remaining
