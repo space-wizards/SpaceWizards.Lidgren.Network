@@ -135,11 +135,12 @@ namespace Lidgren.Network
 					return;
 				}
 
-				info = new ReceivedFragmentGroup(GetStorage(totalBytes), new NetBitVector(totalNumChunks));
+				info = new ReceivedFragmentGroup(GetStorage(totalBytes), totalBytes, new NetBitVector(totalNumChunks));
 				groups[group] = info;
 			}
+
 			// the computed offset/copy could run out of bounds.
-			else if (info.Data.Length < totalBytes)
+			if (info.Data.Length < totalBytes || info.TotalBytes != totalBytes)
 			{
 				LogWarning($"Dropping inconsistent fragment for group {group} from {im.SenderEndPoint}");
 				Recycle(im);

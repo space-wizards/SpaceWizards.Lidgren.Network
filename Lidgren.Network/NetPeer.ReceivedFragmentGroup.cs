@@ -6,11 +6,13 @@ public partial class NetPeer
 	{
 		//public float LastReceived;
 		public byte[] Data { get; }
+		public int TotalBytes { get; }
 		public NetBitVector ReceivedChunks { get; }
 
-		public ReceivedFragmentGroup(byte[] data, NetBitVector receivedChunks)
+		public ReceivedFragmentGroup(byte[] data, int totalBytes, NetBitVector receivedChunks)
 		{
 			Data = data;
+			TotalBytes = totalBytes;
 			ReceivedChunks = receivedChunks;
 		}
 	}
