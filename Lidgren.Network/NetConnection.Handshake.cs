@@ -138,7 +138,7 @@ namespace Lidgren.Network
 			    var counts = m_peer.m_ipConnectionCounts;
 			    var ip = m_remoteEndPoint.Address;
 			    if (counts.TryGetValue(ip, out var count))
-			        counts[ip] = count;
+			        counts[ip] = count - 1;
 	        }
 
 			m_disconnectRequested = false;
