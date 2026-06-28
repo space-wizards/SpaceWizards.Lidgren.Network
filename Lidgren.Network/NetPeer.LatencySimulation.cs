@@ -20,6 +20,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 //#define USE_RELEASE_STATISTICS
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
@@ -36,15 +37,17 @@ namespace Lidgren.Network
 		private readonly List<DelayedPacket> m_delayedPackets = new List<DelayedPacket>();
 		private readonly MWCRandom m_latencyRandom = new MWCRandom();
 
-		private sealed class DelayedPacket
+		private record struct DelayedPacket
 		{
 			public byte[] Data;
+			public int Length;
 			public double DelayedUntil;
 			public NetEndPoint Target;
 
-			public DelayedPacket(byte[] data, double delayedUntil, NetEndPoint target)
+			public DelayedPacket(byte[] data, int length, double delayedUntil, NetEndPoint target)
 			{
 				Data = data;
+				Length = length;
 				DelayedUntil = delayedUntil;
 				Target = target;
 			}
@@ -92,7 +95,8 @@ namespace Lidgren.Network
 				float delay = m + (m_latencyRandom.NextSingle() * r);
 
 				// Enqueue delayed packet
-				DelayedPacket p = new DelayedPacket(new byte[numBytes], NetTime.Now + delay, target);
+				var storage = GetStorage(numBytes);
+				DelayedPacket p = new DelayedPacket(storage, numBytes, NetTime.Now + delay, target);
 
 				Buffer.BlockCopy(m_sendBuffer, 0, p.Data, 0, numBytes);
 
@@ -109,13 +113,12 @@ namespace Lidgren.Network
 
 			double now = NetTime.Now;
 
-
 			for (var i = 0; i < m_delayedPackets.Count; i++)
 			{
 				var p = m_delayedPackets[i];
 				if (now < p.DelayedUntil)
 					continue;
-				ActuallySendPacket(p.Data, p.Data.Length, p.Target, out _);
+				ActuallySendPacket(p.Data, p.Length, p.Target, out _);
 
 				// Swap packet with last entry in list.
 				// This does not preserve order (we don't care) but is O(1).
@@ -123,6 +126,8 @@ namespace Lidgren.Network
 				var replacement = m_delayedPackets[replaceIdx];
 				m_delayedPackets[i] = replacement;
 				m_delayedPackets.RemoveAt(replaceIdx);
+
+				Recycle(p.Data);
 
 				// Make sure to decrement i so we re-process the element we just swapped in.
 				i -= 1;
@@ -134,7 +139,11 @@ namespace Lidgren.Network
 			try
 			{
 				foreach (DelayedPacket p in m_delayedPackets)
-					ActuallySendPacket(p.Data, p.Data.Length, p.Target, out bool connectionReset);
+				{
+					ActuallySendPacket(p.Data, p.Length, p.Target, out bool connectionReset);
+					Recycle(p.Data);
+				}
+
 				m_delayedPackets.Clear();
 			}
 			catch { }
