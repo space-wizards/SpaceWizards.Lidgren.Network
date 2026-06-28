@@ -79,20 +79,23 @@ public sealed class NetPeerLogRateLimiterTests
 	[Test]
 	public void RateLimiterAllowsNewLogWhenWindowResets()
 	{
-		var originalNow = NetTime.Now;
+		double? advancedFrom = null;
+		double? advancedTo = null;
 		try
 		{
 			var logs = new List<string>();
 			var config = CreateConfig();
 			config.LogRateLimitBurst = 1;
-			config.LogRateLimitWindow = 0.001f;
+			config.LogRateLimitWindow = 0.1f;
 			var peer = CreatePeer(config, logs);
 			var endpoint = new IPEndPoint(IPAddress.Loopback, 6767);
 
 			peer.LogRateLimitedWarning(NetLogRateLimitTarget.MalformedPacket, endpoint, "malformed packet");
 			peer.LogRateLimitedWarning(NetLogRateLimitTarget.MalformedPacket, endpoint, "malformed packet");
 
-			NetTime.SetNow(0.01f);
+			advancedFrom = NetTime.Now;
+			advancedTo = advancedFrom.Value + (config.LogRateLimitWindow * 2.1f);
+			NetTime.SetNow(advancedTo.Value);
 
 			peer.LogRateLimitedWarning(NetLogRateLimitTarget.MalformedPacket, endpoint, "malformed packet");
 
@@ -104,7 +107,8 @@ public sealed class NetPeerLogRateLimiterTests
 		}
 		finally
 		{
-			NetTime.SetNow(originalNow);
+			if (advancedFrom != null && advancedTo != null)
+				NetTime.SetNow(advancedFrom.Value + (NetTime.Now - advancedTo.Value));
 		}
 	}
 
