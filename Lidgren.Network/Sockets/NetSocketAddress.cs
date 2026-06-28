@@ -12,7 +12,7 @@ namespace Lidgren.Network
 	// Ok so basically I got really enthusiastic and
 	// originally wanted to rewrite all of Lidgren to use custom address types.
 	// So that's why this is more advanced than it probably needs to be.
-	
+
 	// SocketAddress and IPAddress API inspired by Rust's.
 
 	/// <summary>
@@ -101,10 +101,10 @@ namespace Lidgren.Network
 		{
 			if (address.IsIpv4)
 				return (IPEndPoint)address.V4;
-			else 
+			else
 				return (IPEndPoint)address.V6;
 		}
-		
+
 		public static implicit operator NetSocketAddress(in NetSocketAddressV4 v4) => new NetSocketAddress(v4);
 		public static implicit operator NetSocketAddress(in NetSocketAddressV6 v6) => new NetSocketAddress(v6);
 
@@ -145,7 +145,7 @@ namespace Lidgren.Network
 			Address = address;
 			Port = port;
 		}
-		
+
 		public bool Equals(NetSocketAddressV4 other)
 		{
 			return Port == other.Port && Address.Equals(other.Address);
@@ -170,7 +170,7 @@ namespace Lidgren.Network
 		{
 			return !left.Equals(right);
 		}
-		
+
 		public static unsafe explicit operator IPEndPoint(in NetSocketAddressV4 address)
 		{
 			var span = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.AsRef(in address).Address.Address[0], 4);
@@ -190,7 +190,7 @@ namespace Lidgren.Network
 			Port = port;
 			ScopeId = scopeId;
 		}
-		
+
 		public bool Equals(NetSocketAddressV6 other)
 		{
 			return Port == other.Port && Address.Equals(other.Address) && ScopeId == other.ScopeId;
@@ -215,7 +215,7 @@ namespace Lidgren.Network
 		{
 			return !left.Equals(right);
 		}
-		
+
 		public static unsafe explicit operator IPEndPoint(in NetSocketAddressV6 address)
 		{
 			var span = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.AsRef(in address).Address.Address[0], 16);

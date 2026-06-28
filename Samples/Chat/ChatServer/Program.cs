@@ -14,7 +14,7 @@ namespace ChatServer
 		private static Form1 s_form;
 		private static NetServer s_server;
 		private static NetPeerSettingsWindow s_settingsWindow;
-		
+
 		[STAThread]
 		static void Main()
 		{

@@ -25,7 +25,7 @@ namespace ChatClient
 			config.AutoFlushSendQueue = false;
 			s_client = new NetClient(config);
 
-			s_client.RegisterReceivedCallback(new SendOrPostCallback(GotMessage)); 
+			s_client.RegisterReceivedCallback(new SendOrPostCallback(GotMessage));
 
 			Application.Run(s_form);
 

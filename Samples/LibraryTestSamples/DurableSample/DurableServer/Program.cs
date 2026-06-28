@@ -13,7 +13,7 @@ namespace DurableServer
 	{
 		public static Form1 MainForm;
 		public static NetServer Server;
-		
+
 		[STAThread]
 		static void Main()
 		{
@@ -151,10 +151,10 @@ namespace DurableServer
 				bdr.AppendLine("Uptime: " + (NetTime.ToReadable(NetTime.Now)));
 				bdr.Append(Server.Statistics.ToString());
 				bdr.Append(Server.Connections[0].Statistics.ToString());
-				bdr.AppendLine("RECEIVED Reliable ordered: " + 
+				bdr.AppendLine("RECEIVED Reliable ordered: " +
 					m_reliableOrderedCorrect[0] + ", " +
 					m_reliableOrderedCorrect[1] + ", " +
-					m_reliableOrderedCorrect[2] + 
+					m_reliableOrderedCorrect[2] +
 					" received; " +
 					m_reliableOrderedErrors[0] + ", " +
 					m_reliableOrderedErrors[1] + ", " +

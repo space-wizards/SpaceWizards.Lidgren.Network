@@ -1,0 +1,15 @@
+name: EditorConfig Check
+
+on:
+  pull_request:
+    types: [ opened, reopened, synchronize, ready_for_review ]
+
+jobs:
+  build:
+    name: EditorConfig Check
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4.2.2
+    - name: Check for CRLF, trailing whitespace, and missing final newlines
+      run: python3 Tools/check_crlf.py

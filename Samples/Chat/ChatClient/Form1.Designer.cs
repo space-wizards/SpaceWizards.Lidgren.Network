@@ -36,9 +36,9 @@
 			this.button2 = new System.Windows.Forms.Button();
 			this.button3 = new System.Windows.Forms.Button();
 			this.SuspendLayout();
-			// 
+			//
 			// richTextBox1
-			// 
+			//
 			this.richTextBox1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
 						| System.Windows.Forms.AnchorStyles.Left)
 						| System.Windows.Forms.AnchorStyles.Right)));
@@ -47,9 +47,9 @@
 			this.richTextBox1.Size = new System.Drawing.Size(502, 156);
 			this.richTextBox1.TabIndex = 0;
 			this.richTextBox1.Text = "";
-			// 
+			//
 			// button1
-			// 
+			//
 			this.button1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
 			this.button1.Enabled = false;
 			this.button1.Location = new System.Drawing.Point(422, 202);
@@ -59,9 +59,9 @@
 			this.button1.Text = "Send";
 			this.button1.UseVisualStyleBackColor = true;
 			this.button1.Click += new System.EventHandler(this.button1_Click);
-			// 
+			//
 			// textBox1
-			// 
+			//
 			this.textBox1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)
 						| System.Windows.Forms.AnchorStyles.Right)));
 			this.textBox1.Enabled = false;
@@ -69,9 +69,9 @@
 			this.textBox1.Name = "textBox1";
 			this.textBox1.Size = new System.Drawing.Size(404, 22);
 			this.textBox1.TabIndex = 2;
-			// 
+			//
 			// textBox2
-			// 
+			//
 			this.textBox2.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
 						| System.Windows.Forms.AnchorStyles.Right)));
 			this.textBox2.Location = new System.Drawing.Point(12, 12);
@@ -79,9 +79,9 @@
 			this.textBox2.Size = new System.Drawing.Size(192, 22);
 			this.textBox2.TabIndex = 3;
 			this.textBox2.Text = "localhost";
-			// 
+			//
 			// textBox3
-			// 
+			//
 			this.textBox3.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
 			this.textBox3.Location = new System.Drawing.Point(210, 12);
 			this.textBox3.Name = "textBox3";
@@ -89,9 +89,9 @@
 			this.textBox3.Size = new System.Drawing.Size(108, 22);
 			this.textBox3.TabIndex = 4;
 			this.textBox3.Text = "14242";
-			// 
+			//
 			// button2
-			// 
+			//
 			this.button2.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
 			this.button2.Location = new System.Drawing.Point(324, 12);
 			this.button2.Name = "button2";
@@ -100,9 +100,9 @@
 			this.button2.Text = "Connect";
 			this.button2.UseVisualStyleBackColor = true;
 			this.button2.Click += new System.EventHandler(this.button2_Click);
-			// 
+			//
 			// button3
-			// 
+			//
 			this.button3.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
 			this.button3.Location = new System.Drawing.Point(422, 12);
 			this.button3.Name = "button3";
@@ -111,9 +111,9 @@
 			this.button3.Text = "Settings";
 			this.button3.UseVisualStyleBackColor = true;
 			this.button3.Click += new System.EventHandler(this.button3_Click);
-			// 
+			//
 			// Form1
-			// 
+			//
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			this.ClientSize = new System.Drawing.Size(526, 236);
