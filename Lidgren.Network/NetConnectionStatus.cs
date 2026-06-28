@@ -29,7 +29,7 @@ namespace Lidgren.Network
 		/// No connection, or attempt, in place
 		/// </summary>
 		None,
-		
+
 		/// <summary>
 		/// Connect has been sent; waiting for ConnectResponse
 		/// </summary>

@@ -1,4 +1,4 @@
-﻿namespace Lidgren.Network;
+namespace Lidgren.Network;
 
 public partial class NetPeer
 {
@@ -6,14 +6,18 @@ public partial class NetPeer
 	{
 		//public float LastReceived;
 		public byte[] Data { get; }
-		public int TotalBytes { get; }
 		public NetBitVector ReceivedChunks { get; }
+		public int TotalBits { get; }
+		public int ChunkByteSize { get; }
+		public int TotalNumChunks { get; }
 
-		public ReceivedFragmentGroup(byte[] data, int totalBytes, NetBitVector receivedChunks)
+		public ReceivedFragmentGroup(byte[] data, NetBitVector receivedChunks, int totalBits, int chunkByteSize, int totalNumChunks)
 		{
 			Data = data;
-			TotalBytes = totalBytes;
 			ReceivedChunks = receivedChunks;
+			TotalBits = totalBits;
+			ChunkByteSize = chunkByteSize;
+			TotalNumChunks = totalNumChunks;
 		}
 	}
 }

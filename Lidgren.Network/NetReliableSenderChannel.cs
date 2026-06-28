@@ -66,7 +66,7 @@ namespace Lidgren.Network
 			return NetSendResult.Queued;
 		}
 
-		// call this regularely
+		// call this regularly
 		internal override void SendQueuedMessages(double now)
 		{
 			//

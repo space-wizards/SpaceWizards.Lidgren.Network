@@ -547,16 +547,24 @@ namespace Lidgren.Network
 
 				if (bytesReceived - ptr < payloadByteLength)
 				{
-					LogWarning(
+					LogRateLimitedWarning(
+						NetLogRateLimitTarget.MalformedPacket,
+						(NetEndPoint)senderRemote,
 						$"Malformed packet from {(NetEndPoint)senderRemote}; stated payload length {payloadByteLength}, remaining bytes {(bytesReceived - ptr)}");
 					return;
 				}
 
 				if (tp >= NetMessageType.Unused1 && tp <= NetMessageType.Unused29)
 				{
-					LogWarning($"Unexpected NetMessageType: {tp}");
+					LogRateLimitedWarning(
+						NetLogRateLimitTarget.MalformedPacket,
+						(NetEndPoint)senderRemote,
+						$"Unexpected NetMessageType: {tp}");
 					return;
 				}
+
+				NetIncomingMessage? msg = null;
+				bool messageReleased = false;
 
 				try
 				{
@@ -572,7 +580,7 @@ namespace Lidgren.Network
 						if (sender == null && !m_configuration.IsMessageTypeEnabled(NetIncomingMessageType.UnconnectedData))
 							return; // dropping unconnected message since it's not enabled
 
-						NetIncomingMessage msg = CreateIncomingMessage(NetIncomingMessageType.Data, payloadByteLength);
+						msg = CreateIncomingMessage(NetIncomingMessageType.Data, payloadByteLength);
 						msg.m_isFragment = isFragment;
 						msg.m_receiveTime = now;
 						msg.m_sequenceNumber = sequenceNumber;
@@ -589,11 +597,13 @@ namespace Lidgren.Network
 								// We're connected; but we can still send unconnected messages to this peer
 								msg.m_incomingMessageType = NetIncomingMessageType.UnconnectedData;
 								ReleaseMessage(msg);
+								messageReleased = true;
 							}
 							else
 							{
 								// connected application (non-library) message
 								sender.ReceivedMessage(msg);
+								messageReleased = true;
 							}
 						}
 						else
@@ -602,12 +612,16 @@ namespace Lidgren.Network
 							// unconnected application (non-library) message
 							msg.m_incomingMessageType = NetIncomingMessageType.UnconnectedData;
 							ReleaseMessage(msg);
+							messageReleased = true;
 						}
 					}
 				}
 				catch (Exception ex)
 				{
-					LogError($"Packet parsing error: {ex.Message} from {(NetEndPoint)senderRemote}");
+					if (!messageReleased && msg?.m_data != null)
+						Recycle(msg);
+
+					LogRateLimitedError(NetLogRateLimitTarget.PacketParsingError, (NetEndPoint)senderRemote, $"Packet parsing error: {ex.Message} from {(NetEndPoint)senderRemote}");
 				}
 				ptr += payloadByteLength;
 			}

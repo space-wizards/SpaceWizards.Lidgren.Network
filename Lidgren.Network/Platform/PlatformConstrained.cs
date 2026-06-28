@@ -9,7 +9,7 @@ namespace Lidgren.Network
 	public static partial class NetUtility
 	{
 		private static byte[] s_randomMacBytes;
-		
+
 		static NetUtility()
 		{
 		}
@@ -20,7 +20,7 @@ namespace Lidgren.Network
 			ulong seed = (ulong)Environment.TickCount + (ulong)seedInc;
 			return seed ^ ((ulong)(new object().GetHashCode()) << 32);
 		}
-		
+
 		/// <summary>
 		/// Gets my local IPv4 address (not necessarily external) and subnet mask
 		/// </summary>
@@ -79,7 +79,7 @@ namespace Lidgren.Network
 	public static partial class NetTime
 	{
 		private static readonly long s_timeInitialized = Environment.TickCount;
-		
+
 		/// <summary>
 		/// Get number of seconds since the application started
 		/// </summary>

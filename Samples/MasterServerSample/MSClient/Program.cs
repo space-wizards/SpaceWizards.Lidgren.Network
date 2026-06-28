@@ -57,7 +57,7 @@ namespace MSClient
 								var id = inc.ReadInt64();
 								var hostInternal = inc.ReadIPEndPoint();
 								var hostExternal = inc.ReadIPEndPoint();
-		
+
 								m_hostList[id] = new IPEndPoint[] { hostInternal, hostExternal };
 
 								// update combo box

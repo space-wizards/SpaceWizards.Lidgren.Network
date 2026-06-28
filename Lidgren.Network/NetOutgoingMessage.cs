@@ -63,7 +63,7 @@ namespace Lidgren.Network
 			//  1 bit  - Fragment?
 			// 15 bits - Sequence number
 			// 16 bits - Payload length in bits
-			
+
 			intoBuffer[ptr++] = (byte)m_messageType;
 
 			byte low = (byte)((sequenceNumber << 1) | (m_fragmentGroup == 0 ? 0 : 1));

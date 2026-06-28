@@ -8,6 +8,8 @@ namespace Lidgren.Network
 	{
 		private int m_lastUsedFragmentGroup;
 
+		private readonly Dictionary<NetConnection, Dictionary<int, ReceivedFragmentGroup>> m_receivedFragmentGroups;
+
 		// on user thread
 		private NetSendResult SendFragmentedMessage(NetOutgoingMessage msg, IList<NetConnection> recipients, NetDeliveryMethod method, int sequenceChannel)
 		{
@@ -77,13 +79,19 @@ namespace Lidgren.Network
 			//
 			// read fragmentation header and combine fragments
 			//
-			int ptr = NetFragmentationHelper.ReadHeader(
-				im.Data, 0,
+			if (!NetFragmentationHelper.TryReadHeader(
+				im.Data, 0, im.LengthBytes,
+				out int ptr,
 				out int group,
 				out int totalBits,
 				out int chunkByteSize,
 				out int chunkNumber
-			);
+			))
+			{
+				LogRateLimitedWarning(NetLogRateLimitTarget.MalformedFragment, im.SenderEndPoint, $"Dropping malformed fragment header from {im.SenderEndPoint}");
+				Recycle(im);
+				return;
+			}
 
 			NetException.Assert(im.LengthBytes > ptr);
 
@@ -104,7 +112,7 @@ namespace Lidgren.Network
 				|| payloadLength <= 0
 				|| payloadLength > chunkByteSize)
 			{
-				LogWarning($"Dropping malformed fragment from {im.SenderEndPoint} (group={group}, totalBits={totalBits}, chunkByteSize={chunkByteSize}, payload={payloadLength}) Trace: {Environment.StackTrace}");
+				LogRateLimitedWarning(NetLogRateLimitTarget.MalformedFragment, im.SenderEndPoint, $"Dropping malformed fragment from {im.SenderEndPoint} (group={group}, totalBits={totalBits}, chunkByteSize={chunkByteSize}, payload={payloadLength})");
 				Recycle(im);
 				return;
 			}
@@ -117,7 +125,7 @@ namespace Lidgren.Network
 				|| chunkNumber >= totalNumChunks
 				|| (long)chunkNumber * chunkByteSize + payloadLength > totalBytes)
 			{
-				LogWarning($"Dropping out-of-range fragment {chunkNumber}/{totalNumChunks} from {im.SenderEndPoint}");
+				LogRateLimitedWarning(NetLogRateLimitTarget.MalformedFragment, im.SenderEndPoint, $"Dropping out-of-range fragment {chunkNumber}/{totalNumChunks} from {im.SenderEndPoint}");
 				Recycle(im);
 				return;
 			}
@@ -130,19 +138,27 @@ namespace Lidgren.Network
 				// single fragment groups can't accumulate unbounded buffers
 				if (groups.Count >= NetConstants.MaximumConcurrentFragmentGroups)
 				{
-					LogWarning($"Too many concurrent fragment groups from {im.SenderEndPoint}; dropping fragment");
+					LogRateLimitedWarning(NetLogRateLimitTarget.MalformedFragment, im.SenderEndPoint, $"Too many concurrent fragment groups from {im.SenderEndPoint}; dropping fragment");
 					Recycle(im);
 					return;
 				}
 
-				info = new ReceivedFragmentGroup(GetStorage(totalBytes), totalBytes, new NetBitVector(totalNumChunks));
+				info = new ReceivedFragmentGroup(
+					GetStorage(totalBytes),
+					new NetBitVector(totalNumChunks),
+					totalBits,
+					chunkByteSize,
+					totalNumChunks);
 				groups[group] = info;
 			}
-
-			// the computed offset/copy could run out of bounds.
-			if (info.Data.Length < totalBytes || info.TotalBytes != totalBytes)
+			// The computed offset/copy and received chunk bit vector depend on this
+			// header data matching the first fragment for the group.
+			else if (info.Data.Length < totalBytes
+				|| info.TotalBits != totalBits
+				|| info.ChunkByteSize != chunkByteSize
+				|| info.TotalNumChunks != totalNumChunks)
 			{
-				LogWarning($"Dropping inconsistent fragment for group {group} from {im.SenderEndPoint}");
+				LogRateLimitedWarning(NetLogRateLimitTarget.MalformedFragment, im.SenderEndPoint, $"Dropping inconsistent fragment for group {group} from {im.SenderEndPoint}");
 				Recycle(im);
 				return;
 			}
