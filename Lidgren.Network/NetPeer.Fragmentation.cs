@@ -79,13 +79,19 @@ namespace Lidgren.Network
 			//
 			// read fragmentation header and combine fragments
 			//
-			int ptr = NetFragmentationHelper.ReadHeader(
-				im.Data, 0,
+			if (!NetFragmentationHelper.TryReadHeader(
+				im.Data, 0, im.LengthBytes,
+				out int ptr,
 				out int group,
 				out int totalBits,
 				out int chunkByteSize,
 				out int chunkNumber
-			);
+			))
+			{
+				LogWarning($"Dropping malformed fragment header from {im.SenderEndPoint}");
+				Recycle(im);
+				return;
+			}
 
 			NetException.Assert(im.LengthBytes > ptr);
 
