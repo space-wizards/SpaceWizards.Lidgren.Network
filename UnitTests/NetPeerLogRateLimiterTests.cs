@@ -79,24 +79,33 @@ public sealed class NetPeerLogRateLimiterTests
 	[Test]
 	public void RateLimiterAllowsNewLogWhenWindowResets()
 	{
-		var logs = new List<string>();
-		var config = CreateConfig();
-		config.LogRateLimitBurst = 1;
-		config.LogRateLimitWindow = 0.001f;
-		var peer = CreatePeer(config, logs);
-		var endpoint = new IPEndPoint(IPAddress.Loopback, 6767);
-
-		peer.LogRateLimitedWarning(NetLogRateLimitTarget.MalformedPacket, endpoint, "malformed packet");
-		peer.LogRateLimitedWarning(NetLogRateLimitTarget.MalformedPacket, endpoint, "malformed packet");
-		// How do I even wait in these tests, do I even need to to-do this
-		System.Threading.Thread.Sleep(10);
-		peer.LogRateLimitedWarning(NetLogRateLimitTarget.MalformedPacket, endpoint, "malformed packet");
-
-		Assert.Multiple(() =>
+		var originalNow = NetTime.Now;
+		try
 		{
-			Assert.That(logs, Has.Count.EqualTo(2));
-			Assert.That(logs[1], Is.EqualTo("malformed packet"));
-		});
+			var logs = new List<string>();
+			var config = CreateConfig();
+			config.LogRateLimitBurst = 1;
+			config.LogRateLimitWindow = 0.001f;
+			var peer = CreatePeer(config, logs);
+			var endpoint = new IPEndPoint(IPAddress.Loopback, 6767);
+
+			peer.LogRateLimitedWarning(NetLogRateLimitTarget.MalformedPacket, endpoint, "malformed packet");
+			peer.LogRateLimitedWarning(NetLogRateLimitTarget.MalformedPacket, endpoint, "malformed packet");
+
+			NetTime.SetNow(0.01f);
+
+			peer.LogRateLimitedWarning(NetLogRateLimitTarget.MalformedPacket, endpoint, "malformed packet");
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(logs, Has.Count.EqualTo(2));
+				Assert.That(logs[1], Is.EqualTo("malformed packet"));
+			});
+		}
+		finally
+		{
+			NetTime.SetNow(originalNow);
+		}
 	}
 
 	private static NetPeerConfiguration CreateConfig()
