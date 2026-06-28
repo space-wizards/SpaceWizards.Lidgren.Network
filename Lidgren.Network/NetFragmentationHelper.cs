@@ -50,65 +50,54 @@ namespace Lidgren.Network
 			return ptr;
 		}
 
-		internal static int ReadHeader(byte[] buffer, int ptr, out int group, out int totalBits, out int chunkByteSize, out int chunkNumber)
+		internal static bool TryReadHeader(
+			byte[] buffer,
+			int ptr,
+			int endPtr,
+			out int headerEnd,
+			out int group,
+			out int totalBits,
+			out int chunkByteSize,
+			out int chunkNumber)
 		{
-			int num1 = 0;
-			int num2 = 0;
-			while (true)
+			headerEnd = ptr;
+			group = 0;
+			totalBits = 0;
+			chunkByteSize = 0;
+			chunkNumber = 0;
+
+			return TryReadVariableInt(buffer, ref headerEnd, endPtr, out group)
+				&& TryReadVariableInt(buffer, ref headerEnd, endPtr, out totalBits)
+				&& TryReadVariableInt(buffer, ref headerEnd, endPtr, out chunkByteSize)
+				&& TryReadVariableInt(buffer, ref headerEnd, endPtr, out chunkNumber);
+		}
+
+		private static bool TryReadVariableInt(byte[] buffer, ref int ptr, int endPtr, out int value)
+		{
+			uint result = 0;
+			value = 0;
+
+			for (int shift = 0; shift <= 28; shift += 7)
 			{
-				byte num3 = buffer[ptr++];
-				num1 |= (num3 & 0x7f) << (num2 & 0x1f);
-				num2 += 7;
-				if ((num3 & 0x80) == 0)
+				// Header out of the expected range so dump it.
+				if (ptr >= endPtr)
+					return false;
+
+				byte next = buffer[ptr++];
+				result |= (uint)(next & 0x7f) << shift;
+
+				if ((next & 0x80) == 0)
 				{
-					group = num1;
-					break;
+					if (result > int.MaxValue)
+						return false;
+
+					value = (int)result;
+					return true;
 				}
 			}
 
-			num1 = 0;
-			num2 = 0;
-			while (true)
-			{
-				byte num3 = buffer[ptr++];
-				num1 |= (num3 & 0x7f) << (num2 & 0x1f);
-				num2 += 7;
-				if ((num3 & 0x80) == 0)
-				{
-					totalBits = num1;
-					break;
-				}
-			}
-
-			num1 = 0;
-			num2 = 0;
-			while (true)
-			{
-				byte num3 = buffer[ptr++];
-				num1 |= (num3 & 0x7f) << (num2 & 0x1f);
-				num2 += 7;
-				if ((num3 & 0x80) == 0)
-				{
-					chunkByteSize = num1;
-					break;
-				}
-			}
-
-			num1 = 0;
-			num2 = 0;
-			while (true)
-			{
-				byte num3 = buffer[ptr++];
-				num1 |= (num3 & 0x7f) << (num2 & 0x1f);
-				num2 += 7;
-				if ((num3 & 0x80) == 0)
-				{
-					chunkNumber = num1;
-					break;
-				}
-			}
-
-			return ptr;
+			// If the header bytes are still going then dump it.
+			return false;
 		}
 
 		internal static int GetFragmentationHeaderSize(int groupId, int totalBytes, int chunkByteSize, int numChunks)
