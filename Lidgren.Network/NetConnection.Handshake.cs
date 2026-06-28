@@ -132,13 +132,17 @@ namespace Lidgren.Network
 			m_receivedFragmentGroups.Clear();
 
 			// decrement concurrent connections count (but not rapid connection times, it will decay)
-			// don't need to remove from it as even gigantic botnets would only be a few hundred KB of ram
 			lock (m_peer.m_ipConnectionCounts)
 			{
 			    var counts = m_peer.m_ipConnectionCounts;
 			    var ip = m_remoteEndPoint.Address;
 			    if (counts.TryGetValue(ip, out var count))
-			        counts[ip] = count - 1;
+			    {
+			        if (count == 1)
+			            counts.Remove(ip);
+		            else
+    			        counts[ip] = count - 1;
+		        }
 	        }
 
 			m_disconnectRequested = false;
