@@ -117,7 +117,7 @@ namespace SpeedTestServer
 						bdr.Append(conns[0].Statistics.ToString());
 
 					bdr.AppendLine("Total bytes received: " + NetUtility.ToHumanReadable(s_totalBytesReceived));
-					
+
 					// calculate bytes per second
 					double time = now - s_lastLabelUpdate;
 					double bps = (double)s_bpsBytes / time;

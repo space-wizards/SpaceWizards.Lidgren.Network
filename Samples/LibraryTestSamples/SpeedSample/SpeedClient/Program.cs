@@ -156,7 +156,7 @@ namespace SpeedTestClient
 				Thread.Sleep(0);
 			}
 		}
-		
+
 		// called by the UI
 		internal static void Connect(string host, int port, string deliveryMethod, int sequenceChannel)
 		{

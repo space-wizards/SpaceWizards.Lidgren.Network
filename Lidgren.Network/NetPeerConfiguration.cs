@@ -80,11 +80,6 @@ namespace Lidgren.Network
 		internal float m_resendHandshakeInterval;
 		internal int m_maximumHandshakeAttempts;
 
-		internal bool m_logRateLimiterEnabled;
-		internal NetLogRateLimitTarget m_logRateLimitTargets;
-		internal int m_logRateLimitBurst;
-		internal float m_logRateLimitWindow;
-
 		// bad network simulation
 		internal float m_loss;
 		internal float m_duplicates;
@@ -133,11 +128,6 @@ namespace Lidgren.Network
 			m_maximumHandshakeAttempts = 5;
 			m_autoFlushSendQueue = true;
 			m_suppressUnreliableUnorderedAcks = false;
-
-			m_logRateLimiterEnabled = true;
-			m_logRateLimitTargets = NetLogRateLimitTarget.All;
-			m_logRateLimitBurst = 5;
-			m_logRateLimitWindow = 10.0f;
 
 			m_maximumTransmissionUnit = kDefaultMTU;
 			m_maximumTransmissionUnitV6 = kDefaultMTUV6;
@@ -487,52 +477,6 @@ namespace Lidgren.Network
 				if (value < 1)
 					throw new NetException("MaximumHandshakeAttempts must be at least 1");
 				m_maximumHandshakeAttempts = value;
-			}
-		}
-
-		/// <summary>
-		/// Gets or sets if repeated malformed network input logs should be rate limited.
-		/// </summary>
-		public bool LogRateLimiterEnabled
-		{
-			get { return m_logRateLimiterEnabled; }
-			set { m_logRateLimiterEnabled = value; }
-		}
-
-		/// <summary>
-		/// Gets or sets which malformed network input log categories are rate limited.
-		/// </summary>
-		public NetLogRateLimitTarget LogRateLimitTargets
-		{
-			get { return m_logRateLimitTargets; }
-			set { m_logRateLimitTargets = value; }
-		}
-
-		/// <summary>
-		/// Gets or sets how many matching logs are emitted per endpoint and category before suppression starts.
-		/// </summary>
-		public int LogRateLimitBurst
-		{
-			get { return m_logRateLimitBurst; }
-			set
-			{
-				if (value < 1)
-					throw new NetException("LogRateLimitBurst must be at least 1");
-				m_logRateLimitBurst = value;
-			}
-		}
-
-		/// <summary>
-		/// Gets or sets the rate limit window in seconds.
-		/// </summary>
-		public float LogRateLimitWindow
-		{
-			get { return m_logRateLimitWindow; }
-			set
-			{
-				if (value <= 0.0f)
-					throw new NetException("LogRateLimitWindow must be greater than zero");
-				m_logRateLimitWindow = value;
 			}
 		}
 

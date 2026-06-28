@@ -10,7 +10,7 @@ namespace SamplesCommon
 		[DllImport("user32.dll", CharSet = CharSet.Auto)]
 		public static extern int SendMessage(IntPtr hWnd, int wMsg, IntPtr wParam, IntPtr lParam);
 		public const int WM_VSCROLL = 277; // Vertical scroll
-		public const int SB_BOTTOM = 7; // Scroll to bottom 
+		public const int SB_BOTTOM = 7; // Scroll to bottom
 
 		[StructLayout(LayoutKind.Sequential)]
 		public struct PeekMsg

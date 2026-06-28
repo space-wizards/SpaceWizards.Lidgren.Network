@@ -144,7 +144,7 @@ namespace Lidgren.Network.Xna
 
 
 		/// <summary>
-		/// Writes a unit vector (ie. a vector of length 1.0, for example a surface normal) 
+		/// Writes a unit vector (ie. a vector of length 1.0, for example a surface normal)
 		/// using specified number of bits
 		/// </summary>
 		public static void WriteUnitVector3(this NetBuffer message, Vector3 unitVector, int numberOfBits)

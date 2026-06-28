@@ -44,7 +44,7 @@ namespace Lidgren.Network
 		}
 
 		//
-		// 8 bit 
+		// 8 bit
 		//
 		/// <summary>
 		/// Reads a Byte without advancing the read pointer
@@ -335,7 +335,7 @@ namespace Lidgren.Network
 			m_readPosition = wasReadPosition;
 			return retval;
 		}
-		
+
 		/// <summary>
 	    /// Reads the string byte size prefix without advancing the read pointer.
 	    /// Take note that this is the size in bytes, not the character length of the string.

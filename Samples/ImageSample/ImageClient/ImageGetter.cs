@@ -115,7 +115,7 @@ namespace ImageClient
 						NativeMethods.AppendText(richTextBox1, Client.ServerConnection.Statistics.ToString());
 
 						Client.Disconnect("So long and thanks for all the fish!");
-											
+
 						pictureBox1.ResumeLayout();
 						pictureBox1.Invalidate();
 						System.Threading.Thread.Sleep(0);

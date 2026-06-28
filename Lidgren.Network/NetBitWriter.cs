@@ -515,7 +515,7 @@ namespace Lidgren.Network
 					return (uint)num1;
 			}
 		}
-		
+
 		/// <summary>
 	    /// Zero a number of bits
 	    /// </summary>

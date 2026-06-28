@@ -205,7 +205,7 @@ namespace UnitTests
                 Assert.That(tmparr[i], Is.EqualTo(result[i]), "readbytes fail");
             }
         }
-        
+
 #if NET5_0
 		[Test]
         [TestCase(0)]
