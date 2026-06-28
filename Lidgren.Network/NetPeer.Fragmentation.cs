@@ -79,13 +79,19 @@ namespace Lidgren.Network
 			//
 			// read fragmentation header and combine fragments
 			//
-			int ptr = NetFragmentationHelper.ReadHeader(
-				im.Data, 0,
+			if (!NetFragmentationHelper.TryReadHeader(
+				im.Data, 0, im.LengthBytes,
+				out int ptr,
 				out int group,
 				out int totalBits,
 				out int chunkByteSize,
 				out int chunkNumber
-			);
+			))
+			{
+				LogWarning($"Dropping malformed fragment header from {im.SenderEndPoint}");
+				Recycle(im);
+				return;
+			}
 
 			NetException.Assert(im.LengthBytes > ptr);
 
@@ -142,11 +148,20 @@ namespace Lidgren.Network
 					return;
 				}
 
-				info = new ReceivedFragmentGroup(new byte[totalBytes], new NetBitVector(totalNumChunks));
+				info = new ReceivedFragmentGroup(
+					new byte[totalBytes],
+					new NetBitVector(totalNumChunks),
+					totalBits,
+					chunkByteSize,
+					totalNumChunks);
 				groups[group] = info;
 			}
-			// the computed offset/copy could run out of bounds.
-			else if (info.Data.Length != totalBytes)
+			// The computed offset/copy and received chunk bit vector depend on this
+			// header data matching the first fragment for the group.
+			else if (info.Data.Length != totalBytes
+				|| info.TotalBits != totalBits
+				|| info.ChunkByteSize != chunkByteSize
+				|| info.TotalNumChunks != totalNumChunks)
 			{
 				LogRateLimitedWarning(NetLogRateLimitTarget.MalformedFragment, im.SenderEndPoint, $"Dropping inconsistent fragment for group {group} from {im.SenderEndPoint}");
 				Recycle(im);
