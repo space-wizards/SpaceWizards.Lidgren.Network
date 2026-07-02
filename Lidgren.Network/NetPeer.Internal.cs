@@ -773,10 +773,7 @@ namespace Lidgren.Network
 					int reservedSlots = m_handshakes.Count + m_connections.Count;
 					if (reservedSlots >= m_configuration.m_maximumConnections)
 					{
-						// server full
-						NetOutgoingMessage full = CreateMessage("Server full");
-						full.m_messageType = NetMessageType.Disconnect;
-						SendLibrary(full, senderEndPoint);
+						SendConnectionRejection("Server full", senderEndPoint);
 						return;
 					}
 
@@ -785,9 +782,7 @@ namespace Lidgren.Network
 					var conCount = m_ipConnectionCounts.GetValueOrDefault(ip);
 					if (conCount >= m_configuration.MaximumIpConnections)
 					{
-						var msg = CreateMessage("Too many connections from your network");
-						msg.m_messageType = NetMessageType.Disconnect;
-						SendLibrary(msg, senderEndPoint);
+						SendConnectionRejection("Too many connections from your network", senderEndPoint);
 						return;
 					}
 
@@ -802,9 +797,7 @@ namespace Lidgren.Network
 						// just drop the packets for bots or darwin award winners
 						if (times == m_configuration.MaximumRapidConnections)
 						{
-							var msg = CreateMessage("You are connecting too fast!");
-							msg.m_messageType = NetMessageType.Disconnect;
-							SendLibrary(msg, senderEndPoint);
+							SendConnectionRejection("You are connecting too fast!", senderEndPoint);
 						}
 						return;
 					}
@@ -825,6 +818,16 @@ namespace Lidgren.Network
 					LogWarning($"Received unhandled library message {tp} from {senderEndPoint}");
 					return;
 			}
+		}
+
+		private void SendConnectionRejection(string reason, NetEndPoint recipient)
+		{
+			if (!m_configuration.SendConnectionRejectionReasons)
+				return;
+
+			var msg = CreateMessage(reason);
+			msg.m_messageType = NetMessageType.Disconnect;
+			SendLibrary(msg, recipient);
 		}
 
 		internal void AcceptConnection(NetConnection conn)
