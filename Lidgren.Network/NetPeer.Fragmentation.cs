@@ -167,7 +167,7 @@ namespace Lidgren.Network
 				Recycle(im);
 				return;
 			}
-			
+
 			//info.LastReceived = (float)NetTime.Now;
 
 			// copy to data
