@@ -23,13 +23,15 @@ public partial class NetPeer
 			TotalNumChunks = totalNumChunks;
 		}
 
-		public void MarkChunkReceived(int chunkNumber)
+		/// <returns>True if the chunk was not previously marked</returns>
+		public bool MarkChunkReceived(int chunkNumber)
 		{
 			if (ReceivedChunks[chunkNumber])
-				return;
+				return false;
 
 			ReceivedChunks[chunkNumber] = true;
 			ReceivedChunkCount++;
+			return true;
 		}
 	}
 }
