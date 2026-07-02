@@ -162,25 +162,19 @@ namespace Lidgren.Network
 				return;
 			}
 
-			if (info.ReceivedChunks[chunkNumber])
-			{
-				Recycle(im);
-				return;
-			}
-
-			info.ReceivedChunks[chunkNumber] = true;
+			info.MarkChunkReceived(chunkNumber);
 			//info.LastReceived = (float)NetTime.Now;
 
 			// copy to data
 			int offset = (chunkNumber * chunkByteSize);
 			Buffer.BlockCopy(im.Data, ptr, info.Data, offset, payloadLength);
 
-			int cnt = info.ReceivedChunks.Count();
+			int cnt = info.ReceivedChunkCount;
 			//LogVerbose($"Found fragment #{chunkNumber} in group {group} offset {offset} of total bits {totalBits} (total chunks done {cnt})");
 
 			LogVerbose($"Received fragment {chunkNumber} of {totalNumChunks} ({cnt} chunks received)");
 
-			if (info.ReceivedChunks.Count() == totalNumChunks)
+			if (cnt == totalNumChunks)
 			{
 				// Done! Transform this incoming message
 				im.m_data = info.Data;
