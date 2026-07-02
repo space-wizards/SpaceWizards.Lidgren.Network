@@ -162,6 +162,12 @@ namespace Lidgren.Network
 				return;
 			}
 
+			if (info.ReceivedChunks[chunkNumber])
+			{
+				Recycle(im);
+				return;
+			}
+
 			info.ReceivedChunks[chunkNumber] = true;
 			//info.LastReceived = (float)NetTime.Now;
 
