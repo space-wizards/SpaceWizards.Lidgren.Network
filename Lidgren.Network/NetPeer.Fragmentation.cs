@@ -131,6 +131,8 @@ namespace Lidgren.Network
 			NetException.Assert(im.SenderConnection != null);
 
 			var groups = im.SenderConnection.m_receivedFragmentGroups;
+			double now = NetTime.Now;
+			ExpireFragmentGroups(groups, now);
 			if (!groups.TryGetValue(group, out var info))
 			{
 				// single fragment groups can't accumulate unbounded buffers
@@ -141,13 +143,21 @@ namespace Lidgren.Network
 					return;
 				}
 
+				if (GetTotalFragmentGroupBytes(groups) + totalBytes > m_configuration.m_maximumFragmentReassemblyBytesPerConnection)
+				{
+					LogRateLimitedWarning(NetLogRateLimitTarget.MalformedFragment, im.SenderEndPoint, $"Too much fragment reassembly data from {im.SenderEndPoint}; dropping fragment");
+					Recycle(im);
+					return;
+				}
+
 				info = new ReceivedFragmentGroup(
 					GetStorage(totalBytes),
 					new NetBitVector(totalNumChunks),
 					totalBytes,
 					totalBits,
 					chunkByteSize,
-					totalNumChunks);
+					totalNumChunks,
+					now);
 				groups[group] = info;
 			}
 			// The computed offset/copy and received chunk bit vector depend on this
@@ -162,8 +172,8 @@ namespace Lidgren.Network
 				return;
 			}
 
+			info.LastReceived = now;
 			info.ReceivedChunks[chunkNumber] = true;
-			//info.LastReceived = (float)NetTime.Now;
 
 			// copy to data
 			int offset = (chunkNumber * chunkByteSize);
@@ -193,6 +203,30 @@ namespace Lidgren.Network
 			}
 
 			return;
+		}
+
+		private void ExpireFragmentGroups(Dictionary<int, ReceivedFragmentGroup> groups, double now)
+		{
+			if (groups.Count == 0)
+				return;
+
+			double oldestAllowed = now - m_configuration.m_fragmentGroupTimeout;
+			foreach (var pair in new List<KeyValuePair<int, ReceivedFragmentGroup>>(groups))
+			{
+				if (pair.Value.LastReceived >= oldestAllowed)
+					continue;
+
+				Recycle(pair.Value.Data);
+				groups.Remove(pair.Key);
+			}
+		}
+
+		private static int GetTotalFragmentGroupBytes(Dictionary<int, ReceivedFragmentGroup> groups)
+		{
+			int total = 0;
+			foreach (var group in groups.Values)
+				total += group.TotalBytes;
+			return total;
 		}
 	}
 }
