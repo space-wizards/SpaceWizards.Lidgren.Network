@@ -7,14 +7,16 @@ public partial class NetPeer
 		//public float LastReceived;
 		public byte[] Data { get; }
 		public NetBitVector ReceivedChunks { get; }
+		public int TotalBytes { get; }
 		public int TotalBits { get; }
 		public int ChunkByteSize { get; }
 		public int TotalNumChunks { get; }
 
-		public ReceivedFragmentGroup(byte[] data, NetBitVector receivedChunks, int totalBits, int chunkByteSize, int totalNumChunks)
+		public ReceivedFragmentGroup(byte[] data, NetBitVector receivedChunks, int totalBytes, int totalBits, int chunkByteSize, int totalNumChunks)
 		{
 			Data = data;
 			ReceivedChunks = receivedChunks;
+			TotalBytes = totalBytes;
 			TotalBits = totalBits;
 			ChunkByteSize = chunkByteSize;
 			TotalNumChunks = totalNumChunks;

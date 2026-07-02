@@ -144,6 +144,7 @@ namespace Lidgren.Network
 				info = new ReceivedFragmentGroup(
 					GetStorage(totalBytes),
 					new NetBitVector(totalNumChunks),
+					totalBytes,
 					totalBits,
 					chunkByteSize,
 					totalNumChunks);
@@ -151,7 +152,7 @@ namespace Lidgren.Network
 			}
 			// The computed offset/copy and received chunk bit vector depend on this
 			// header data matching the first fragment for the group.
-			else if (info.Data.Length < totalBytes
+			else if (info.TotalBytes != totalBytes
 				|| info.TotalBits != totalBits
 				|| info.ChunkByteSize != chunkByteSize
 				|| info.TotalNumChunks != totalNumChunks)
