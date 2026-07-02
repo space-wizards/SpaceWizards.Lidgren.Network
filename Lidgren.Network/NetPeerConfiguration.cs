@@ -77,6 +77,8 @@ namespace Lidgren.Network
 		internal int m_port;
 		internal int m_receiveBufferSize;
 		internal int m_sendBufferSize;
+		internal int m_maximumPacketsPerHeartbeat;
+		internal int m_maximumBytesPerHeartbeat;
 		internal float m_resendHandshakeInterval;
 		internal int m_maximumHandshakeAttempts;
 
@@ -122,6 +124,8 @@ namespace Lidgren.Network
 			m_port = 0;
 			m_receiveBufferSize = 131071;
 			m_sendBufferSize = 131071;
+			m_maximumPacketsPerHeartbeat = 1024;
+			m_maximumBytesPerHeartbeat = 4 * 1024 * 1024;
 			m_acceptIncomingConnections = false;
 			m_maximumConnections = 32;
 			m_defaultOutgoingMessageCapacity = 16;
@@ -475,6 +479,38 @@ namespace Lidgren.Network
 				if (m_isLocked)
 					throw new NetException(c_isLockedMessage);
 				m_sendBufferSize = value;
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the maximum number of UDP datagrams processed during one network heartbeat. Cannot be changed once initialized.
+		/// </summary>
+		public int MaximumPacketsPerHeartbeat
+		{
+			get { return m_maximumPacketsPerHeartbeat; }
+			set
+			{
+				if (m_isLocked)
+					throw new NetException(c_isLockedMessage);
+				if (value < 1)
+					throw new NetException("MaximumPacketsPerHeartbeat must be at least 1");
+				m_maximumPacketsPerHeartbeat = value;
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the maximum number of UDP payload bytes processed during one network heartbeat. Cannot be changed once initialized.
+		/// </summary>
+		public int MaximumBytesPerHeartbeat
+		{
+			get { return m_maximumBytesPerHeartbeat; }
+			set
+			{
+				if (m_isLocked)
+					throw new NetException(c_isLockedMessage);
+				if (value < NetConstants.HeaderByteSize)
+					throw new NetException("MaximumBytesPerHeartbeat must be at least " + NetConstants.HeaderByteSize);
+				m_maximumBytesPerHeartbeat = value;
 			}
 		}
 
