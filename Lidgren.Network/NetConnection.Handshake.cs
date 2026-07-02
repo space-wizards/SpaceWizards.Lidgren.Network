@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading;
@@ -123,6 +123,27 @@ namespace Lidgren.Network
 			// in case we're still in handshake
 			lock (m_peer.m_handshakes)
 				m_peer.m_handshakes.Remove(m_remoteEndPoint);
+
+			// free all the buffers that are no longer needed
+			foreach (var group in m_receivedFragmentGroups.Values)
+			{
+				m_peer.Recycle(group.Data);
+			}
+			m_receivedFragmentGroups.Clear();
+
+			// decrement concurrent connections count (but not rapid connection times, it will decay)
+			lock (m_peer.m_ipConnectionCounts)
+			{
+			    var counts = m_peer.m_ipConnectionCounts;
+			    var ip = m_remoteEndPoint.Address;
+			    if (counts.TryGetValue(ip, out var count))
+			    {
+			        if (count == 1)
+			            counts.Remove(ip);
+		            else
+    			        counts[ip] = count - 1;
+		        }
+	        }
 
 			m_disconnectRequested = false;
 			m_connectRequested = false;

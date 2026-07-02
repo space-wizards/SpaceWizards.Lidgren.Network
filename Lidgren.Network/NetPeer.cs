@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading;
 using System.Collections.Generic;
 using System.Net;
@@ -123,7 +123,6 @@ namespace Lidgren.Network
 			m_connectionLookup = new Dictionary<NetSocketAddress, NetConnection>();
 			m_handshakes = new Dictionary<NetEndPoint, NetConnection>();
 			m_status = NetPeerStatus.NotRunning;
-			m_receivedFragmentGroups = new Dictionary<NetConnection, Dictionary<int, ReceivedFragmentGroup>>();
 			if (m_configuration.LocalAddress.AddressFamily == AddressFamily.InterNetworkV6)
 			{
 				m_senderRemote = (EndPoint)new IPEndPoint(IPAddress.IPv6Any, 0);

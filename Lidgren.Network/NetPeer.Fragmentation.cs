@@ -8,8 +8,6 @@ namespace Lidgren.Network
 	{
 		private int m_lastUsedFragmentGroup;
 
-		private readonly Dictionary<NetConnection, Dictionary<int, ReceivedFragmentGroup>> m_receivedFragmentGroups;
-
 		// on user thread
 		private NetSendResult SendFragmentedMessage(NetOutgoingMessage msg, IList<NetConnection> recipients, NetDeliveryMethod method, int sequenceChannel)
 		{
@@ -88,7 +86,7 @@ namespace Lidgren.Network
 				out int chunkNumber
 			))
 			{
-				LogWarning($"Dropping malformed fragment header from {im.SenderEndPoint}");
+				LogRateLimitedWarning(NetLogRateLimitTarget.MalformedFragment, im.SenderEndPoint, $"Dropping malformed fragment header from {im.SenderEndPoint}");
 				Recycle(im);
 				return;
 			}
@@ -132,13 +130,8 @@ namespace Lidgren.Network
 
 			NetException.Assert(im.SenderConnection != null);
 
-			if (!m_receivedFragmentGroups.TryGetValue(im.SenderConnection, out Dictionary<int, ReceivedFragmentGroup>? groups))
-			{
-				groups = new Dictionary<int, ReceivedFragmentGroup>();
-				m_receivedFragmentGroups[im.SenderConnection] = groups;
-			}
-
-			if (!groups.TryGetValue(group, out ReceivedFragmentGroup? info))
+			var groups = im.SenderConnection.m_receivedFragmentGroups;
+			if (!groups.TryGetValue(group, out var info))
 			{
 				// single fragment groups can't accumulate unbounded buffers
 				if (groups.Count >= NetConstants.MaximumConcurrentFragmentGroups)
@@ -149,8 +142,9 @@ namespace Lidgren.Network
 				}
 
 				info = new ReceivedFragmentGroup(
-					new byte[totalBytes],
+					GetStorage(totalBytes),
 					new NetBitVector(totalNumChunks),
+					totalBytes,
 					totalBits,
 					chunkByteSize,
 					totalNumChunks);
@@ -158,7 +152,7 @@ namespace Lidgren.Network
 			}
 			// The computed offset/copy and received chunk bit vector depend on this
 			// header data matching the first fragment for the group.
-			else if (info.Data.Length != totalBytes
+			else if (info.TotalBytes != totalBytes
 				|| info.TotalBits != totalBits
 				|| info.ChunkByteSize != chunkByteSize
 				|| info.TotalNumChunks != totalNumChunks)

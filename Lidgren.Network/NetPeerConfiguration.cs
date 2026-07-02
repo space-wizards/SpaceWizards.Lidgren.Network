@@ -240,6 +240,26 @@ namespace Lidgren.Network
 		}
 
 		/// <summary>
+		/// The maximum number of connections allowed per IP address.
+		/// </summary>
+		public int MaximumIpConnections = 8;
+
+		/// <summary>
+		/// The maximum number of times a single IP address is allowed to try connect, within the window of <see cref="RapidConnectionWindow"/>.
+		/// </summary>
+		public int MaximumRapidConnections = 3;
+
+        /// <summary>
+        /// How many seconds until connection count decays for <see cref="MaximumRapidConnections"/>.
+        /// </summary>
+		public double RapidConnectionWindow = 60.0;
+
+		/// <summary>
+		/// How many connections are "forgotten" every <see cref="RapidConnectionWindow"/> seconds.
+		/// </summary>
+		public int RapidConnectionDecay = 1;
+
+		/// <summary>
 		/// Gets or sets the maximum amount of bytes to send in a single packet for IPv4 connections, excluding IPv4 and UDP headers.
 		/// Cannot be changed once NetPeer is initialized.
 		/// </summary>

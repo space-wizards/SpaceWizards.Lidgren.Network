@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Threading;
 using System.Diagnostics;
@@ -34,6 +35,7 @@ namespace Lidgren.Network
 		private int m_sendBufferNumMessages;
 		private object? m_tag;
 		internal readonly NetConnectionStatistics m_statistics;
+		internal readonly Dictionary<int, NetPeer.ReceivedFragmentGroup> m_receivedFragmentGroups = new();
 
 		/// <summary>
 		/// Gets or sets the application defined object containing data about the connection
