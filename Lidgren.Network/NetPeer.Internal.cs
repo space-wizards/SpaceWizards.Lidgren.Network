@@ -409,16 +409,16 @@ namespace Lidgren.Network
 				{
 					m_nextLimitDecay = now + m_configuration.RapidConnectionWindow;
 					var decay = (uint) m_configuration.RapidConnectionDecay;
-					foreach (var (ip, times) in m_ipConnectionTimes)
+					foreach (var ip in new List<NetAddress>(m_ipConnectionTimes.Keys))
 					{
+						var times = m_ipConnectionTimes[ip];
 						if (times > 0)
-							m_ipConnectionTimes[ip] = times - decay;
+							m_ipConnectionTimes[ip] = times > decay ? times - decay : 0;
 					}
 				}
 			}
 
-			if (m_upnp != null)
-				m_upnp.CheckForDiscoveryTimeout();
+			m_upnp?.CheckForDiscoveryTimeout();
 
 			//
 			// read from socket
