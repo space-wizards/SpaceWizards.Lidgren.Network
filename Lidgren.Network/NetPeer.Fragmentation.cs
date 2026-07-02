@@ -8,8 +8,6 @@ namespace Lidgren.Network
 	{
 		private int m_lastUsedFragmentGroup;
 
-		private readonly Dictionary<NetConnection, Dictionary<int, ReceivedFragmentGroup>> m_receivedFragmentGroups;
-
 		// on user thread
 		private NetSendResult SendFragmentedMessage(NetOutgoingMessage msg, IList<NetConnection> recipients, NetDeliveryMethod method, int sequenceChannel)
 		{
