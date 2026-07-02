@@ -21,5 +21,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\SamplesCommon.Core\SamplesCommon.Core.csproj" />
+    <ProjectReference Include="..\..\..\Lidgren.Network\Lidgren.Network.csproj" />
   </ItemGroup>
 </Project>
