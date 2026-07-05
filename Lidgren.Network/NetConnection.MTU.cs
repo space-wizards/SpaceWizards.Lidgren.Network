@@ -33,9 +33,10 @@ namespace Lidgren.Network
 		internal void InitExpandMTU(double now)
 		{
 			m_lastSentMTUAttemptTime = now + m_peerConfiguration.m_expandMTUFrequency + 1.5f + m_averageRoundtripTime; // wait a tiny bit before starting to expand mtu
-			m_largestSuccessfulMTU = 512;
-			m_smallestFailedMTU = -1;
 			m_currentMTU = m_peerConfiguration.MTUForEndPoint(m_remoteEndPoint);
+			m_largestSuccessfulMTU = m_currentMTU;
+			m_smallestFailedMTU = -1;
+			m_lastSentMTUAttemptSize = 0;
 		}
 
 		private void MTUExpansionHeartbeat(double now)
@@ -152,6 +153,12 @@ namespace Lidgren.Network
 
 		private void SendMTUSuccess(int size)
 		{
+			if (size <= 0 || size > c_protocolMaxMTU)
+			{
+				m_peer.LogDebug("Ignoring invalid MTU expand request for " + size + " bytes");
+				return;
+			}
+
 			NetOutgoingMessage om = m_peer.CreateMessage(4);
 			om.Write(size);
 			om.m_messageType = NetMessageType.ExpandMTUSuccess;
@@ -166,6 +173,21 @@ namespace Lidgren.Network
 
 		private void HandleExpandMTUSuccess(double now, int size)
 		{
+			if (m_expandMTUStatus != ExpandMTUStatus.InProgress)
+				return;
+
+			if (size <= 0 || size > c_protocolMaxMTU)
+			{
+				m_peer.LogDebug("Ignoring invalid MTU expand success for " + size + " bytes");
+				return;
+			}
+
+			if (size != m_lastSentMTUAttemptSize)
+			{
+				m_peer.LogDebug("Ignoring unexpected MTU expand success for " + size + " bytes; expected " + m_lastSentMTUAttemptSize + " bytes");
+				return;
+			}
+
 			if (size > m_largestSuccessfulMTU)
 				m_largestSuccessfulMTU = size;
 
