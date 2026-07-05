@@ -759,7 +759,7 @@ namespace Lidgren.Network
 						}
 					}
 
-					LogWarning($"Received unhandled library message {tp} from {senderEndPoint}");
+					LogUnhandledLibraryMessage(tp, senderEndPoint);
 					return;
 				case NetMessageType.Connect:
 					if (m_configuration.AcceptIncomingConnections == false)
@@ -815,7 +815,7 @@ namespace Lidgren.Network
 					LogVerbose("Received Disconnect from unconnected source: " + senderEndPoint);
 					return;
 				default:
-					LogWarning($"Received unhandled library message {tp} from {senderEndPoint}");
+					LogUnhandledLibraryMessage(tp, senderEndPoint);
 					return;
 			}
 		}
@@ -828,6 +828,14 @@ namespace Lidgren.Network
 			var msg = CreateMessage(reason);
 			msg.m_messageType = NetMessageType.Disconnect;
 			SendLibrary(msg, recipient);
+    }
+      
+		private void LogUnhandledLibraryMessage(NetMessageType messageType, NetEndPoint senderEndPoint)
+		{
+			LogRateLimitedWarning(
+				NetLogRateLimitTarget.UnhandledLibraryMessage,
+				senderEndPoint,
+				$"Received unhandled library message {messageType} from {senderEndPoint}");
 		}
 
 		internal void AcceptConnection(NetConnection conn)
