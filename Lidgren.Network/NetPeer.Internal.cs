@@ -791,21 +791,36 @@ namespace Lidgren.Network
 						return;
 					}
 
-					// limit rapid connections, definitely bad actors
+					// limit rapid connections, likely bad actors
 					// this isnt a perfect sliding window but if you are trying to test it, go to hell
 					// note that it increments even if your packet is dropped, so you have to wait off your "debt" if you are spamming the server
 					var times = m_ipConnectionTimes.GetValueOrDefault(ip);
+					var max = m_configuration.MaximumRapidConnections;
 					m_ipConnectionTimes[ip] = times + 1;
-					if (times >= m_configuration.MaximumRapidConnections)
+					// With the default settings, it should be extremely rare for a legitimate player to hit this limit
+					// but it is not impossible
+					if (times >= max)
 					{
-						// only warn once. you as a living, breathing, human being should read the message and stop trying to connect
-						// just drop the packets for bots or darwin award winners
-						if (times == m_configuration.MaximumRapidConnections)
+						var waitTimeMinutes = Math.Ceiling(times * m_configuration.RapidConnectionWindow / 60 /
+						                                 m_configuration.RapidConnectionDecay);
+
+						// The player is warned multiple times before they reach the "silently dropped" state
+						// because if the player does not understand what is happening and why, they will not stop
+						// and they will just come to us for help eventually, increasing our tech support burden
+						if (times >= max && times <= max * 2)
 						{
-							var msg = CreateMessage("You are connecting too fast!");
+							var text = "We have detected too many connection attempts from you in a short time, and have temporarily blocked you.\n"
+							           + "Please wait "
+							           + waitTimeMinutes
+							           + " minutes before attempting to connect to this server again.\n"
+							           + "The duration of this block will be extended if you attempt to connect again before it expired.";
+
+							var msg = CreateMessage(text);
 							msg.m_messageType = NetMessageType.Disconnect;
 							SendLibrary(msg, senderEndPoint);
 						}
+
+						// If the warning above was skipped, this just silently drops the connection
 						return;
 					}
 
