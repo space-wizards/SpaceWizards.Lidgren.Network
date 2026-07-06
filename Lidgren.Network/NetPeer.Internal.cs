@@ -439,6 +439,7 @@ namespace Lidgren.Network
 			{
 				int packetsReceived = 0;
 				int bytesReceived = 0;
+				// We can skip m_socket.Available as WouldBlock will just throw and reset the heartbeat.
 				while (packetsReceived < m_configuration.m_maximumPacketsPerHeartbeat
 					&& bytesReceived < m_configuration.m_maximumBytesPerHeartbeat)
 				{
