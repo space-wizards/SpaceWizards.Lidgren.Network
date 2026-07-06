@@ -577,7 +577,12 @@ namespace Lidgren.Network
 		public float ExpandMTUFrequency
 		{
 			get { return m_expandMTUFrequency; }
-			set { m_expandMTUFrequency = value; }
+			set
+			{
+				if (!float.IsFinite(value) || value <= 0)
+					throw new NetException("ExpandMTUFrequency must be greater than zero");
+				m_expandMTUFrequency = value;
+			}
 		}
 
 		/// <summary>
@@ -586,7 +591,12 @@ namespace Lidgren.Network
 		public int ExpandMTUFailAttempts
 		{
 			get { return m_expandMTUFailAttempts; }
-			set { m_expandMTUFailAttempts = value; }
+			set
+			{
+				if (value <= 0)
+					throw new NetException("ExpandMTUFailAttempts must be greater than zero");
+				m_expandMTUFailAttempts = value;
+			}
 		}
 
 		/// <summary>
