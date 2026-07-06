@@ -80,6 +80,7 @@ namespace Lidgren.Network
 		internal int m_sendBufferSize;
 		internal float m_resendHandshakeInterval;
 		internal int m_maximumHandshakeAttempts;
+		internal float m_connectionApprovalTimeout;
 
 		internal bool m_logRateLimiterEnabled;
 		internal NetLogRateLimitTarget m_logRateLimitTargets;
@@ -134,6 +135,7 @@ namespace Lidgren.Network
 			m_recycledCacheMaxCount = 64;
 			m_resendHandshakeInterval = 3.0f;
 			m_maximumHandshakeAttempts = 5;
+			m_connectionApprovalTimeout = 25.0f;
 			m_autoFlushSendQueue = true;
 			m_suppressUnreliableUnorderedAcks = false;
 			m_sendConnectionRejectionReasons = false;
@@ -523,6 +525,20 @@ namespace Lidgren.Network
 				if (value < 1)
 					throw new NetException("MaximumHandshakeAttempts must be at least 1");
 				m_maximumHandshakeAttempts = value;
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the maximum number of seconds a server connection may wait for application approval.
+		/// </summary>
+		public float ConnectionApprovalTimeout
+		{
+			get { return m_connectionApprovalTimeout; }
+			set
+			{
+				if (value <= 0)
+					throw new NetException("ConnectionApprovalTimeout must be greater than zero");
+				m_connectionApprovalTimeout = value;
 			}
 		}
 
