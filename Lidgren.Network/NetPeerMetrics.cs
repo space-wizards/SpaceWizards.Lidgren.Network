@@ -96,7 +96,7 @@ public static class NetPeerMetrics
 					"Number of bytes sent by this NetPeer.");
 
 				meter.CreateObservableCounter(
-					"sent_bytes",
+					"received_bytes",
 					() => statistics.ReceivedBytes,
 					"bytes",
 					"Number of bytes received by this NetPeer.");
