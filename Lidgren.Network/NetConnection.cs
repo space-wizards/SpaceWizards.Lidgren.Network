@@ -475,7 +475,7 @@ namespace Lidgren.Network
 					break;
 				case NetMessageType.NatIntroduction:
 					// Unusual situation where server is actually already known, but got a nat introduction - oh well, lets handle it as usual
-					m_peer.HandleNatIntroduction(ptr);
+					m_peer.HandleNatIntroduction(ptr, payloadLength);
 					break;
 				default:
 					m_peer.LogWarning($"Connection received unhandled library message: {tp}");
