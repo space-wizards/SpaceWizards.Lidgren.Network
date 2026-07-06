@@ -112,31 +112,37 @@ namespace Lidgren.Network
 			om.m_messageType = NetMessageType.ExpandMTURequest;
 			int len = om.Encode(m_peer.m_sendBuffer, 0, 0);
 
-			bool ok = m_peer.SendMTUPacket(len, m_remoteEndPoint);
-			if (ok == false)
+			try
 			{
-				//m_peer.LogDebug("Send MTU failed for size " + size);
-
-				// failure
-				if (m_smallestFailedMTU == -1 || size < m_smallestFailedMTU)
+				bool ok = m_peer.SendMTUPacket(len, m_remoteEndPoint);
+				if (ok == false)
 				{
-					m_smallestFailedMTU = size;
-					m_mtuAttemptFails++;
-					if (m_mtuAttemptFails >= m_peerConfiguration.ExpandMTUFailAttempts)
+					//m_peer.LogDebug("Send MTU failed for size " + size);
+
+					// failure
+					if (m_smallestFailedMTU == -1 || size < m_smallestFailedMTU)
 					{
-						FinalizeMTU(m_largestSuccessfulMTU);
-						return;
+						m_smallestFailedMTU = size;
+						m_mtuAttemptFails++;
+						if (m_mtuAttemptFails >= m_peerConfiguration.ExpandMTUFailAttempts)
+						{
+							FinalizeMTU(m_largestSuccessfulMTU);
+							return;
+						}
 					}
+					ExpandMTU(now);
+					return;
 				}
-				ExpandMTU(now);
-				return;
+
+				m_lastSentMTUAttemptSize = size;
+				m_lastSentMTUAttemptTime = now;
+
+				m_statistics.PacketSent(len, 1);
 			}
-
-			m_lastSentMTUAttemptSize = size;
-			m_lastSentMTUAttemptTime = now;
-
-			m_statistics.PacketSent(len, 1);
-			m_peer.Recycle(om);
+			finally
+			{
+				m_peer.Recycle(om);
+			}
 		}
 
 		private void FinalizeMTU(int size)
