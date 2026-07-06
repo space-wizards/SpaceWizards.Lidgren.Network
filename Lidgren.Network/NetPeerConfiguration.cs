@@ -499,7 +499,7 @@ namespace Lidgren.Network
 		}
 
 		/// <summary>
-		/// Gets or sets the maximum number of UDP datagrams processed during one network heartbeat. Cannot be changed once initialized.
+		/// Gets or sets the maximum number of UDP packets processed during one network heartbeat. Cannot be changed once initialized.
 		/// </summary>
 		public int MaximumPacketsPerHeartbeat
 		{
