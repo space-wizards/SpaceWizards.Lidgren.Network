@@ -72,6 +72,7 @@ namespace Lidgren.Network
 		internal bool m_autoFlushSendQueue;
 		private NetUnreliableSizeBehaviour m_unreliableSizeBehaviour;
 		internal bool m_suppressUnreliableUnorderedAcks;
+		private bool m_sendConnectionRejectionReasons;
 
 		internal NetIncomingMessageType m_disabledTypes;
 		internal int m_port;
@@ -135,6 +136,7 @@ namespace Lidgren.Network
 			m_maximumHandshakeAttempts = 5;
 			m_autoFlushSendQueue = true;
 			m_suppressUnreliableUnorderedAcks = false;
+			m_sendConnectionRejectionReasons = false;
 
 			m_logRateLimiterEnabled = true;
 			m_logRateLimitTargets = NetLogRateLimitTarget.All;
@@ -252,6 +254,16 @@ namespace Lidgren.Network
 		/// The maximum number of times a single IP address is allowed to try connect, within the window of <see cref="RapidConnectionWindow"/>.
 		/// </summary>
 		public int MaximumRapidConnections = 3;
+
+		/// <summary>
+		/// Should we send a disconnect reason when the limit is hit.
+		/// Avoids the server trying to spam messages out.
+		/// </summary>
+		public bool SendConnectionRejectionReasons
+		{
+			get { return m_sendConnectionRejectionReasons; }
+			set { m_sendConnectionRejectionReasons = value; }
+		}
 
         /// <summary>
         /// How many seconds until connection count decays for <see cref="MaximumRapidConnections"/>.
