@@ -700,19 +700,19 @@ namespace Lidgren.Network
 					return;
 				case NetMessageType.NatIntroduction:
 					if (m_configuration.IsMessageTypeEnabled(NetIncomingMessageType.NatIntroductionSuccess))
-						HandleNatIntroduction(ptr);
+						HandleNatIntroduction(ptr, payloadByteLength);
 					return;
 				case NetMessageType.NatPunchMessage:
 					if (m_configuration.IsMessageTypeEnabled(NetIncomingMessageType.NatIntroductionSuccess))
-						HandleNatPunch(ptr, senderEndPoint);
+						HandleNatPunch(ptr, payloadByteLength, senderEndPoint);
 					return;
 				case NetMessageType.NatIntroductionConfirmRequest:
 					if (m_configuration.IsMessageTypeEnabled(NetIncomingMessageType.NatIntroductionSuccess))
-						HandleNatPunchConfirmRequest(ptr, senderEndPoint);
+						HandleNatPunchConfirmRequest(ptr, payloadByteLength, senderEndPoint);
 					return;
 				case NetMessageType.NatIntroductionConfirmed:
 					if (m_configuration.IsMessageTypeEnabled(NetIncomingMessageType.NatIntroductionSuccess))
-						HandleNatPunchConfirmed(ptr, senderEndPoint);
+						HandleNatPunchConfirmed(ptr, payloadByteLength, senderEndPoint);
 					return;
 				case NetMessageType.ConnectResponse:
 
