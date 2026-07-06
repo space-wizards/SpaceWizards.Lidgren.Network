@@ -136,7 +136,7 @@ namespace Lidgren.Network
 			m_maximumHandshakeAttempts = 5;
 			m_autoFlushSendQueue = true;
 			m_suppressUnreliableUnorderedAcks = false;
-			m_sendConnectionRejectionReasons = false;
+			m_sendConnectionRejectionReasons = true;
 
 			m_logRateLimiterEnabled = true;
 			m_logRateLimitTargets = NetLogRateLimitTarget.All;
