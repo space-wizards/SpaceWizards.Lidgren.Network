@@ -72,6 +72,7 @@ namespace Lidgren.Network
 		internal bool m_autoFlushSendQueue;
 		private NetUnreliableSizeBehaviour m_unreliableSizeBehaviour;
 		internal bool m_suppressUnreliableUnorderedAcks;
+		private bool m_sendConnectionRejectionReasons;
 
 		internal NetIncomingMessageType m_disabledTypes;
 		internal int m_port;
@@ -97,6 +98,8 @@ namespace Lidgren.Network
 		internal bool m_autoExpandMTU;
 		internal float m_expandMTUFrequency;
 		internal int m_expandMTUFailAttempts;
+		internal int m_maximumFragmentReassemblyBytesPerConnection;
+		internal float m_fragmentGroupTimeout;
 
 		/// <summary>
 		/// NetPeerConfiguration constructor
@@ -133,6 +136,7 @@ namespace Lidgren.Network
 			m_maximumHandshakeAttempts = 5;
 			m_autoFlushSendQueue = true;
 			m_suppressUnreliableUnorderedAcks = false;
+			m_sendConnectionRejectionReasons = false;
 
 			m_logRateLimiterEnabled = true;
 			m_logRateLimitTargets = NetLogRateLimitTarget.All;
@@ -144,6 +148,8 @@ namespace Lidgren.Network
 			m_autoExpandMTU = false;
 			m_expandMTUFrequency = 2.0f;
 			m_expandMTUFailAttempts = 5;
+			m_maximumFragmentReassemblyBytesPerConnection = 32 * 1024 * 1024;
+			m_fragmentGroupTimeout = 30.0f;
 			m_unreliableSizeBehaviour = NetUnreliableSizeBehaviour.IgnoreMTU;
 
 			m_loss = 0.0f;
@@ -249,10 +255,20 @@ namespace Lidgren.Network
 		/// </summary>
 		public int MaximumRapidConnections = 3;
 
+		/// <summary>
+		/// Should we send a disconnect reason when the limit is hit.
+		/// Avoids the server trying to spam messages out.
+		/// </summary>
+		public bool SendConnectionRejectionReasons
+		{
+			get { return m_sendConnectionRejectionReasons; }
+			set { m_sendConnectionRejectionReasons = value; }
+		}
+
         /// <summary>
         /// How many seconds until connection count decays for <see cref="MaximumRapidConnections"/>.
         /// </summary>
-		public double RapidConnectionWindow = 60.0;
+		public double RapidConnectionWindow = 30.0;
 
 		/// <summary>
 		/// How many connections are "forgotten" every <see cref="RapidConnectionWindow"/> seconds.
@@ -577,7 +593,12 @@ namespace Lidgren.Network
 		public float ExpandMTUFrequency
 		{
 			get { return m_expandMTUFrequency; }
-			set { m_expandMTUFrequency = value; }
+			set
+			{
+				if (!float.IsFinite(value) || value <= 0)
+					throw new NetException("ExpandMTUFrequency must be greater than zero");
+				m_expandMTUFrequency = value;
+			}
 		}
 
 		/// <summary>
@@ -586,7 +607,40 @@ namespace Lidgren.Network
 		public int ExpandMTUFailAttempts
 		{
 			get { return m_expandMTUFailAttempts; }
-			set { m_expandMTUFailAttempts = value; }
+			set
+			{
+				if (value <= 0)
+					throw new NetException("ExpandMTUFailAttempts must be greater than zero");
+				m_expandMTUFailAttempts = value;
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the maximum bytes used by incomplete fragment groups for one connection.
+		/// </summary>
+		public int MaximumFragmentReassemblyBytesPerConnection
+		{
+			get { return m_maximumFragmentReassemblyBytesPerConnection; }
+			set
+			{
+				if (value < 1)
+					throw new NetException("MaximumFragmentReassemblyBytesPerConnection must be at least 1");
+				m_maximumFragmentReassemblyBytesPerConnection = value;
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets how long an incomplete fragment group is kept alive, in seconds.
+		/// </summary>
+		public float FragmentGroupTimeout
+		{
+			get { return m_fragmentGroupTimeout; }
+			set
+			{
+				if (value <= 0.0f)
+					throw new NetException("FragmentGroupTimeout must be greater than zero");
+				m_fragmentGroupTimeout = value;
+			}
 		}
 
 		/// <summary>

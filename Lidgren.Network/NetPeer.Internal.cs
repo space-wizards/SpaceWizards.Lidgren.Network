@@ -714,19 +714,19 @@ namespace Lidgren.Network
 					return;
 				case NetMessageType.NatIntroduction:
 					if (m_configuration.IsMessageTypeEnabled(NetIncomingMessageType.NatIntroductionSuccess))
-						HandleNatIntroduction(ptr);
+						HandleNatIntroduction(ptr, payloadByteLength);
 					return;
 				case NetMessageType.NatPunchMessage:
 					if (m_configuration.IsMessageTypeEnabled(NetIncomingMessageType.NatIntroductionSuccess))
-						HandleNatPunch(ptr, senderEndPoint);
+						HandleNatPunch(ptr, payloadByteLength, senderEndPoint);
 					return;
 				case NetMessageType.NatIntroductionConfirmRequest:
 					if (m_configuration.IsMessageTypeEnabled(NetIncomingMessageType.NatIntroductionSuccess))
-						HandleNatPunchConfirmRequest(ptr, senderEndPoint);
+						HandleNatPunchConfirmRequest(ptr, payloadByteLength, senderEndPoint);
 					return;
 				case NetMessageType.NatIntroductionConfirmed:
 					if (m_configuration.IsMessageTypeEnabled(NetIncomingMessageType.NatIntroductionSuccess))
-						HandleNatPunchConfirmed(ptr, senderEndPoint);
+						HandleNatPunchConfirmed(ptr, payloadByteLength, senderEndPoint);
 					return;
 				case NetMessageType.ConnectResponse:
 
@@ -773,7 +773,7 @@ namespace Lidgren.Network
 						}
 					}
 
-					LogWarning($"Received unhandled library message {tp} from {senderEndPoint}");
+					LogUnhandledLibraryMessage(tp, senderEndPoint);
 					return;
 				case NetMessageType.Connect:
 					if (m_configuration.AcceptIncomingConnections == false)
@@ -787,10 +787,7 @@ namespace Lidgren.Network
 					int reservedSlots = m_handshakes.Count + m_connections.Count;
 					if (reservedSlots >= m_configuration.m_maximumConnections)
 					{
-						// server full
-						NetOutgoingMessage full = CreateMessage("Server full");
-						full.m_messageType = NetMessageType.Disconnect;
-						SendLibrary(full, senderEndPoint);
+						SendConnectionRejection("Server full", senderEndPoint);
 						return;
 					}
 
@@ -799,27 +796,42 @@ namespace Lidgren.Network
 					var conCount = m_ipConnectionCounts.GetValueOrDefault(ip);
 					if (conCount >= m_configuration.MaximumIpConnections)
 					{
-						var msg = CreateMessage("Too many connections from your network");
-						msg.m_messageType = NetMessageType.Disconnect;
-						SendLibrary(msg, senderEndPoint);
+						SendConnectionRejection("Too many connections from your network", senderEndPoint);
 						return;
 					}
 
-					// limit rapid connections, definitely bad actors
+					// limit rapid connections, likely bad actors
 					// this isnt a perfect sliding window but if you are trying to test it, go to hell
 					// note that it increments even if your packet is dropped, so you have to wait off your "debt" if you are spamming the server
 					var times = m_ipConnectionTimes.GetValueOrDefault(ip);
+					var max = m_configuration.MaximumRapidConnections;
 					m_ipConnectionTimes[ip] = times + 1;
-					if (times >= m_configuration.MaximumRapidConnections)
+					// With the default settings, it should be extremely rare for a legitimate player to hit this limit
+					// but it is not impossible
+					if (times >= max)
 					{
-						// only warn once. you as a living, breathing, human being should read the message and stop trying to connect
-						// just drop the packets for bots or darwin award winners
-						if (times == m_configuration.MaximumRapidConnections)
+						// If the offender keeps trying despite the warnings
+						// don't bother informing them and just silently drop the connection
+						if (times > max * 2)
+							return;
+
+						var waitTimeMinutes = Math.Ceiling(times * m_configuration.RapidConnectionWindow / 60 /
+						                                   m_configuration.RapidConnectionDecay);
+
+						// The player is warned multiple times before they reach the "silently dropped" state
+						// because if the player does not understand what is happening and why, they will not stop
+						// and they will just come to us for help eventually, increasing our tech support burden
+						if (m_configuration.SendConnectionRejectionReasons)
 						{
-							var msg = CreateMessage("You are connecting too fast!");
-							msg.m_messageType = NetMessageType.Disconnect;
-							SendLibrary(msg, senderEndPoint);
+							var text = "We have detected too many connection attempts from you in a short time, and have temporarily blocked you.\n"
+							           + "Please wait "
+							           + waitTimeMinutes
+							           + " minutes before attempting to connect to this server again.\n"
+							           + "The duration of this block will be extended if you attempt to connect again before it expired.";
+
+							SendConnectionRejection(text, senderEndPoint);
 						}
+
 						return;
 					}
 
@@ -836,9 +848,27 @@ namespace Lidgren.Network
 					LogVerbose("Received Disconnect from unconnected source: " + senderEndPoint);
 					return;
 				default:
-					LogWarning($"Received unhandled library message {tp} from {senderEndPoint}");
+					LogUnhandledLibraryMessage(tp, senderEndPoint);
 					return;
 			}
+		}
+
+		private void SendConnectionRejection(string reason, NetEndPoint recipient)
+		{
+			if (!m_configuration.SendConnectionRejectionReasons)
+				return;
+
+			var msg = CreateMessage(reason);
+			msg.m_messageType = NetMessageType.Disconnect;
+			SendLibrary(msg, recipient);
+    }
+
+		private void LogUnhandledLibraryMessage(NetMessageType messageType, NetEndPoint senderEndPoint)
+		{
+			LogRateLimitedWarning(
+				NetLogRateLimitTarget.UnhandledLibraryMessage,
+				senderEndPoint,
+				$"Received unhandled library message {messageType} from {senderEndPoint}");
 		}
 
 		internal void AcceptConnection(NetConnection conn)
