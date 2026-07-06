@@ -11,6 +11,7 @@ public partial class NetPeer
 		public int ChunkByteSize { get; }
 		public int TotalNumChunks { get; }
 		public double LastReceived { get; set; }
+		public int ReceivedChunkCount { get; private set; }
 
 		public ReceivedFragmentGroup(byte[] data, NetBitVector receivedChunks, int totalBytes, int totalBits, int chunkByteSize, int totalNumChunks, double lastReceived)
 		{
@@ -21,6 +22,17 @@ public partial class NetPeer
 			ChunkByteSize = chunkByteSize;
 			TotalNumChunks = totalNumChunks;
 			LastReceived = lastReceived;
+		}
+
+		/// <returns>True if the chunk was not previously marked</returns>
+		public bool MarkChunkReceived(int chunkNumber)
+		{
+			if (ReceivedChunks[chunkNumber])
+				return false;
+
+			ReceivedChunks[chunkNumber] = true;
+			ReceivedChunkCount++;
+			return true;
 		}
 	}
 }

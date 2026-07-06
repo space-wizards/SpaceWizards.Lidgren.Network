@@ -256,7 +256,7 @@ namespace Lidgren.Network
         /// <summary>
         /// How many seconds until connection count decays for <see cref="MaximumRapidConnections"/>.
         /// </summary>
-		public double RapidConnectionWindow = 60.0;
+		public double RapidConnectionWindow = 30.0;
 
 		/// <summary>
 		/// How many connections are "forgotten" every <see cref="RapidConnectionWindow"/> seconds.

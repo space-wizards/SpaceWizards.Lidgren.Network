@@ -253,7 +253,7 @@ namespace Lidgren.Network
 				{
 					// send buffer full?
 					LogWarning("Socket threw exception; would block - send buffer full? Increase in NetPeerConfiguration");
-					return true;
+					return false;
 				}
 				if (sx.SocketErrorCode == SocketError.ConnectionReset)
 					return true;
