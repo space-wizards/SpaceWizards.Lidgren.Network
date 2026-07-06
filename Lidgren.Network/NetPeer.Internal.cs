@@ -807,13 +807,16 @@ namespace Lidgren.Network
 						// The player is warned multiple times before they reach the "silently dropped" state
 						// because if the player does not understand what is happening and why, they will not stop
 						// and they will just come to us for help eventually, increasing our tech support burden
-						var text = "We have detected too many connection attempts from you in a short time, and have temporarily blocked you.\n"
-						           + "Please wait "
-						           + waitTimeMinutes
-						           + " minutes before attempting to connect to this server again.\n"
-						           + "The duration of this block will be extended if you attempt to connect again before it expired.";
+						if (m_configuration.SendConnectionRejectionReasons)
+						{
+							var text = "We have detected too many connection attempts from you in a short time, and have temporarily blocked you.\n"
+							           + "Please wait "
+							           + waitTimeMinutes
+							           + " minutes before attempting to connect to this server again.\n"
+							           + "The duration of this block will be extended if you attempt to connect again before it expired.";
 
-						SendConnectionRejection(text, senderEndPoint);
+							SendConnectionRejection(text, senderEndPoint);
+						}
 
 						return;
 					}
@@ -845,7 +848,7 @@ namespace Lidgren.Network
 			msg.m_messageType = NetMessageType.Disconnect;
 			SendLibrary(msg, recipient);
     }
-      
+
 		private void LogUnhandledLibraryMessage(NetMessageType messageType, NetEndPoint senderEndPoint)
 		{
 			LogRateLimitedWarning(
