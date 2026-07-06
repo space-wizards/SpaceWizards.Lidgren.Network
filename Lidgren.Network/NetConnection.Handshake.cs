@@ -222,13 +222,14 @@ namespace Lidgren.Network
 			if (m_localHailMessage != null)
 			{
 				byte[]? hi = m_localHailMessage.Data;
-				if (hi != null && hi.Length >= m_localHailMessage.LengthBytes)
-				{
-					if (om.LengthBytes + m_localHailMessage.LengthBytes > m_peerConfiguration.m_maximumTransmissionUnit - 10)
-						m_peer.ThrowOrLog("Hail message too large; can maximally be " + (m_peerConfiguration.m_maximumTransmissionUnit - 10 - om.LengthBytes));
-					om.Write(hi, 0, m_localHailMessage.LengthBytes);
-				}
+			if (hi != null && hi.Length >= m_localHailMessage.LengthBytes)
+			{
+				int mtu = m_peerConfiguration.MTUForEndPoint(m_remoteEndPoint);
+				if (om.LengthBytes + m_localHailMessage.LengthBytes > mtu - 10)
+					m_peer.ThrowOrLog("Hail message too large; can maximally be " + (mtu - 10 - om.LengthBytes));
+				om.Write(hi, 0, m_localHailMessage.LengthBytes);
 			}
+		}
 		}
 
 		internal void SendConnectionEstablished()
