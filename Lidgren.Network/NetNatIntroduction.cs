@@ -47,17 +47,22 @@ namespace Lidgren.Network
 		/// <summary>
 		/// Called when host/client receives a NatIntroduction message from a master server
 		/// </summary>
-		internal void HandleNatIntroduction(int ptr)
+		internal void HandleNatIntroduction(int ptr, int payloadLength)
 		{
 			VerifyNetworkThread();
 
 			// read intro
-			NetIncomingMessage tmp = SetupReadHelperMessage(ptr, 1000); // never mind length
+			NetIncomingMessage tmp = SetupReadHelperMessage(ptr, payloadLength);
 
-			byte hostByte = tmp.ReadByte();
-			NetEndPoint remoteInternal = tmp.ReadIPEndPoint();
-			NetEndPoint remoteExternal = tmp.ReadIPEndPoint();
-			string token = tmp.ReadString();
+			if (!tmp.ReadByte(out byte hostByte)
+				|| !TryReadIPEndPoint(tmp, out NetEndPoint remoteInternal)
+				|| !TryReadIPEndPoint(tmp, out NetEndPoint remoteExternal)
+				|| !tmp.ReadString(out string? token))
+			{
+				LogWarning("Received malformed NAT introduction");
+				return;
+			}
+
 			bool isHost = (hostByte != 0);
 
 			LogDebug("NAT introduction received; we are designated " + (isHost ? "host" : "client"));
@@ -90,12 +95,18 @@ namespace Lidgren.Network
 		/// <summary>
 		/// Called when receiving a NatPunchMessage from a remote endpoint
 		/// </summary>
-		private void HandleNatPunch(int ptr, NetEndPoint senderEndPoint)
+		private void HandleNatPunch(int ptr, int payloadLength, NetEndPoint senderEndPoint)
 		{
-			NetIncomingMessage tmp = SetupReadHelperMessage(ptr, 1000); // never mind length
+			NetIncomingMessage tmp = SetupReadHelperMessage(ptr, payloadLength);
 
-			var isFromClient = tmp.ReadByte() == ClientByte;
-			string token = tmp.ReadString();
+			if (!tmp.ReadByte(out byte hostByte)
+				|| !tmp.ReadString(out string? token))
+			{
+				LogWarning("Received malformed NAT punch");
+				return;
+			}
+
+			var isFromClient = hostByte == ClientByte;
 			if (isFromClient)
 			{
 				LogDebug("NAT punch received from " + senderEndPoint + " we're host, so we send a NatIntroductionConfirmed message - token is " + token);
@@ -120,11 +131,17 @@ namespace Lidgren.Network
 			}
 		}
 
-		private void HandleNatPunchConfirmRequest(int ptr, NetEndPoint senderEndPoint)
+		private void HandleNatPunchConfirmRequest(int ptr, int payloadLength, NetEndPoint senderEndPoint)
 		{
-			NetIncomingMessage tmp = SetupReadHelperMessage(ptr, 1000); // never mind length
-			var isFromClient = tmp.ReadByte() == ClientByte;
-			string token = tmp.ReadString();
+			NetIncomingMessage tmp = SetupReadHelperMessage(ptr, payloadLength);
+			if (!tmp.ReadByte(out byte hostByte)
+				|| !tmp.ReadString(out string? token))
+			{
+				LogWarning("Received malformed NAT punch confirmation request");
+				return;
+			}
+
+			var isFromClient = hostByte == ClientByte;
 
 			LogDebug("Received NAT punch confirmation from " + senderEndPoint + " sending NatIntroductionConfirmed - token is " + token);
 
@@ -136,17 +153,27 @@ namespace Lidgren.Network
 			m_unsentUnconnectedMessages.Enqueue((senderEndPoint, confirmResponse));
 		}
 
-		private void HandleNatPunchConfirmed(int ptr, NetEndPoint senderEndPoint)
+		private void HandleNatPunchConfirmed(int ptr, int payloadLength, NetEndPoint senderEndPoint)
 		{
-			NetIncomingMessage tmp = SetupReadHelperMessage(ptr, 1000); // never mind length
-			var isFromClient = tmp.ReadByte() == ClientByte;
+			NetIncomingMessage tmp = SetupReadHelperMessage(ptr, payloadLength);
+			if (!tmp.ReadByte(out byte hostByte))
+			{
+				LogWarning("Received malformed NAT punch confirmation");
+				return;
+			}
+
+			var isFromClient = hostByte == ClientByte;
 			if (isFromClient)
 			{
 				LogDebug("NAT punch confirmation received from " + senderEndPoint + " we're host, so we ignore this");
 				return;
 			}
 
-			string token = tmp.ReadString();
+			if (!tmp.ReadString(out string? token))
+			{
+				LogWarning("Received malformed NAT punch confirmation");
+				return;
+			}
 
 			LogDebug("NAT punch confirmation received from " + senderEndPoint + " we're client so we go ahead and succeed the introduction");
 
@@ -158,5 +185,24 @@ namespace Lidgren.Network
 			punchSuccess.Write(token);
 			ReleaseMessage(punchSuccess);
 	    }
+
+		private static bool TryReadIPEndPoint(NetIncomingMessage message, out NetEndPoint result)
+		{
+			result = null!;
+			if (!message.ReadByte(out byte length))
+				return false;
+
+			if (length != 4 && length != 16)
+				return false;
+
+			int remainingBytes = message.LengthBytes - message.PositionInBytes;
+			if (remainingBytes < length + 2)
+				return false;
+
+			byte[] addressBytes = message.ReadBytes(length);
+			int port = message.ReadUInt16();
+			result = new NetEndPoint(NetUtility.CreateAddressFromBytes(addressBytes), port);
+			return true;
+		}
 	}
 }

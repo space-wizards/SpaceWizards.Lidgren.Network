@@ -298,7 +298,12 @@ public enum NetLogRateLimitTarget
 	PacketParsingError = 1 << 2,
 
 	/// <summary>
+	/// Rate limit unhandled library message logs.
+	/// </summary>
+	UnhandledLibraryMessage = 1 << 3,
+
+	/// <summary>
 	/// Rate limit all malformed network input log categories.
 	/// </summary>
-	All = MalformedPacket | MalformedFragment | PacketParsingError,
+	All = MalformedPacket | MalformedFragment | PacketParsingError | UnhandledLibraryMessage,
 }
