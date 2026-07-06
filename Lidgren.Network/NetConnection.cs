@@ -440,11 +440,23 @@ namespace Lidgren.Network
 					//ExecuteDisconnect(msg.ReadString(), false);
 					break;
 				case NetMessageType.Acknowledge:
+					if (payloadLength % 3 != 0)
+					{
+						m_peer.LogWarning("Received malformed acknowledge payload");
+						break;
+					}
+
 					for (int i = 0; i < payloadLength; i += 3)
 					{
 						NetMessageType acktp = (NetMessageType)m_peer.m_receiveBuffer[ptr++]; // netmessagetype
 						int seqNr = m_peer.m_receiveBuffer[ptr++];
 						seqNr |= (m_peer.m_receiveBuffer[ptr++] << 8);
+
+						if (acktp <= NetMessageType.Unconnected || acktp >= NetMessageType.Unused1)
+						{
+							m_peer.LogWarning("Received malformed acknowledge for message type " + acktp);
+							break;
+						}
 
 						// need to enqueue this and handle it in the netconnection heartbeat; so be able to send resends together with normal sends
 						m_queuedIncomingAcks.Enqueue((acktp, seqNr));
@@ -467,6 +479,11 @@ namespace Lidgren.Network
 					if (m_peer.Configuration.AutoExpandMTU == false)
 					{
 						m_peer.LogDebug("Received ExpandMTURequest altho AutoExpandMTU is turned off!");
+						break;
+					}
+					if (payloadLength != 4)
+					{
+						m_peer.LogWarning("Received malformed ExpandMTUSuccess payload");
 						break;
 					}
 					NetIncomingMessage emsg = m_peer.SetupReadHelperMessage(ptr, payloadLength);
