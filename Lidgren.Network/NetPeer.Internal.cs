@@ -439,19 +439,21 @@ namespace Lidgren.Network
 			{
 				int packetsReceived = 0;
 				int bytesReceived = 0;
-				do
+				while (packetsReceived < m_configuration.m_maximumPacketsPerHeartbeat
+					&& bytesReceived < m_configuration.m_maximumBytesPerHeartbeat)
 				{
 					int packetBytes = ReceiveSocketData(now);
 					packetsReceived++;
 					bytesReceived += packetBytes;
-				} while (m_socket.Available > 0
-					&& packetsReceived < m_configuration.m_maximumPacketsPerHeartbeat
-					&& bytesReceived < m_configuration.m_maximumBytesPerHeartbeat);
+				}
 			}
 			catch (SocketException sx)
 			{
 				switch (sx.SocketErrorCode)
 				{
+					case SocketError.WouldBlock:
+						return;
+
 					case SocketError.ConnectionReset:
 						// connection reset by peer, aka connection forcibly closed aka "ICMP port unreachable"
 						// we should shut down the connection; but m_senderRemote seemingly cannot be trusted, so which connection should we shut down?!
