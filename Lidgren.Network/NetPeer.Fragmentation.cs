@@ -171,7 +171,7 @@ namespace Lidgren.Network
 				Recycle(im);
 				return;
 			}
-      
+
 			if (!info.MarkChunkReceived(chunkNumber))
 			{
 				Recycle(im);
