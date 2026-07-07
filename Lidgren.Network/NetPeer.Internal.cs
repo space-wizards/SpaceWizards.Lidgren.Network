@@ -849,6 +849,21 @@ namespace Lidgren.Network
 			SendLibrary(msg, recipient);
     }
 
+		internal void DecrementConnectionCount(NetEndPoint endPoint)
+		{
+			lock (m_ipConnectionCounts)
+			{
+				var ip = endPoint.Address;
+				if (m_ipConnectionCounts.TryGetValue(ip, out var count))
+				{
+					if (count == 1)
+						m_ipConnectionCounts.Remove(ip);
+					else
+						m_ipConnectionCounts[ip] = count - 1;
+				}
+			}
+		}
+
 		private void LogUnhandledLibraryMessage(NetMessageType messageType, NetEndPoint senderEndPoint)
 		{
 			LogRateLimitedWarning(
