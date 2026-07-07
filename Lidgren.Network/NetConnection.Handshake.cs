@@ -132,18 +132,7 @@ namespace Lidgren.Network
 			m_receivedFragmentGroups.Clear();
 
 			// decrement concurrent connections count (but not rapid connection times, it will decay)
-			lock (m_peer.m_ipConnectionCounts)
-			{
-			    var counts = m_peer.m_ipConnectionCounts;
-			    var ip = m_remoteEndPoint.Address;
-			    if (counts.TryGetValue(ip, out var count))
-			    {
-			        if (count == 1)
-			            counts.Remove(ip);
-		            else
-    			        counts[ip] = count - 1;
-		        }
-	        }
+			m_peer.DecrementConnectionCount(m_remoteEndPoint);
 
 			m_disconnectRequested = false;
 			m_connectRequested = false;
@@ -299,8 +288,12 @@ namespace Lidgren.Network
 			SendDisconnect(reason, false);
 
 			// remove from handshakes
+			var removed = false;
 			lock (m_peer.m_handshakes)
-				m_peer.m_handshakes.Remove(m_remoteEndPoint);
+				removed = m_peer.m_handshakes.Remove(m_remoteEndPoint);
+
+			if (removed)
+				m_peer.DecrementConnectionCount(m_remoteEndPoint);
 		}
 
 		internal void ReceivedHandshake(double now, NetMessageType tp, int ptr, int payloadLength)
