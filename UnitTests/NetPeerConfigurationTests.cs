@@ -49,5 +49,19 @@ namespace UnitTests
                 Assert.That(config.ExpandMTUFailAttempts, Is.EqualTo(1));
             });
         }
+
+        [Test]
+        public void ConnectionApprovalTimeoutRejectsNonPositiveValues()
+        {
+            var config = new NetPeerConfiguration("Test");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(() => config.ConnectionApprovalTimeout = 0, Throws.TypeOf<NetException>());
+                Assert.That(() => config.ConnectionApprovalTimeout = -1, Throws.TypeOf<NetException>());
+                Assert.That(() => config.ConnectionApprovalTimeout = 1, Throws.Nothing);
+                Assert.That(config.ConnectionApprovalTimeout, Is.EqualTo(1));
+            });
+        }
     }
 }

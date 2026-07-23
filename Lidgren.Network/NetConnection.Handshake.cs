@@ -18,6 +18,7 @@ namespace Lidgren.Network
 		internal bool m_connectionInitiator;
 		internal NetIncomingMessage? m_remoteHailMessage;
 		internal double m_lastHandshakeSendTime;
+		internal double m_approvalDeadline = double.MaxValue;
 		internal int m_handshakeAttempts;
 
 		/// <summary>
@@ -84,6 +85,11 @@ namespace Lidgren.Network
 						break;
 					case NetConnectionStatus.RespondedAwaitingApproval:
 						// awaiting approval
+						if (now > m_approvalDeadline)
+						{
+							ExecuteDisconnect("Connection approval timed out", true);
+							return;
+						}
 						m_lastHandshakeSendTime = now; // postpone handshake resend
 						break;
 					case NetConnectionStatus.None:
@@ -132,18 +138,7 @@ namespace Lidgren.Network
 			m_receivedFragmentGroups.Clear();
 
 			// decrement concurrent connections count (but not rapid connection times, it will decay)
-			lock (m_peer.m_ipConnectionCounts)
-			{
-			    var counts = m_peer.m_ipConnectionCounts;
-			    var ip = m_remoteEndPoint.Address;
-			    if (counts.TryGetValue(ip, out var count))
-			    {
-			        if (count == 1)
-			            counts.Remove(ip);
-		            else
-    			        counts[ip] = count - 1;
-		        }
-	        }
+			m_peer.DecrementConnectionCount(m_remoteEndPoint);
 
 			m_disconnectRequested = false;
 			m_connectRequested = false;
@@ -222,13 +217,14 @@ namespace Lidgren.Network
 			if (m_localHailMessage != null)
 			{
 				byte[]? hi = m_localHailMessage.Data;
-				if (hi != null && hi.Length >= m_localHailMessage.LengthBytes)
-				{
-					if (om.LengthBytes + m_localHailMessage.LengthBytes > m_peerConfiguration.m_maximumTransmissionUnit - 10)
-						m_peer.ThrowOrLog("Hail message too large; can maximally be " + (m_peerConfiguration.m_maximumTransmissionUnit - 10 - om.LengthBytes));
-					om.Write(hi, 0, m_localHailMessage.LengthBytes);
-				}
+			if (hi != null && hi.Length >= m_localHailMessage.LengthBytes)
+			{
+				int mtu = m_peerConfiguration.MTUForEndPoint(m_remoteEndPoint);
+				if (om.LengthBytes + m_localHailMessage.LengthBytes > mtu - 10)
+					m_peer.ThrowOrLog("Hail message too large; can maximally be " + (mtu - 10 - om.LengthBytes));
+				om.Write(hi, 0, m_localHailMessage.LengthBytes);
 			}
+		}
 		}
 
 		internal void SendConnectionEstablished()
@@ -298,8 +294,12 @@ namespace Lidgren.Network
 			SendDisconnect(reason, false);
 
 			// remove from handshakes
+			var removed = false;
 			lock (m_peer.m_handshakes)
-				m_peer.m_handshakes.Remove(m_remoteEndPoint);
+				removed = m_peer.m_handshakes.Remove(m_remoteEndPoint);
+
+			if (removed)
+				m_peer.DecrementConnectionCount(m_remoteEndPoint);
 		}
 
 		internal void ReceivedHandshake(double now, NetMessageType tp, int ptr, int payloadLength)
@@ -334,6 +334,7 @@ namespace Lidgren.Network
 								appMsg.m_senderEndPoint = this.m_remoteEndPoint;
 								if (m_remoteHailMessage != null)
 									appMsg.Write(m_remoteHailMessage.Data, 0, m_remoteHailMessage.LengthBytes);
+								m_approvalDeadline = now + m_peerConfiguration.m_connectionApprovalTimeout;
 								SetStatus(NetConnectionStatus.RespondedAwaitingApproval, "Awaiting approval");
 								m_peer.ReleaseMessage(appMsg);
 								return;
