@@ -507,13 +507,13 @@ namespace Lidgren.Network
 					try
 					{
 						m_upnp.ExtractServiceUrl(location);
-						return;
 					}
 					catch (Exception ex)
 					{
 						LogDebug($"Failed to fetch UPnP description for {location} (from {(IPEndPoint)senderRemote}): {ex}");
-						return bytesReceived;
 					}
+
+					return bytesReceived;
 				}
 			}
 
@@ -637,7 +637,7 @@ namespace Lidgren.Network
 				if (sender.m_status == NetConnectionStatus.Connected)
 					sender.ResetTimeout(now);
 			}
-			
+
 			return bytesReceived;
 		}
 
