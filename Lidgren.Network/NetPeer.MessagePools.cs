@@ -6,7 +6,10 @@ namespace Lidgren.Network
 {
 	public partial class NetPeer
 	{
-		internal List<byte[]?>? m_storagePool;
+		private const int c_storagePoolMinBucketSize = 16;
+		private const int c_storagePoolMaxBucketSize = 1024 * 1024;
+
+		internal NetQueue<byte[]>[]? m_storagePools;
 		private NetQueue<NetOutgoingMessage>? m_outgoingMessagesPool;
 		private NetQueue<NetIncomingMessage>? m_incomingMessagesPool;
 
@@ -17,16 +20,17 @@ namespace Lidgren.Network
 		private void InitializePools()
 		{
 			m_storageSlotsUsedCount = 0;
+			m_storagePoolBytes = 0;
 
 			if (m_configuration.UseMessageRecycling)
 			{
-				m_storagePool = new List<byte[]?>(16);
+				m_storagePools = CreateStoragePools();
 				m_outgoingMessagesPool = new NetQueue<NetOutgoingMessage>(4);
 				m_incomingMessagesPool = new NetQueue<NetIncomingMessage>(4);
 			}
 			else
 			{
-				m_storagePool = null;
+				m_storagePools = null;
 				m_outgoingMessagesPool = null;
 				m_incomingMessagesPool = null;
 			}
@@ -36,63 +40,88 @@ namespace Lidgren.Network
 
 		internal byte[] GetStorage(int minimumCapacityInBytes)
 		{
-			if (m_storagePool == null)
+			var pools = m_storagePools;
+			if (pools == null)
 				return new byte[minimumCapacityInBytes];
 
-			lock (m_storagePool)
+			var bucket = GetStorageBucket(minimumCapacityInBytes);
+			if (bucket >= 0)
 			{
-				for (int i = 0; i < m_storagePool.Count; i++)
+				lock (pools)
 				{
-					byte[]? retval = m_storagePool[i];
-					if (retval != null && retval.Length >= minimumCapacityInBytes)
+					if (pools[bucket].TryDequeue(out var storage))
 					{
-						m_storagePool[i] = null;
 						m_storageSlotsUsedCount--;
-						m_storagePoolBytes -= retval.Length;
-						return retval;
+						m_storagePoolBytes -= storage.Length;
+						return storage;
 					}
 				}
 			}
-			m_statistics.m_bytesAllocated += minimumCapacityInBytes;
-			return new byte[minimumCapacityInBytes];
+
+			var allocationSize = GetStorageBucketSize(minimumCapacityInBytes);
+			m_statistics.m_bytesAllocated += allocationSize;
+			return new byte[allocationSize];
 		}
 
 		internal void Recycle(byte[] storage)
 		{
-			if (m_storagePool == null)
+			var pools = m_storagePools;
+			if (pools == null)
 				return;
 
-			lock (m_storagePool)
+			var bucket = GetStorageBucket(storage.Length);
+			if (bucket < 0 || storage.Length != GetStorageBucketSize(storage.Length))
+				return;
+
+			lock (pools)
 			{
-				int cnt = m_storagePool.Count;
-				for (int i = 0; i < cnt; i++)
-				{
-					if (m_storagePool[i] == null)
-					{
-						m_storageSlotsUsedCount++;
-						m_storagePoolBytes += storage.Length;
-						m_storagePool[i] = storage;
-						return;
-					}
-				}
+				if (m_storageSlotsUsedCount >= m_maxCacheCount)
+					return;
 
-				if (m_storagePool.Count >= m_maxCacheCount)
-				{
-					// pool is full; replace randomly chosen entry to keep size distribution
-					var idx = NetRandom.Instance.Next(m_storagePool.Count);
-
-					m_storagePoolBytes -= m_storagePool[idx]!.Length;
-					m_storagePoolBytes += storage.Length;
-
-					m_storagePool[idx] = storage; // replace
-				}
-				else
-				{
-					m_storageSlotsUsedCount++;
-					m_storagePoolBytes += storage.Length;
-					m_storagePool.Add(storage);
-				}
+				m_storageSlotsUsedCount++;
+				m_storagePoolBytes += storage.Length;
+				pools[bucket].Enqueue(storage);
 			}
+		}
+
+		private static NetQueue<byte[]>[] CreateStoragePools()
+		{
+			var bucketCount = GetStorageBucket(c_storagePoolMaxBucketSize) + 1;
+			var pools = new NetQueue<byte[]>[bucketCount];
+			for (var i = 0; i < pools.Length; i++)
+			{
+				pools[i] = new NetQueue<byte[]>(4);
+			}
+
+			return pools;
+		}
+
+		private static int GetStorageBucket(int byteCount)
+		{
+			if (byteCount <= 0)
+				return 0;
+
+			if (byteCount > c_storagePoolMaxBucketSize)
+				return -1;
+
+			var size = c_storagePoolMinBucketSize;
+			var bucket = 0;
+			while (size < byteCount)
+			{
+				size <<= 1;
+				bucket++;
+			}
+
+			return bucket;
+		}
+
+		private static int GetStorageBucketSize(int minimumCapacityInBytes)
+		{
+			var bucket = GetStorageBucket(minimumCapacityInBytes);
+			if (bucket < 0)
+				return minimumCapacityInBytes;
+
+			return c_storagePoolMinBucketSize << bucket;
 		}
 
 		/// <summary>
