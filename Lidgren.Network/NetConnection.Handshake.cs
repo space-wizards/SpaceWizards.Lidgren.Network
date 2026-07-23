@@ -18,6 +18,7 @@ namespace Lidgren.Network
 		internal bool m_connectionInitiator;
 		internal NetIncomingMessage? m_remoteHailMessage;
 		internal double m_lastHandshakeSendTime;
+		internal double m_approvalDeadline = double.MaxValue;
 		internal int m_handshakeAttempts;
 
 		/// <summary>
@@ -84,6 +85,11 @@ namespace Lidgren.Network
 						break;
 					case NetConnectionStatus.RespondedAwaitingApproval:
 						// awaiting approval
+						if (now > m_approvalDeadline)
+						{
+							ExecuteDisconnect("Connection approval timed out", true);
+							return;
+						}
 						m_lastHandshakeSendTime = now; // postpone handshake resend
 						break;
 					case NetConnectionStatus.None:
@@ -328,6 +334,7 @@ namespace Lidgren.Network
 								appMsg.m_senderEndPoint = this.m_remoteEndPoint;
 								if (m_remoteHailMessage != null)
 									appMsg.Write(m_remoteHailMessage.Data, 0, m_remoteHailMessage.LengthBytes);
+								m_approvalDeadline = now + m_peerConfiguration.m_connectionApprovalTimeout;
 								SetStatus(NetConnectionStatus.RespondedAwaitingApproval, "Awaiting approval");
 								m_peer.ReleaseMessage(appMsg);
 								return;
