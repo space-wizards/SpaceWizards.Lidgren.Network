@@ -625,7 +625,11 @@ namespace Lidgren.Network
 
 			m_statistics.PacketReceived(bytesReceived, numMessages, numFragments);
 			if (sender != null)
+			{
 				sender.m_statistics.PacketReceived(bytesReceived, numMessages, numFragments);
+				if (sender.m_status == NetConnectionStatus.Connected)
+					sender.ResetTimeout(now);
+			}
 		}
 
 		private static string? TryGetUPnPLocation(string response)
