@@ -438,10 +438,17 @@ namespace Lidgren.Network
 
 			try
 			{
+				int packetsReceived = 0;
+				int bytesReceived = 0;
 				do
 				{
-					ReceiveSocketData(now);
-				} while (m_socket.Available > 0);
+					int packetBytes = ReceiveSocketData(now);
+					packetsReceived++;
+					bytesReceived += packetBytes;
+				}
+				while (m_socket.Available > 0
+						&& packetsReceived < m_configuration.m_maximumPacketsPerHeartbeat
+				         && bytesReceived < m_configuration.m_maximumBytesPerHeartbeat);
 			}
 			catch (SocketException sx)
 			{
@@ -466,7 +473,7 @@ namespace Lidgren.Network
 			}
 		}
 
-		private void ReceiveSocketData(double now)
+		private int ReceiveSocketData(double now)
 		{
 			Debug.Assert(m_socket != null);
 
@@ -478,7 +485,7 @@ namespace Lidgren.Network
 				ref m_senderRemote);
 
 			if (bytesReceived < NetConstants.HeaderByteSize)
-				return;
+				return bytesReceived;
 
 			//LogVerbose("Received " + bytesReceived + " bytes");
 
@@ -494,19 +501,19 @@ namespace Lidgren.Network
 					{
 						LogDebug("Failed to parse UPnP response: missing location header");
 						// don't try to parse this packet further
-						return;
+						return bytesReceived;
 					}
 
 					try
 					{
 						m_upnp.ExtractServiceUrl(location);
-						return;
 					}
 					catch (Exception ex)
 					{
 						LogDebug($"Failed to fetch UPnP description for {location} (from {(IPEndPoint)senderRemote}): {ex}");
-						return;
 					}
+
+					return bytesReceived;
 				}
 			}
 
@@ -548,7 +555,7 @@ namespace Lidgren.Network
 						NetLogRateLimitTarget.MalformedPacket,
 						(NetEndPoint)senderRemote,
 						$"Malformed packet from {(NetEndPoint)senderRemote}; stated payload length {payloadByteLength}, remaining bytes {(bytesReceived - ptr)}");
-					return;
+					return bytesReceived;
 				}
 
 				if (tp >= NetMessageType.Unused1 && tp <= NetMessageType.Unused29)
@@ -557,7 +564,7 @@ namespace Lidgren.Network
 						NetLogRateLimitTarget.MalformedPacket,
 						(NetEndPoint)senderRemote,
 						$"Unexpected NetMessageType: {tp}");
-					return;
+					return bytesReceived;
 				}
 
 				NetIncomingMessage? msg = null;
@@ -575,7 +582,7 @@ namespace Lidgren.Network
 					else
 					{
 						if (sender == null && !m_configuration.IsMessageTypeEnabled(NetIncomingMessageType.UnconnectedData))
-							return; // dropping unconnected message since it's not enabled
+							return bytesReceived; // dropping unconnected message since it's not enabled
 
 						msg = CreateIncomingMessage(NetIncomingMessageType.Data, payloadByteLength);
 						msg.m_isFragment = isFragment;
@@ -630,6 +637,8 @@ namespace Lidgren.Network
 				if (sender.m_status == NetConnectionStatus.Connected)
 					sender.ResetTimeout(now);
 			}
+
+			return bytesReceived;
 		}
 
 		private static string? TryGetUPnPLocation(string response)
