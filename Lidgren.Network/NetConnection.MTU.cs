@@ -21,6 +21,9 @@ namespace Lidgren.Network
 		private int m_lastSentMTUAttemptSize;
 		private double m_lastSentMTUAttemptTime;
 		private int m_mtuAttemptFails;
+		private int m_mtuLossResends;
+		private int m_mtuLossRollbacks;
+		private double m_mtuLossWindowStart;
 
 		internal int m_currentMTU;
 
@@ -37,6 +40,10 @@ namespace Lidgren.Network
 			m_largestSuccessfulMTU = m_currentMTU;
 			m_smallestFailedMTU = -1;
 			m_lastSentMTUAttemptSize = 0;
+			m_mtuAttemptFails = 0;
+			m_mtuLossResends = 0;
+			m_mtuLossRollbacks = 0;
+			m_mtuLossWindowStart = now;
 		}
 
 		private void MTUExpansionHeartbeat(double now)
@@ -95,6 +102,10 @@ namespace Lidgren.Network
 
 			if (tryMTU > c_protocolMaxMTU)
 				tryMTU = c_protocolMaxMTU;
+
+			int maximumExpandedMTU = m_peerConfiguration.MaximumExpandedMTUForEndPoint(m_remoteEndPoint);
+			if (tryMTU > maximumExpandedMTU)
+				tryMTU = maximumExpandedMTU;
 
 			if (tryMTU == m_largestSuccessfulMTU)
 			{
@@ -173,6 +184,7 @@ namespace Lidgren.Network
 			m_currentMTU = initialMTU;
 			m_largestSuccessfulMTU = initialMTU;
 			m_expandMTUStatus = ExpandMTUStatus.Finished;
+			ResetMTULossWindow(NetTime.Now);
 			m_peer.LogWarning(
 				$"Packet of {failedPacketSize} bytes exceeded the path MTU for {m_remoteEndPoint}; " +
 				$"falling back from {previousMTU} to {initialMTU} bytes");
@@ -226,8 +238,62 @@ namespace Lidgren.Network
 
 			//m_peer.LogDebug("Expanding MTU to " + size);
 			m_currentMTU = size;
+			ResetMTULossWindow(now);
+
+			if (size >= m_peerConfiguration.MaximumExpandedMTUForEndPoint(m_remoteEndPoint))
+			{
+				FinalizeMTU(size);
+				return;
+			}
 
 			ExpandMTU(now);
+		}
+
+		internal void HandleReliableResendForMTU(MessageResendReason reason, double now)
+		{
+			if (reason != MessageResendReason.Delay && reason != MessageResendReason.HoleInSequence)
+				return;
+
+			if (!m_peerConfiguration.m_autoExpandMTU)
+				return;
+
+			var initialMTU = m_peerConfiguration.MTUForEndPoint(m_remoteEndPoint);
+			if (m_currentMTU <= initialMTU)
+				return;
+
+			if (now > m_mtuLossWindowStart + m_peerConfiguration.ExpandMTULossWindow)
+				ResetMTULossWindow(now);
+
+			m_mtuLossResends++;
+			if (m_mtuLossResends < m_peerConfiguration.ExpandMTULossResendThreshold)
+				return;
+
+			RollbackMTUDueToLoss(initialMTU, now);
+		}
+
+		private void RollbackMTUDueToLoss(int initialMTU, double now)
+		{
+			if (m_currentMTU <= initialMTU)
+				return;
+
+			var previousMTU = m_currentMTU;
+			m_mtuLossRollbacks++;
+			if (m_smallestFailedMTU == -1 || previousMTU < m_smallestFailedMTU)
+				m_smallestFailedMTU = previousMTU;
+
+			m_currentMTU = initialMTU;
+			m_largestSuccessfulMTU = initialMTU;
+			m_expandMTUStatus = ExpandMTUStatus.Finished;
+			ResetMTULossWindow(now);
+			m_peer.LogWarning(
+				$"Reliable resend burst after MTU expansion for {m_remoteEndPoint}; " +
+				$"falling back from {previousMTU} to {initialMTU} bytes");
+		}
+
+		private void ResetMTULossWindow(double now)
+		{
+			m_mtuLossWindowStart = now;
+			m_mtuLossResends = 0;
 		}
 	}
 }
