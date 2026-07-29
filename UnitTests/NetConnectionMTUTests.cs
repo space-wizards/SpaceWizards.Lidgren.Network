@@ -1,5 +1,6 @@
 using System;
 using System.Net;
+using System.Net.Sockets;
 using System.Reflection;
 using System.Threading;
 using Lidgren.Network;
@@ -36,6 +37,40 @@ public sealed class NetConnectionMTUTests
 		{
 			Assert.That(GetField<int>(connection, "m_currentMTU"), Is.EqualTo(NetPeerConfiguration.kDefaultMTUV6));
 			Assert.That(GetField<int>(connection, "m_largestSuccessfulMTU"), Is.EqualTo(NetPeerConfiguration.kDefaultMTUV6));
+		});
+	}
+
+	[Test]
+	public void MessageSizeFailureFallsBackToConfiguredMTU()
+	{
+		var connection = CreateConnection(IPAddress.Loopback);
+		connection.InitExpandMTU(NetTime.Now);
+		SetField(connection, "m_currentMTU", 1_400);
+		SetField(connection, "m_largestSuccessfulMTU", 1_400);
+		SetField(connection, "m_expandMTUStatus", GetExpandMTUStatus("Finished"));
+
+		connection.HandleMTUSendFailure(1_401);
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(connection.CurrentMTU, Is.EqualTo(NetPeerConfiguration.kDefaultMTU),
+				"Previously the stale expanded MTU remained in use after a socket-level MessageSize failure.");
+			Assert.That(GetField<int>(connection, "m_largestSuccessfulMTU"), Is.EqualTo(NetPeerConfiguration.kDefaultMTU));
+			Assert.That(GetField<int>(connection, "m_smallestFailedMTU"), Is.EqualTo(1_401));
+		});
+	}
+
+	[Test]
+	public void IPv6DontFragmentCanBeSetOnAutoExpandPlatforms()
+	{
+		if (!NetNativeSocket.IsWindows && !NetNativeSocket.IsLinux)
+			Assert.Ignore("Automatic MTU expansion is only supported on Windows and Linux.");
+
+		using var socket = new Socket(AddressFamily.InterNetworkV6, SocketType.Dgram, ProtocolType.Udp);
+		Assert.DoesNotThrow(() =>
+		{
+			NetNativeSocket.SetIPv6DontFragment(socket, true);
+			NetNativeSocket.SetIPv6DontFragment(socket, false);
 		});
 	}
 

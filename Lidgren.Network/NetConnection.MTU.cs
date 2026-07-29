@@ -152,9 +152,30 @@ namespace Lidgren.Network
 				return;
 			m_expandMTUStatus = ExpandMTUStatus.Finished;
 			m_currentMTU = size;
-			if (m_currentMTU != m_peerConfiguration.m_maximumTransmissionUnit)
+			if (m_currentMTU != m_peerConfiguration.MTUForEndPoint(m_remoteEndPoint))
 				m_peer.LogDebug("Expanded Maximum Transmission Unit to: " + m_currentMTU + " bytes");
 			return;
+		}
+
+		internal void HandleMTUSendFailure(int failedPacketSize)
+		{
+			if (failedPacketSize <= 0)
+				return;
+
+			if (m_smallestFailedMTU == -1 || failedPacketSize < m_smallestFailedMTU)
+				m_smallestFailedMTU = failedPacketSize;
+
+			int initialMTU = m_peerConfiguration.MTUForEndPoint(m_remoteEndPoint);
+			if (m_currentMTU <= initialMTU)
+				return;
+
+			int previousMTU = m_currentMTU;
+			m_currentMTU = initialMTU;
+			m_largestSuccessfulMTU = initialMTU;
+			m_expandMTUStatus = ExpandMTUStatus.Finished;
+			m_peer.LogWarning(
+				$"Packet of {failedPacketSize} bytes exceeded the path MTU for {m_remoteEndPoint}; " +
+				$"falling back from {previousMTU} to {initialMTU} bytes");
 		}
 
 		private void SendMTUSuccess(int size)
