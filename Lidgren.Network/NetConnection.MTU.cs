@@ -21,6 +21,7 @@ namespace Lidgren.Network
 		private int m_lastSentMTUAttemptSize;
 		private double m_lastSentMTUAttemptTime;
 		private int m_mtuAttemptFails;
+		private int m_mtuSendFailures;
 		private int m_mtuLossResends;
 		private int m_mtuLossRollbacks;
 		private double m_mtuLossWindowStart;
@@ -33,6 +34,46 @@ namespace Lidgren.Network
 		/// </summary>
 		public int CurrentMTU { get { return m_currentMTU; } }
 
+		/// <summary>
+		/// Gets the current state of automatic MTU expansion.
+		/// </summary>
+		public string MTUExpansionStatus { get { return m_expandMTUStatus.ToString(); } }
+
+		/// <summary>
+		/// Gets the largest MTU probe that received a response.
+		/// </summary>
+		public int LargestSuccessfulMTU { get { return m_largestSuccessfulMTU; } }
+
+		/// <summary>
+		/// Gets the smallest MTU probe that did not receive a response, or <see langword="null"/> if none have failed.
+		/// </summary>
+		public int? SmallestFailedMTU { get { return m_smallestFailedMTU < 0 ? null : m_smallestFailedMTU; } }
+
+		/// <summary>
+		/// Gets the size of the last MTU probe, or zero if no probe has been sent.
+		/// </summary>
+		public int LastSentMTUAttemptSize { get { return m_lastSentMTUAttemptSize; } }
+
+		/// <summary>
+		/// Gets the number of failed MTU probes.
+		/// </summary>
+		public int MTUAttemptFailures { get { return m_mtuAttemptFails; } }
+
+		/// <summary>
+		/// Gets the number of normal packet sends rejected because the datagram was too large for the path.
+		/// </summary>
+		public int MTUSendFailures { get { return m_mtuSendFailures; } }
+
+		/// <summary>
+		/// Gets the number of reliable resends currently observed for loss-aware MTU rollback.
+		/// </summary>
+		public int MTULossResends { get { return m_mtuLossResends; } }
+
+		/// <summary>
+		/// Gets the number of times an expanded MTU was rolled back due to reliable resend loss signals.
+		/// </summary>
+		public int MTULossRollbacks { get { return m_mtuLossRollbacks; } }
+
 		internal void InitExpandMTU(double now)
 		{
 			m_lastSentMTUAttemptTime = now + m_peerConfiguration.m_expandMTUFrequency + 1.5f + m_averageRoundtripTime; // wait a tiny bit before starting to expand mtu
@@ -41,6 +82,7 @@ namespace Lidgren.Network
 			m_smallestFailedMTU = -1;
 			m_lastSentMTUAttemptSize = 0;
 			m_mtuAttemptFails = 0;
+			m_mtuSendFailures = 0;
 			m_mtuLossResends = 0;
 			m_mtuLossRollbacks = 0;
 			m_mtuLossWindowStart = now;
@@ -173,6 +215,7 @@ namespace Lidgren.Network
 			if (failedPacketSize <= 0)
 				return;
 
+			m_mtuSendFailures++;
 			if (m_smallestFailedMTU == -1 || failedPacketSize < m_smallestFailedMTU)
 				m_smallestFailedMTU = failedPacketSize;
 

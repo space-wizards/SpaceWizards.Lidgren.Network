@@ -57,6 +57,7 @@ namespace Lidgren.Network
 				 m_connection.m_peerConfiguration.UnreliableSizeBehaviour == NetUnreliableSizeBehaviour.DropAboveMTU))
 			{
 				// drop message
+				m_connection.m_statistics.MessageDropped();
 				return NetSendResult.Dropped;
 			}
 
@@ -64,6 +65,7 @@ namespace Lidgren.Network
 				&& m_connection.m_peerConfiguration.UnreliableSizeBehaviour == NetUnreliableSizeBehaviour.IgnoreMTU)
 			{
 				// Public sends fragment this case before it reaches the channel.
+				m_connection.m_statistics.MessageDropped();
 				m_connection.m_peer.LogError(
 					$"Unreliable message max size exceeded: {message.LengthBits} bits (max {ushort.MaxValue})");
 				return NetSendResult.Dropped;

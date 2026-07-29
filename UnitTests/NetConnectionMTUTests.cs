@@ -43,6 +43,33 @@ public sealed class NetConnectionMTUTests
 	}
 
 	[Test]
+	public void MTUDiagnosticsExposeExpansionState()
+	{
+		const int configuredMTU = 700;
+		var connection = CreateConnection(IPAddress.Loopback, config => config.MaximumTransmissionUnit = configuredMTU);
+		connection.InitExpandMTU(NetTime.Now);
+		SetField(connection, "m_expandMTUStatus", GetExpandMTUStatus("InProgress"));
+		SetField(connection, "m_smallestFailedMTU", 1_500);
+		SetField(connection, "m_lastSentMTUAttemptSize", 1_400);
+		SetField(connection, "m_mtuAttemptFails", 2);
+		SetField(connection, "m_mtuSendFailures", 3);
+		SetField(connection, "m_mtuLossResends", 4);
+		SetField(connection, "m_mtuLossRollbacks", 1);
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(connection.MTUExpansionStatus, Is.EqualTo("InProgress"));
+			Assert.That(connection.LargestSuccessfulMTU, Is.EqualTo(configuredMTU));
+			Assert.That(connection.SmallestFailedMTU, Is.EqualTo(1_500));
+			Assert.That(connection.LastSentMTUAttemptSize, Is.EqualTo(1_400));
+			Assert.That(connection.MTUAttemptFailures, Is.EqualTo(2));
+			Assert.That(connection.MTUSendFailures, Is.EqualTo(3));
+			Assert.That(connection.MTULossResends, Is.EqualTo(4));
+			Assert.That(connection.MTULossRollbacks, Is.EqualTo(1));
+		});
+	}
+
+	[Test]
 	public void MessageSizeFailureFallsBackToConfiguredMTU()
 	{
 		const int configuredMTU = 700;
