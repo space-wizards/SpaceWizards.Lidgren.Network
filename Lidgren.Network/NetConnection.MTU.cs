@@ -21,6 +21,10 @@ namespace Lidgren.Network
 		private int m_lastSentMTUAttemptSize;
 		private double m_lastSentMTUAttemptTime;
 		private int m_mtuAttemptFails;
+		private int m_mtuSendFailures;
+		private int m_mtuLossResends;
+		private int m_mtuLossRollbacks;
+		private double m_mtuLossWindowStart;
 
 		internal int m_currentMTU;
 
@@ -30,6 +34,46 @@ namespace Lidgren.Network
 		/// </summary>
 		public int CurrentMTU { get { return m_currentMTU; } }
 
+		/// <summary>
+		/// Gets the current state of automatic MTU expansion.
+		/// </summary>
+		public string MTUExpansionStatus { get { return m_expandMTUStatus.ToString(); } }
+
+		/// <summary>
+		/// Gets the largest MTU probe that received a response.
+		/// </summary>
+		public int LargestSuccessfulMTU { get { return m_largestSuccessfulMTU; } }
+
+		/// <summary>
+		/// Gets the smallest MTU probe that did not receive a response, or <see langword="null"/> if none have failed.
+		/// </summary>
+		public int? SmallestFailedMTU { get { return m_smallestFailedMTU < 0 ? null : m_smallestFailedMTU; } }
+
+		/// <summary>
+		/// Gets the size of the last MTU probe, or zero if no probe has been sent.
+		/// </summary>
+		public int LastSentMTUAttemptSize { get { return m_lastSentMTUAttemptSize; } }
+
+		/// <summary>
+		/// Gets the number of failed MTU probes.
+		/// </summary>
+		public int MTUAttemptFailures { get { return m_mtuAttemptFails; } }
+
+		/// <summary>
+		/// Gets the number of normal packet sends rejected because the datagram was too large for the path.
+		/// </summary>
+		public int MTUSendFailures { get { return m_mtuSendFailures; } }
+
+		/// <summary>
+		/// Gets the number of reliable resends currently observed for loss-aware MTU rollback.
+		/// </summary>
+		public int MTULossResends { get { return m_mtuLossResends; } }
+
+		/// <summary>
+		/// Gets the number of times an expanded MTU was rolled back due to reliable resend loss signals.
+		/// </summary>
+		public int MTULossRollbacks { get { return m_mtuLossRollbacks; } }
+
 		internal void InitExpandMTU(double now)
 		{
 			m_lastSentMTUAttemptTime = now + m_peerConfiguration.m_expandMTUFrequency + 1.5f + m_averageRoundtripTime; // wait a tiny bit before starting to expand mtu
@@ -37,6 +81,11 @@ namespace Lidgren.Network
 			m_largestSuccessfulMTU = m_currentMTU;
 			m_smallestFailedMTU = -1;
 			m_lastSentMTUAttemptSize = 0;
+			m_mtuAttemptFails = 0;
+			m_mtuSendFailures = 0;
+			m_mtuLossResends = 0;
+			m_mtuLossRollbacks = 0;
+			m_mtuLossWindowStart = now;
 		}
 
 		private void MTUExpansionHeartbeat(double now)
@@ -92,6 +141,10 @@ namespace Lidgren.Network
 				tryMTU = (int)(((float)m_smallestFailedMTU + (float)m_largestSuccessfulMTU) / 2.0f);
 				//m_peer.LogDebug("Trying MTU " + m_smallestFailedMTU + " <-> " + m_largestSuccessfulMTU + " = " + tryMTU);
 			}
+
+			int maximumExpandedMTU = m_peerConfiguration.MaximumExpandedMTUForEndPoint(m_remoteEndPoint);
+			if (tryMTU > maximumExpandedMTU)
+				tryMTU = maximumExpandedMTU;
 
 			if (tryMTU > c_protocolMaxMTU)
 				tryMTU = c_protocolMaxMTU;
@@ -152,9 +205,32 @@ namespace Lidgren.Network
 				return;
 			m_expandMTUStatus = ExpandMTUStatus.Finished;
 			m_currentMTU = size;
-			if (m_currentMTU != m_peerConfiguration.m_maximumTransmissionUnit)
+			if (m_currentMTU != m_peerConfiguration.MTUForEndPoint(m_remoteEndPoint))
 				m_peer.LogDebug("Expanded Maximum Transmission Unit to: " + m_currentMTU + " bytes");
 			return;
+		}
+
+		internal void HandleMTUSendFailure(int failedPacketSize)
+		{
+			if (failedPacketSize <= 0)
+				return;
+
+			m_mtuSendFailures++;
+			if (m_smallestFailedMTU == -1 || failedPacketSize < m_smallestFailedMTU)
+				m_smallestFailedMTU = failedPacketSize;
+
+			int initialMTU = m_peerConfiguration.MTUForEndPoint(m_remoteEndPoint);
+			if (m_currentMTU <= initialMTU)
+				return;
+
+			int previousMTU = m_currentMTU;
+			m_currentMTU = initialMTU;
+			m_largestSuccessfulMTU = initialMTU;
+			m_expandMTUStatus = ExpandMTUStatus.Finished;
+			ResetMTULossWindow(NetTime.Now);
+			m_peer.LogWarning(
+				$"Packet of {failedPacketSize} bytes exceeded the path MTU for {m_remoteEndPoint}; " +
+				$"falling back from {previousMTU} to {initialMTU} bytes");
 		}
 
 		private void SendMTUSuccess(int size)
@@ -205,8 +281,62 @@ namespace Lidgren.Network
 
 			//m_peer.LogDebug("Expanding MTU to " + size);
 			m_currentMTU = size;
+			ResetMTULossWindow(now);
+
+			if (size >= m_peerConfiguration.MaximumExpandedMTUForEndPoint(m_remoteEndPoint))
+			{
+				FinalizeMTU(size);
+				return;
+			}
 
 			ExpandMTU(now);
+		}
+
+		internal void HandleReliableResendForMTU(MessageResendReason reason, double now)
+		{
+			if (reason != MessageResendReason.Delay && reason != MessageResendReason.HoleInSequence)
+				return;
+
+			if (!m_peerConfiguration.m_autoExpandMTU)
+				return;
+
+			var initialMTU = m_peerConfiguration.MTUForEndPoint(m_remoteEndPoint);
+			if (m_currentMTU <= initialMTU)
+				return;
+
+			if (now > m_mtuLossWindowStart + m_peerConfiguration.ExpandMTULossWindow)
+				ResetMTULossWindow(now);
+
+			m_mtuLossResends++;
+			if (m_mtuLossResends < m_peerConfiguration.ExpandMTULossResendThreshold)
+				return;
+
+			RollbackMTUDueToLoss(initialMTU, now);
+		}
+
+		private void RollbackMTUDueToLoss(int initialMTU, double now)
+		{
+			if (m_currentMTU <= initialMTU)
+				return;
+
+			var previousMTU = m_currentMTU;
+			m_mtuLossRollbacks++;
+			if (m_smallestFailedMTU == -1 || previousMTU < m_smallestFailedMTU)
+				m_smallestFailedMTU = previousMTU;
+
+			m_currentMTU = initialMTU;
+			m_largestSuccessfulMTU = initialMTU;
+			m_expandMTUStatus = ExpandMTUStatus.Finished;
+			ResetMTULossWindow(now);
+			m_peer.LogWarning(
+				$"Reliable resend burst after MTU expansion for {m_remoteEndPoint}; " +
+				$"falling back from {previousMTU} to {initialMTU} bytes");
+		}
+
+		private void ResetMTULossWindow(double now)
+		{
+			m_mtuLossWindowStart = now;
+			m_mtuLossResends = 0;
 		}
 	}
 }

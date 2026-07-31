@@ -52,6 +52,18 @@ namespace Lidgren.Network
 		/// </remarks>
 		public const int kDefaultMTUV6 = 1232;
 
+		/// <summary>
+		/// UDP payload size that fits within a 1500-byte Ethernet IPv4 MTU.
+		/// </summary>
+		// Lidgren's MTU values exclude IP/UDP headers, so 1500 Ethernet MTU becomes 1472 bytes for IPv4.
+		public const int kEthernetPayloadMTU = 1500 - 20 - 8;
+
+		/// <summary>
+		/// UDP payload size that fits within a 1500-byte Ethernet IPv6 MTU.
+		/// </summary>
+		// IPv6 has a 40-byte base header, so the equivalent Ethernet-safe UDP payload is 1452 bytes.
+		public const int kEthernetPayloadMTUV6 = 1500 - 40 - 8;
+
 		private const string c_isLockedMessage = "You may not modify the NetPeerConfiguration after it has been used to initialize a NetPeer";
 
 		private bool m_isLocked;
@@ -98,9 +110,13 @@ namespace Lidgren.Network
 		// MTU
 		internal int m_maximumTransmissionUnit;
 		internal int m_maximumTransmissionUnitV6;
+		internal int m_maximumExpandedTransmissionUnit;
+		internal int m_maximumExpandedTransmissionUnitV6;
 		internal bool m_autoExpandMTU;
 		internal float m_expandMTUFrequency;
 		internal int m_expandMTUFailAttempts;
+		internal int m_expandMTULossResendThreshold;
+		internal float m_expandMTULossWindow;
 		internal int m_maximumFragmentReassemblyBytesPerConnection;
 		internal float m_fragmentGroupTimeout;
 
@@ -151,9 +167,13 @@ namespace Lidgren.Network
 
 			m_maximumTransmissionUnit = kDefaultMTU;
 			m_maximumTransmissionUnitV6 = kDefaultMTUV6;
+			m_maximumExpandedTransmissionUnit = kEthernetPayloadMTU;
+			m_maximumExpandedTransmissionUnitV6 = kEthernetPayloadMTUV6;
 			m_autoExpandMTU = false;
 			m_expandMTUFrequency = 2.0f;
 			m_expandMTUFailAttempts = 5;
+			m_expandMTULossResendThreshold = 4;
+			m_expandMTULossWindow = 5.0f;
 			m_maximumFragmentReassemblyBytesPerConnection = 32 * 1024 * 1024;
 			m_fragmentGroupTimeout = 30.0f;
 			m_unreliableSizeBehaviour = NetUnreliableSizeBehaviour.IgnoreMTU;
@@ -314,6 +334,36 @@ namespace Lidgren.Network
 				if (value < 1 || value >= ((ushort.MaxValue + 1) / 8))
 					throw new NetException("MaximumTransmissionUnitV6 must be between 1 and " + (((ushort.MaxValue + 1) / 8) - 1) + " bytes");
 				m_maximumTransmissionUnitV6 = value;
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the maximum UDP payload size automatic MTU expansion may use for IPv4 connections.
+		/// If lower than <see cref="MaximumTransmissionUnit"/>, the configured minimum MTU is used instead.
+		/// </summary>
+		public int MaximumExpandedTransmissionUnit
+		{
+			get { return m_maximumExpandedTransmissionUnit; }
+			set
+			{
+				if (value < 1 || value >= ((ushort.MaxValue + 1) / 8))
+					throw new NetException("MaximumExpandedTransmissionUnit must be between 1 and " + (((ushort.MaxValue + 1) / 8) - 1) + " bytes");
+				m_maximumExpandedTransmissionUnit = value;
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the maximum UDP payload size automatic MTU expansion may use for IPv6 connections.
+		/// If lower than <see cref="MaximumTransmissionUnitV6"/>, the configured minimum MTU is used instead.
+		/// </summary>
+		public int MaximumExpandedTransmissionUnitV6
+		{
+			get { return m_maximumExpandedTransmissionUnitV6; }
+			set
+			{
+				if (value < 1 || value >= ((ushort.MaxValue + 1) / 8))
+					throw new NetException("MaximumExpandedTransmissionUnitV6 must be between 1 and " + (((ushort.MaxValue + 1) / 8) - 1) + " bytes");
+				m_maximumExpandedTransmissionUnitV6 = value;
 			}
 		}
 
@@ -668,6 +718,34 @@ namespace Lidgren.Network
 		}
 
 		/// <summary>
+		/// Gets or sets the number of reliable resends in <see cref="ExpandMTULossWindow"/> that roll back an expanded MTU.
+		/// </summary>
+		public int ExpandMTULossResendThreshold
+		{
+			get { return m_expandMTULossResendThreshold; }
+			set
+			{
+				if (value <= 0)
+					throw new NetException("ExpandMTULossResendThreshold must be greater than zero");
+				m_expandMTULossResendThreshold = value;
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the resend observation window, in seconds, used for loss-aware MTU rollback.
+		/// </summary>
+		public float ExpandMTULossWindow
+		{
+			get { return m_expandMTULossWindow; }
+			set
+			{
+				if (!float.IsFinite(value) || value <= 0)
+					throw new NetException("ExpandMTULossWindow must be greater than zero");
+				m_expandMTULossWindow = value;
+			}
+		}
+
+		/// <summary>
 		/// Gets or sets the maximum bytes used by incomplete fragment groups for one connection.
 		/// </summary>
 		public int MaximumFragmentReassemblyBytesPerConnection
@@ -758,6 +836,18 @@ namespace Lidgren.Network
 		}
 
 		internal int MTUForEndPoint(IPEndPoint endPoint) => MTUForAddress(endPoint.Address);
+
+		internal int MaximumExpandedMTUForAddress(IPAddress address)
+		{
+			var minimum = MTUForAddress(address);
+			var maximum = address.AddressFamily == AddressFamily.InterNetworkV6 && !address.IsIPv4MappedToIPv6
+				? MaximumExpandedTransmissionUnitV6
+				: MaximumExpandedTransmissionUnit;
+
+			return Math.Max(minimum, maximum);
+		}
+
+		internal int MaximumExpandedMTUForEndPoint(IPEndPoint endPoint) => MaximumExpandedMTUForAddress(endPoint.Address);
 	}
 
 	/// <summary>
