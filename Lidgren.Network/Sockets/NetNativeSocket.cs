@@ -131,6 +131,9 @@ namespace Lidgren.Network
 
 		internal static void SetIPv6DontFragment(Socket socket, bool enabled)
 		{
+			// See https://github.com/dotnet/runtime/blob/bc8571b46791e93660270e283f9241684b2bf95d/src/libraries/System.Net.Ping/src/System/Net/NetworkInformation/Ping.RawSocket.cs#L88 plus
+			// https://github.com/dotnet/runtime/blob/bc8571b46791e93660270e283f9241684b2bf95d/src/native/libs/System.Native/pal_networking.h#L171
+			// Only IPV4 dontfrag.
 			if (!IsWindows && !IsLinux)
 				throw new PlatformNotSupportedException();
 
