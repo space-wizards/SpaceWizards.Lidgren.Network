@@ -100,12 +100,12 @@ namespace Lidgren.Network
 				//m_peer.LogDebug("Trying MTU " + m_smallestFailedMTU + " <-> " + m_largestSuccessfulMTU + " = " + tryMTU);
 			}
 
-			if (tryMTU > c_protocolMaxMTU)
-				tryMTU = c_protocolMaxMTU;
-
 			int maximumExpandedMTU = m_peerConfiguration.MaximumExpandedMTUForEndPoint(m_remoteEndPoint);
 			if (tryMTU > maximumExpandedMTU)
 				tryMTU = maximumExpandedMTU;
+
+			if (tryMTU > c_protocolMaxMTU)
+				tryMTU = c_protocolMaxMTU;
 
 			if (tryMTU == m_largestSuccessfulMTU)
 			{
