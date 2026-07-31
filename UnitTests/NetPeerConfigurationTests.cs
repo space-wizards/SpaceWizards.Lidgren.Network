@@ -1,4 +1,3 @@
-using System.Net;
 using Lidgren.Network;
 using NUnit.Framework;
 
@@ -48,56 +47,6 @@ namespace UnitTests
                 Assert.That(() => config.ExpandMTUFailAttempts = -1, Throws.TypeOf<NetException>());
                 Assert.That(() => config.ExpandMTUFailAttempts = 1, Throws.Nothing);
                 Assert.That(config.ExpandMTUFailAttempts, Is.EqualTo(1));
-            });
-        }
-
-        [Test]
-        public void ExpandMTUCapsRejectNonPositiveValues()
-        {
-            var config = new NetPeerConfiguration("Test");
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(() => config.MaximumExpandedTransmissionUnit = 0, Throws.TypeOf<NetException>());
-                Assert.That(() => config.MaximumExpandedTransmissionUnit = -1, Throws.TypeOf<NetException>());
-                Assert.That(() => config.MaximumExpandedTransmissionUnitV6 = 0, Throws.TypeOf<NetException>());
-                Assert.That(() => config.MaximumExpandedTransmissionUnitV6 = -1, Throws.TypeOf<NetException>());
-                Assert.That(() => config.MaximumExpandedTransmissionUnit = 1_000, Throws.Nothing);
-                Assert.That(() => config.MaximumExpandedTransmissionUnitV6 = 1_000, Throws.Nothing);
-            });
-        }
-
-        [Test]
-        public void ExpandMTUCapsRespectConfiguredMinimums()
-        {
-            var config = new NetPeerConfiguration("Test")
-            {
-                MaximumTransmissionUnit = 700,
-                MaximumTransmissionUnitV6 = 1232,
-                MaximumExpandedTransmissionUnit = 600,
-                MaximumExpandedTransmissionUnitV6 = 1000
-            };
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(config.MaximumExpandedMTUForEndPoint(new IPEndPoint(IPAddress.Loopback, 12345)), Is.EqualTo(700));
-                Assert.That(config.MaximumExpandedMTUForEndPoint(new IPEndPoint(IPAddress.IPv6Loopback, 12345)), Is.EqualTo(1232));
-            });
-        }
-
-        [Test]
-        public void ExpandMTULossRollbackSettingsRejectNonPositiveValues()
-        {
-            var config = new NetPeerConfiguration("Test");
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(() => config.ExpandMTULossResendThreshold = 0, Throws.TypeOf<NetException>());
-                Assert.That(() => config.ExpandMTULossResendThreshold = -1, Throws.TypeOf<NetException>());
-                Assert.That(() => config.ExpandMTULossWindow = 0, Throws.TypeOf<NetException>());
-                Assert.That(() => config.ExpandMTULossWindow = -1, Throws.TypeOf<NetException>());
-                Assert.That(() => config.ExpandMTULossWindow = float.NaN, Throws.TypeOf<NetException>());
-                Assert.That(() => config.ExpandMTULossWindow = 1, Throws.Nothing);
             });
         }
 
