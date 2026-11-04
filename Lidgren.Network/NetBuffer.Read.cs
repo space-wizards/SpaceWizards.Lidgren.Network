@@ -94,6 +94,9 @@ namespace Lidgren.Network
 		/// </summary>
 		public byte[] ReadBytes(int numberOfBytes)
 		{
+			if (numberOfBytes < 0 || (long)(m_bitLength - m_readPosition) + 7 < (long)numberOfBytes * 8)
+				throw new NetException(c_readOverflowError);
+
 			var retVal = new byte[numberOfBytes];
 			ReadBytes(retVal);
 			return retVal;
@@ -104,7 +107,7 @@ namespace Lidgren.Network
 		/// </summary>
 		public bool ReadBytes(int numberOfBytes, [MaybeNullWhen(false)] out byte[] result)
 		{
-			if (m_bitLength - m_readPosition + 7 < (numberOfBytes * 8))
+			if (numberOfBytes < 0 || (long)(m_bitLength - m_readPosition) + 7 < (long)numberOfBytes * 8)
 			{
 				result = null;
 				return false;
