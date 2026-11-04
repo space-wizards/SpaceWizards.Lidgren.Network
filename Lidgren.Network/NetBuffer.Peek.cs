@@ -96,6 +96,9 @@ namespace Lidgren.Network
 		/// </summary>
 		public byte[] PeekBytes(int numberOfBytes)
 		{
+			if (numberOfBytes < 0 || (long)(m_bitLength - m_readPosition) < (long)numberOfBytes * 8)
+				throw new NetException(c_readOverflowError);
+
 			var retVal = new byte[numberOfBytes];
 
 			PeekBytes(retVal);
