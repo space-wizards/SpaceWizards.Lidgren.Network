@@ -119,9 +119,16 @@ namespace Lidgren.Network
 
 			NetException.Assert(chunkNumber < totalNumChunks);
 
+			// Every chunk but the last must be exactly chunkByteSize and the last must
+			// be exactly the remainder. Otherwise tiny chunks could "complete" a large
+			// group with little traffic, exposing stale pooled buffer contents.
+			int expectedPayload = chunkNumber == totalNumChunks - 1
+				? totalBytes - (totalNumChunks - 1) * chunkByteSize
+				: chunkByteSize;
+
 			if (chunkNumber < 0
 				|| chunkNumber >= totalNumChunks
-				|| (long)chunkNumber * chunkByteSize + payloadLength > totalBytes)
+				|| payloadLength != expectedPayload)
 			{
 				LogRateLimitedWarning(NetLogRateLimitTarget.MalformedFragment, im.SenderEndPoint, $"Dropping out-of-range fragment {chunkNumber}/{totalNumChunks} from {im.SenderEndPoint}");
 				Recycle(im);
@@ -210,7 +217,7 @@ namespace Lidgren.Network
 			return;
 		}
 
-		private void ExpireFragmentGroups(Dictionary<int, ReceivedFragmentGroup> groups, double now)
+		internal void ExpireFragmentGroups(Dictionary<int, ReceivedFragmentGroup> groups, double now)
 		{
 			if (groups.Count == 0)
 				return;

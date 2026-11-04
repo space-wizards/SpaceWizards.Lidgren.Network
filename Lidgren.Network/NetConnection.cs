@@ -178,6 +178,9 @@ namespace Lidgren.Network
 					MTUExpansionHeartbeat(now);
 				}
 
+				// release stale fragment groups even if the remote stops sending fragments
+				m_peer.ExpireFragmentGroups(m_receivedFragmentGroups, now);
+
 				if (m_disconnectRequested)
 				{
 					ExecuteDisconnect(m_disconnectMessage, m_disconnectReqSendBye);
