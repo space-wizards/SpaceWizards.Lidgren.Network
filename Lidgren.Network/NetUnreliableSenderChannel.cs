@@ -52,17 +52,21 @@ namespace Lidgren.Network
 		{
 			int queueLen = m_queuedSends.Count + 1;
 			int left = GetAllowedSends();
-			if (queueLen > left || (message.LengthBytes > m_connection.m_currentMTU && m_connection.m_peerConfiguration.UnreliableSizeBehaviour == NetUnreliableSizeBehaviour.DropAboveMTU))
+			if (queueLen > left ||
+				(message.GetEncodedSize() > m_connection.m_currentMTU &&
+				 m_connection.m_peerConfiguration.UnreliableSizeBehaviour == NetUnreliableSizeBehaviour.DropAboveMTU))
 			{
 				// drop message
+				m_connection.m_statistics.MessageDropped();
 				return NetSendResult.Dropped;
 			}
 
-			if (message.LengthBits >= ushort.MaxValue
+			if (message.LengthBits > ushort.MaxValue
 				&& m_connection.m_peerConfiguration.UnreliableSizeBehaviour == NetUnreliableSizeBehaviour.IgnoreMTU)
 			{
-				// drop message
-				this.m_connection.m_peer.LogError(
+				// Public sends fragment this case before it reaches the channel.
+				m_connection.m_statistics.MessageDropped();
+				m_connection.m_peer.LogError(
 					$"Unreliable message max size exceeded: {message.LengthBits} bits (max {ushort.MaxValue})");
 				return NetSendResult.Dropped;
 			}

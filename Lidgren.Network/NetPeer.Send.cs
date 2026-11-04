@@ -50,7 +50,7 @@ namespace Lidgren.Network
 				throw new NetException("This message has already been sent! Use NetPeer.SendMessage() to send to multiple recipients efficiently");
 			msg.m_isSent = true;
 
-			bool suppressFragmentation = (method == NetDeliveryMethod.Unreliable || method == NetDeliveryMethod.UnreliableSequenced) && m_configuration.UnreliableSizeBehaviour != NetUnreliableSizeBehaviour.NormalFragmentation;
+			bool suppressFragmentation = SuppressUnreliableFragmentation(msg, method);
 
 			int len = NetConstants.UnfragmentedMessageHeaderSize + msg.LengthBytes; // headers + length, faster than calling msg.GetEncodedSize
 			if (len <= recipient.m_currentMTU || suppressFragmentation)
@@ -124,7 +124,7 @@ namespace Lidgren.Network
 			int mtu = GetMTU(recipients);
 
 			int len = msg.GetEncodedSize();
-			if (len <= mtu)
+			if (len <= mtu || SuppressUnreliableFragmentation(msg, method))
 			{
 				Interlocked.Add(ref msg.m_recyclingCount, recipients.Count);
 				foreach (NetConnection conn in recipients)
@@ -146,6 +146,25 @@ namespace Lidgren.Network
 			}
 
 			return;
+		}
+
+		private bool SuppressUnreliableFragmentation(NetOutgoingMessage msg, NetDeliveryMethod method)
+		{
+			if (method != NetDeliveryMethod.Unreliable && method != NetDeliveryMethod.UnreliableSequenced)
+				return false;
+
+			switch (m_configuration.UnreliableSizeBehaviour)
+			{
+				case NetUnreliableSizeBehaviour.NormalFragmentation:
+					return false;
+				case NetUnreliableSizeBehaviour.DropAboveMTU:
+					return true;
+				case NetUnreliableSizeBehaviour.IgnoreMTU:
+					// IgnoreMTU may bypass path-MTU fragmentation, but not the packet format's 16-bit length field.
+					return msg.LengthBits <= ushort.MaxValue;
+				default:
+					throw new ArgumentOutOfRangeException();
+			}
 		}
 
 		/// <summary>

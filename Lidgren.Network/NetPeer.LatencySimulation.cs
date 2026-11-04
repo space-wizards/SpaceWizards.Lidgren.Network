@@ -77,11 +77,14 @@ namespace Lidgren.Network
 			{
 				// no latency simulation
 				// LogVerbose("Sending packet " + numBytes + " bytes");
-				bool wasSent = ActuallySendPacket(m_sendBuffer, numBytes, target, out connectionReset);
-				// TODO: handle wasSent == false?
+				bool wasSent = ActuallySendPacket(m_sendBuffer, numBytes, target, out connectionReset, out var socketError);
+				HandlePacketSendFailure(wasSent, socketError, target, numBytes);
 
 				if (m_configuration.m_duplicates > 0.0f && m_latencyRandom.NextDouble() < m_configuration.m_duplicates)
-					ActuallySendPacket(m_sendBuffer, numBytes, target, out connectionReset); // send it again!
+				{
+					wasSent = ActuallySendPacket(m_sendBuffer, numBytes, target, out connectionReset, out socketError);
+					HandlePacketSendFailure(wasSent, socketError, target, numBytes);
+				}
 
 				return;
 			}
@@ -118,7 +121,8 @@ namespace Lidgren.Network
 				var p = m_delayedPackets[i];
 				if (now < p.DelayedUntil)
 					continue;
-				ActuallySendPacket(p.Data, p.Length, p.Target, out _);
+				bool wasSent = ActuallySendPacket(p.Data, p.Length, p.Target, out _, out var socketError);
+				HandlePacketSendFailure(wasSent, socketError, p.Target, p.Length);
 
 				// Swap packet with last entry in list.
 				// This does not preserve order (we don't care) but is O(1).
@@ -140,7 +144,8 @@ namespace Lidgren.Network
 			{
 				foreach (DelayedPacket p in m_delayedPackets)
 				{
-					ActuallySendPacket(p.Data, p.Length, p.Target, out bool connectionReset);
+					bool wasSent = ActuallySendPacket(p.Data, p.Length, p.Target, out _, out var socketError);
+					HandlePacketSendFailure(wasSent, socketError, p.Target, p.Length);
 					Recycle(p.Data);
 				}
 
@@ -153,10 +158,16 @@ namespace Lidgren.Network
 		private readonly IPEndPoint targetCopy = new IPEndPoint(IPAddress.Any, 0);
 		private readonly IPEndPoint targetCopy2 = new IPEndPoint(IPAddress.Any, 0);
 
-		internal bool ActuallySendPacket(byte[] data, int numBytes, NetEndPoint target, out bool connectionReset)
+		internal bool ActuallySendPacket(
+			byte[] data,
+			int numBytes,
+			NetEndPoint target,
+			out bool connectionReset,
+			out SocketError? socketError)
 		{
 			var dualStack = m_configuration.DualStack && m_configuration.LocalAddress.AddressFamily == AddressFamily.InterNetworkV6;
 			connectionReset = false;
+			socketError = null;
 			IPAddress? ba = default(IPAddress);
 
 			NetException.Assert(m_socket != null);
@@ -198,6 +209,7 @@ namespace Lidgren.Network
 			}
 			catch (SocketException sx)
 			{
+				socketError = sx.SocketErrorCode;
 				if (sx.SocketErrorCode == SocketError.WouldBlock)
 				{
 					// send buffer full?
@@ -211,10 +223,12 @@ namespace Lidgren.Network
 					return false;
 				}
 				LogError($"Failed to send packet: {sx}");
+				return false;
 			}
 			catch (Exception ex)
 			{
 				LogError($"Failed to send packet: {ex}");
+				return false;
 			}
 			finally
 			{
@@ -224,26 +238,40 @@ namespace Lidgren.Network
 			return true;
 		}
 
+		private void HandlePacketSendFailure(
+			bool wasSent,
+			SocketError? socketError,
+			NetEndPoint target,
+			int numBytes)
+		{
+			if (wasSent || socketError != SocketError.MessageSize)
+				return;
+
+			GetConnection(target)?.HandleMTUSendFailure(numBytes);
+		}
+
 		internal bool SendMTUPacket(int numBytes, NetEndPoint target)
 		{
 			if (!CanAutoExpandMTU)
 				throw new NotSupportedException("MTU expansion not currently supported on this operating system");
 
 			NetException.Assert(m_socket != null);
+			bool dontFragmentSet = false;
 
 			try
 			{
-				// NOTE: Socket.DontFragment doesn't work on dual-stack sockets.
-				// The equivalent SetSocketOption does work.
-				// See: https://github.com/dotnet/runtime/issues/76410
-				if (m_socket.DualMode || target.AddressFamily == AddressFamily.InterNetwork)
-					m_socket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.DontFragment, true);
+				SetMTUProbeDontFragment(target, true);
+				dontFragmentSet = true;
 
 				int bytesSent = NetFastSocket.SendTo(m_socket, m_sendBuffer, 0, numBytes, SocketFlags.None, target);
 				if (numBytes != bytesSent)
+				{
 					LogWarning($"Failed to send the full {numBytes}; only {bytesSent} bytes sent in packet!");
+					return false;
+				}
 
 				m_statistics.PacketSent(numBytes, 1);
+				return true;
 			}
 			catch (SocketException sx)
 			{
@@ -256,19 +284,36 @@ namespace Lidgren.Network
 					return false;
 				}
 				if (sx.SocketErrorCode == SocketError.ConnectionReset)
-					return true;
+					return false;
 				LogError($"Failed to send packet: ({sx.SocketErrorCode}) {sx}");
+				return false;
 			}
 			catch (Exception ex)
 			{
 				LogError($"Failed to send packet: {ex}");
+				return false;
 			}
 			finally
 			{
-				if (m_socket.DualMode || target.AddressFamily == AddressFamily.InterNetwork)
-					m_socket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.DontFragment, false);
+				if (dontFragmentSet)
+					SetMTUProbeDontFragment(target, false);
 			}
-			return true;
+		}
+
+		private void SetMTUProbeDontFragment(NetEndPoint target, bool enabled)
+		{
+			NetException.Assert(m_socket != null);
+
+			bool ipv4 = target.AddressFamily == AddressFamily.InterNetwork ||
+				target.Address.IsIPv4MappedToIPv6;
+			if (ipv4)
+			{
+				// Socket.DontFragment does not work on dual-stack sockets, but the IP-level option does.
+				m_socket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.DontFragment, enabled);
+				return;
+			}
+
+			NetNativeSocket.SetIPv6DontFragment(m_socket, enabled);
 		}
 
 		// CoreCLR can set DontFragment on Windows and Linux, as far as I've tested.

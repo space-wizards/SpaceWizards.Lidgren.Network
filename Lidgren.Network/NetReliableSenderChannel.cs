@@ -99,6 +99,7 @@ namespace Lidgren.Network
 					*/
 
 					//m_connection.m_peer.LogVerbose("Resending due to delay #" + m_storedMessages[i].SequenceNumber + " " + om.ToString());
+					m_connection.HandleReliableResendForMTU(MessageResendReason.Delay, now);
 					m_connection.m_statistics.MessageResent(MessageResendReason.Delay);
 
 					Interlocked.Increment(ref om.m_recyclingCount); // increment this since it's being decremented in QueueSendMessage
@@ -276,6 +277,7 @@ namespace Lidgren.Network
 						{
 							m_storedMessages[slot].LastSent = now;
 							m_storedMessages[slot].NumSent++;
+							m_connection.HandleReliableResendForMTU(MessageResendReason.HoleInSequence, now);
 							m_connection.m_statistics.MessageResent(MessageResendReason.HoleInSequence);
 							Interlocked.Increment(ref rmsg.m_recyclingCount); // increment this since it's being decremented in QueueSendMessage
 							m_connection.QueueSendMessage(rmsg, rnr);

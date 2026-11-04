@@ -1,5 +1,6 @@
 using System;
 using System.Buffers.Binary;
+using System.Net.Sockets;
 using System.Runtime.InteropServices;
 
 #pragma warning disable CS8981
@@ -108,9 +109,57 @@ namespace Lidgren.Network
 			sockaddr* from,
 			int* fromlen);
 
+		[DllImport("libc", EntryPoint = "setsockopt", SetLastError = true)]
+		private static extern int setsockopt_linux(
+			int socket,
+			int level,
+			int optionName,
+			void* optionValue,
+			uint optionLength);
+
+		[DllImport("Ws2_32.dll", EntryPoint = "setsockopt")]
+		private static extern int setsockopt_win32(
+			IntPtr socket,
+			int level,
+			int optionName,
+			void* optionValue,
+			int optionLength);
+
 
 		[DllImport("Ws2_32.dll")]
 		internal static extern int WSAGetLastError();
+
+		internal static void SetIPv6DontFragment(Socket socket, bool enabled)
+		{
+			// See https://github.com/dotnet/runtime/blob/bc8571b46791e93660270e283f9241684b2bf95d/src/libraries/System.Net.Ping/src/System/Net/NetworkInformation/Ping.RawSocket.cs#L88 plus
+			// https://github.com/dotnet/runtime/blob/bc8571b46791e93660270e283f9241684b2bf95d/src/native/libs/System.Native/pal_networking.h#L171
+			// Only IPV4 dontfrag.
+			if (!IsWindows && !IsLinux)
+				throw new PlatformNotSupportedException();
+
+			// .NET does not expose IPV6_DONTFRAG through Socket.SetSocketOption on Unix.
+			const int ipProtocolIPv6 = 41;
+			int optionName = IsWindows ? 14 : 62;
+			int optionValue = enabled ? 1 : 0;
+			int result;
+
+			if (IsWindows)
+			{
+				result = setsockopt_win32(socket.Handle, ipProtocolIPv6, optionName, &optionValue, sizeof(int));
+			}
+			else
+			{
+				result = setsockopt_linux((int)socket.Handle, ipProtocolIPv6, optionName, &optionValue, sizeof(int));
+			}
+
+			if (result == 0)
+				return;
+
+			if (IsWindows)
+				throw new SocketException(WSAGetLastError());
+
+			throw new SocketException(Marshal.GetLastWin32Error());
+		}
 		// ReSharper restore InconsistentNaming
 		// ReSharper restore IdentifierTypo
 		// ReSharper restore StringLiteralTypo
