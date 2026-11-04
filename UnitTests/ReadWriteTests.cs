@@ -8,6 +8,20 @@ namespace UnitTests
 	public class ReadWriteTests : PeerTestBase
 	{
         [Test]
+        public void ReadBytesRejectsLengthLargerThanBuffer()
+        {
+            var msg = Peer.CreateMessage();
+            msg.Write((byte)1);
+            var inc = CreateIncomingMessage(msg.Data, msg.LengthBits);
+
+            Assert.Throws<NetException>(() => inc.ReadBytes(int.MaxValue));
+            Assert.Throws<NetException>(() => inc.ReadBytes(-1));
+            Assert.Throws<NetException>(() => inc.PeekBytes(int.MaxValue));
+            Assert.That(inc.ReadBytes(1, out _), Is.True);
+        }
+
+
+        [Test]
         public void TestSmallMessage1()
         {
             var peer = Peer;
