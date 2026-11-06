@@ -1,5 +1,6 @@
 using System;
 using System.Net;
+using System.Net.Sockets;
 using System.Reflection;
 using System.Threading;
 using Lidgren.Network;
@@ -14,46 +15,195 @@ public sealed class NetConnectionMTUTests
 	[Test]
 	public void InitExpandMTUUsesConfiguredMTUAsLargestKnownSuccess()
 	{
-		var connection = CreateConnection(IPAddress.Loopback);
+		const int configuredMTU = 700;
+		var connection = CreateConnection(IPAddress.Loopback, config => config.MaximumTransmissionUnit = configuredMTU);
 
 		connection.InitExpandMTU(NetTime.Now);
 
 		Assert.Multiple(() =>
 		{
-			Assert.That(GetField<int>(connection, "m_currentMTU"), Is.EqualTo(NetPeerConfiguration.kDefaultMTU));
-			Assert.That(GetField<int>(connection, "m_largestSuccessfulMTU"), Is.EqualTo(NetPeerConfiguration.kDefaultMTU));
+			Assert.That(GetField<int>(connection, "m_currentMTU"), Is.EqualTo(configuredMTU));
+			Assert.That(GetField<int>(connection, "m_largestSuccessfulMTU"), Is.EqualTo(configuredMTU));
 		});
 	}
 
 	[Test]
 	public void InitExpandMTUUsesConfiguredIPv6MTUAsLargestKnownSuccess()
 	{
-		var connection = CreateConnection(IPAddress.IPv6Loopback);
+		const int configuredMTU = 1_280;
+		var connection = CreateConnection(IPAddress.IPv6Loopback, config => config.MaximumTransmissionUnitV6 = configuredMTU);
 
 		connection.InitExpandMTU(NetTime.Now);
 
 		Assert.Multiple(() =>
 		{
-			Assert.That(GetField<int>(connection, "m_currentMTU"), Is.EqualTo(NetPeerConfiguration.kDefaultMTUV6));
-			Assert.That(GetField<int>(connection, "m_largestSuccessfulMTU"), Is.EqualTo(NetPeerConfiguration.kDefaultMTUV6));
+			Assert.That(GetField<int>(connection, "m_currentMTU"), Is.EqualTo(configuredMTU));
+			Assert.That(GetField<int>(connection, "m_largestSuccessfulMTU"), Is.EqualTo(configuredMTU));
+		});
+	}
+
+	[Test]
+	public void MessageSizeFailureFallsBackToConfiguredMTU()
+	{
+		const int configuredMTU = 700;
+		var connection = CreateConnection(IPAddress.Loopback, config => config.MaximumTransmissionUnit = configuredMTU);
+		connection.InitExpandMTU(NetTime.Now);
+		SetField(connection, "m_currentMTU", 1_400);
+		SetField(connection, "m_largestSuccessfulMTU", 1_400);
+		SetField(connection, "m_expandMTUStatus", GetExpandMTUStatus("Finished"));
+
+		connection.HandleMTUSendFailure(1_401);
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(connection.CurrentMTU, Is.EqualTo(configuredMTU),
+				"Previously the stale expanded MTU remained in use after a socket-level MessageSize failure.");
+			Assert.That(GetField<int>(connection, "m_largestSuccessfulMTU"), Is.EqualTo(configuredMTU));
+			Assert.That(GetField<int>(connection, "m_smallestFailedMTU"), Is.EqualTo(1_401));
+		});
+	}
+
+	[Test]
+	public void ExpandMTUSuccessAtConfiguredCapFinalizesWithoutSendingAnotherProbe()
+	{
+		var connection = CreateConnection(IPAddress.Loopback, config =>
+		{
+			config.MaximumTransmissionUnit = 700;
+			config.MaximumExpandedTransmissionUnit = 875;
+		});
+		connection.InitExpandMTU(NetTime.Now);
+		SetField(connection, "m_expandMTUStatus", GetExpandMTUStatus("InProgress"));
+		SetField(connection, "m_lastSentMTUAttemptSize", 875);
+
+		InvokeHandleExpandMTUSuccess(connection, 875);
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(connection.CurrentMTU, Is.EqualTo(875));
+			Assert.That(GetField<object>(connection, "m_expandMTUStatus"), Is.EqualTo(GetExpandMTUStatus("Finished")));
+			Assert.That(GetField<int>(connection, "m_largestSuccessfulMTU"), Is.EqualTo(875));
+		});
+	}
+
+	[Test]
+	public void ExpansionCapBelowConfiguredMTUDoesNotShrinkMinimum()
+	{
+		var config = new NetPeerConfiguration(nameof(NetConnectionMTUTests))
+		{
+			MaximumTransmissionUnit = 700,
+			MaximumExpandedTransmissionUnit = 600
+		};
+
+		Assert.That(config.MaximumExpandedMTUForEndPoint(new IPEndPoint(IPAddress.Loopback, 12345)), Is.EqualTo(700));
+	}
+
+	[Test]
+	public void ReliableHoleResendBurstRollsExpandedMTUBackToConfiguredMinimum()
+	{
+		var connection = CreateConnection(IPAddress.Loopback, config =>
+		{
+			config.AutoExpandMTU = true;
+			config.MaximumTransmissionUnit = 700;
+			config.ExpandMTULossResendThreshold = 3;
+		});
+		var now = NetTime.Now;
+		connection.InitExpandMTU(now);
+		SetField(connection, "m_currentMTU", 1_000);
+		SetField(connection, "m_largestSuccessfulMTU", 1_000);
+		SetField(connection, "m_expandMTUStatus", GetExpandMTUStatus("Finished"));
+
+		connection.HandleReliableResendForMTU(MessageResendReason.HoleInSequence, now);
+		connection.HandleReliableResendForMTU(MessageResendReason.HoleInSequence, now + 0.1);
+		connection.HandleReliableResendForMTU(MessageResendReason.HoleInSequence, now + 0.2);
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(connection.CurrentMTU, Is.EqualTo(700));
+			Assert.That(GetField<int>(connection, "m_largestSuccessfulMTU"), Is.EqualTo(700));
+			Assert.That(GetField<int>(connection, "m_smallestFailedMTU"), Is.EqualTo(1_000));
+			Assert.That(GetField<int>(connection, "m_mtuLossResends"), Is.Zero);
+			Assert.That(GetField<int>(connection, "m_mtuLossRollbacks"), Is.EqualTo(1));
+		});
+	}
+
+	[Test]
+	public void SingleReliableDelayResendDoesNotRollBackExpandedMTU()
+	{
+		var connection = CreateConnection(IPAddress.Loopback, config =>
+		{
+			config.AutoExpandMTU = true;
+			config.MaximumTransmissionUnit = 700;
+			config.ExpandMTULossResendThreshold = 2;
+		});
+		var now = NetTime.Now;
+		connection.InitExpandMTU(now);
+		SetField(connection, "m_currentMTU", 1_000);
+		SetField(connection, "m_largestSuccessfulMTU", 1_000);
+
+		connection.HandleReliableResendForMTU(MessageResendReason.Delay, now);
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(connection.CurrentMTU, Is.EqualTo(1_000));
+			Assert.That(GetField<int>(connection, "m_mtuLossRollbacks"), Is.Zero);
+		});
+	}
+
+	[Test]
+	public void ReliableDelayResendBurstRollsExpandedMTUBackToConfiguredMinimum()
+	{
+		var connection = CreateConnection(IPAddress.Loopback, config =>
+		{
+			config.AutoExpandMTU = true;
+			config.MaximumTransmissionUnit = 700;
+			config.ExpandMTULossResendThreshold = 2;
+		});
+		var now = NetTime.Now;
+		connection.InitExpandMTU(now);
+		SetField(connection, "m_currentMTU", 1_000);
+		SetField(connection, "m_largestSuccessfulMTU", 1_000);
+
+		connection.HandleReliableResendForMTU(MessageResendReason.Delay, now);
+		connection.HandleReliableResendForMTU(MessageResendReason.Delay, now + 0.1);
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(connection.CurrentMTU, Is.EqualTo(700));
+			Assert.That(GetField<int>(connection, "m_mtuLossRollbacks"), Is.EqualTo(1));
+		});
+	}
+
+	[Test]
+	public void IPv6DontFragmentCanBeSetOnAutoExpandPlatforms()
+	{
+		if (!NetNativeSocket.IsWindows && !NetNativeSocket.IsLinux)
+			Assert.Ignore("Automatic MTU expansion is only supported on Windows and Linux.");
+
+		using var socket = new Socket(AddressFamily.InterNetworkV6, SocketType.Dgram, ProtocolType.Udp);
+		Assert.DoesNotThrow(() =>
+		{
+			NetNativeSocket.SetIPv6DontFragment(socket, true);
+			NetNativeSocket.SetIPv6DontFragment(socket, false);
 		});
 	}
 
 	[Test]
 	public void HandleExpandMTUSuccessIgnoresSuccessWhenExpansionIsNotInProgress()
 	{
-		var connection = CreateConnection(IPAddress.Loopback);
+		const int configuredMTU = 700;
+		var connection = CreateConnection(IPAddress.Loopback, config => config.MaximumTransmissionUnit = configuredMTU);
 		connection.InitExpandMTU(NetTime.Now);
 
 		InvokeHandleExpandMTUSuccess(connection, 1_400);
 
-		Assert.That(GetField<int>(connection, "m_currentMTU"), Is.EqualTo(NetPeerConfiguration.kDefaultMTU));
+		Assert.That(GetField<int>(connection, "m_currentMTU"), Is.EqualTo(configuredMTU));
 	}
 
 	[Test]
 	public void HandleExpandMTUSuccessIgnoresUnexpectedProbeSize()
 	{
-		var connection = CreateConnection(IPAddress.Loopback);
+		const int configuredMTU = 700;
+		var connection = CreateConnection(IPAddress.Loopback, config => config.MaximumTransmissionUnit = configuredMTU);
 		connection.InitExpandMTU(NetTime.Now);
 		SetField(connection, "m_expandMTUStatus", GetExpandMTUStatus("InProgress"));
 		SetField(connection, "m_lastSentMTUAttemptSize", 1_000);
@@ -62,15 +212,16 @@ public sealed class NetConnectionMTUTests
 
 		Assert.Multiple(() =>
 		{
-			Assert.That(GetField<int>(connection, "m_currentMTU"), Is.EqualTo(NetPeerConfiguration.kDefaultMTU));
-			Assert.That(GetField<int>(connection, "m_largestSuccessfulMTU"), Is.EqualTo(NetPeerConfiguration.kDefaultMTU));
+			Assert.That(GetField<int>(connection, "m_currentMTU"), Is.EqualTo(configuredMTU));
+			Assert.That(GetField<int>(connection, "m_largestSuccessfulMTU"), Is.EqualTo(configuredMTU));
 		});
 	}
 
 	[Test]
 	public void HandleExpandMTUSuccessIgnoresProtocolOversizedProbeSize()
 	{
-		var connection = CreateConnection(IPAddress.Loopback);
+		const int configuredMTU = 700;
+		var connection = CreateConnection(IPAddress.Loopback, config => config.MaximumTransmissionUnit = configuredMTU);
 		connection.InitExpandMTU(NetTime.Now);
 		SetField(connection, "m_expandMTUStatus", GetExpandMTUStatus("InProgress"));
 		SetField(connection, "m_lastSentMTUAttemptSize", NetConstants.MaximumFragmentChunkSize);
@@ -79,8 +230,8 @@ public sealed class NetConnectionMTUTests
 
 		Assert.Multiple(() =>
 		{
-			Assert.That(GetField<int>(connection, "m_currentMTU"), Is.EqualTo(NetPeerConfiguration.kDefaultMTU));
-			Assert.That(GetField<int>(connection, "m_largestSuccessfulMTU"), Is.EqualTo(NetPeerConfiguration.kDefaultMTU));
+			Assert.That(GetField<int>(connection, "m_currentMTU"), Is.EqualTo(configuredMTU));
+			Assert.That(GetField<int>(connection, "m_largestSuccessfulMTU"), Is.EqualTo(configuredMTU));
 		});
 	}
 
