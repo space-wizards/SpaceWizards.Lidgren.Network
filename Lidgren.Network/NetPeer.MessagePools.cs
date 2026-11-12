@@ -162,7 +162,7 @@ namespace Lidgren.Network
 			if (m_outgoingMessagesPool == null || !m_outgoingMessagesPool.TryDequeue(out NetOutgoingMessage? retval))
 				retval = new NetOutgoingMessage();
 
-			NetException.Assert(retval.m_recyclingCount == 0, "Wrong recycling count! Should be zero" + retval.m_recyclingCount);
+			NetException.Assert(retval.m_recyclingCount == 0, "Wrong recycling count! Should be zero.");
 
 			if (initialCapacity > 0)
 				retval.m_data = GetStorage(initialCapacity);
